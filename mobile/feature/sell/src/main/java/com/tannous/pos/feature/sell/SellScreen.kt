@@ -242,6 +242,47 @@ fun SellScreen(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
+
+                val attachedCustomer = uiState.attachedCustomer
+                if (attachedCustomer == null) {
+                    TextButton(
+                        onClick = onNavigateToCustomers,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add customer")
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "${attachedCustomer.firstName} ${attachedCustomer.lastName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(onClick = { viewModel.detachCustomer() }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Remove customer"
+                            )
+                        }
+                    }
+                }
                 if (cartItems.isEmpty()) {
                     Text(
                         text = "Cart is empty",

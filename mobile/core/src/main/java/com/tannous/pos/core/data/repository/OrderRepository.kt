@@ -28,7 +28,7 @@ class OrderRepository @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) {
     
-    suspend fun startOrder(shiftId: String): String {
+    suspend fun startOrder(shiftId: String, customerId: String? = null): String {
         val orderId = UUID.randomUUID().toString()
         val order = OrderEntity(
             id = orderId,
@@ -43,7 +43,7 @@ class OrderRepository @Inject constructor(
             receiptNumber = null,
             shiftId = shiftId,
             syncedAt = null,
-            customerId = null,
+            customerId = customerId,
             notes = null
         )
         
@@ -186,7 +186,7 @@ class OrderRepository @Inject constructor(
     ): Result<String> {
         return try {
             // Create order locally first
-            val orderId = startOrder(shiftId)
+            val orderId = startOrder(shiftId, customerId)
             
             // Add all cart items as order lines
             for (cartItem in cartItems) {

@@ -15,8 +15,10 @@ import androidx.navigation.compose.rememberNavController
 import com.tannous.pos.core.data.repository.AuthState
 import com.tannous.pos.core.ui.AuthViewModel
 import com.tannous.pos.feature.auth.LoginScreen
+import com.tannous.pos.feature.customers.CustomersScreen
 import com.tannous.pos.feature.printing.PrintingPreviewScreen
 import com.tannous.pos.feature.sell.SellScreen
+import com.tannous.pos.feature.sell.SellViewModel
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
@@ -71,7 +73,10 @@ fun TannousPosApp(
             }
             
             composable("sell") {
+                val sellBackStackEntry = navController.currentBackStackEntry!!
+                val sellViewModel: SellViewModel = hiltViewModel(sellBackStackEntry)
                 SellScreen(
+                    viewModel = sellViewModel,
                     onNavigateToShifts = { navController.navigate("shifts") },
                     onNavigateToCustomers = { navController.navigate("customers") },
                     onNavigateToSettings = { navController.navigate("settings") }
@@ -85,8 +90,14 @@ fun TannousPosApp(
             }
             
             composable("customers") {
+                val sellBackStackEntry = navController.getBackStackEntry("sell")
+                val sellViewModel: SellViewModel = hiltViewModel(sellBackStackEntry)
                 CustomersScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onCustomerSelected = { customer ->
+                        sellViewModel.attachCustomer(customer)
+                        navController.popBackStack()
+                    }
                 )
             }
             

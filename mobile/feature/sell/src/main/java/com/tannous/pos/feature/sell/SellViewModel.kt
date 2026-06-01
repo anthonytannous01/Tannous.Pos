@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.local.entity.AddOnEntity
 import com.tannous.pos.core.data.local.entity.CategoryEntity
+import com.tannous.pos.core.data.local.entity.CustomerEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.local.entity.OrderEntity
 import com.tannous.pos.core.data.model.OrderDto
@@ -199,6 +200,14 @@ class SellViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    fun attachCustomer(customer: CustomerEntity) {
+        _uiState.update { it.copy(attachedCustomer = customer) }
+    }
+
+    fun detachCustomer() {
+        _uiState.update { it.copy(attachedCustomer = null) }
+    }
     
     /**
      * Creates an order from cart items and finalizes it with the given payments.
@@ -241,7 +250,8 @@ class SellViewModel @Inject constructor(
                 // Create order from cart
                 val createResult = orderRepository.createOrderFromCart(
                     shiftId = activeShift.id,
-                    cartItems = cartItemsForOrder
+                    cartItems = cartItemsForOrder,
+                    customerId = _uiState.value.attachedCustomer?.id
                 )
                 
                 if (createResult.isFailure) {
@@ -291,8 +301,9 @@ class SellViewModel @Inject constructor(
                 val finalizedOrder = finalizeResult.getOrThrow()
                 _finalizedOrder.value = finalizedOrder
                 
-                // Clear cart on success
+                // Clear cart and attached customer on success
                 clearCart()
+                detachCustomer()
                 
                 _uiState.update { it.copy(isLoading = false, isFinalizing = false, error = null) }
                 
@@ -345,7 +356,8 @@ data class SellUiState(
     val activeShiftId: String? = null,
     val shiftOrders: List<OrderEntity> = emptyList(),
     val voidingOrderId: String? = null,
-    val historyVoidError: String? = null
+    val historyVoidError: String? = null,
+    val attachedCustomer: CustomerEntity? = null
 )
 
 data class CartItem(
