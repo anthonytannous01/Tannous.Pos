@@ -1,0 +1,31 @@
+{
+  "_comment": "Additive governance: CI tests assert live swagger still contains these paths and schema root properties. Path keys match swagger.json (e.g. /api/v1/Sync/... with ApiExplorer v1 + PascalCase controller names). Update intentionally when contracts change; do not remove entries without mobile/API review.",
+  "paths": [
+    { "template": "/api/v1/Sync/pull", "methods": [ "get" ] },
+    { "template": "/api/v1/Sync/push", "methods": [ "post" ] },
+    { "template": "/api/v1/Auth/login", "methods": [ "post" ] },
+    { "template": "/api/v1/Orders", "methods": [ "get" ] }
+  ],
+  "schemas": [
+    {
+      "schemaId": "Tannous.Pos.Application.DTOs.Sync.PullResponseDto",
+      "requiredRootProperties": [ "cursor", "upserts", "deletes" ]
+    },
+    {
+      "schemaId": "Tannous.Pos.Application.DTOs.Sync.PushRequestDto",
+      "requiredRootProperties": [ "deviceId", "operations" ]
+    },
+    {
+      "schemaId": "Tannous.Pos.Application.DTOs.Sync.OutboxOperationDto",
+      "requiredRootProperties": [ "type", "operationId", "payload" ]
+    },
+    {
+      "schemaId": "Tannous.Pos.Application.DTOs.Orders.OrderDto",
+      "requiredRootProperties": [ "id", "orderNumber", "orderLines", "status", "totalAmount" ]
+    },
+    {
+      "schemaId": "Tannous.Pos.Application.DTOs.Auth.LoginResponseDto",
+      "requiredRootProperties": [ "accessToken", "refreshToken", "expiresIn", "user" ]
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "_comment": "When expectConcurrencyPropertyNames is non-empty for a type, architecture tests fail if those CLR members are removed (guard against accidental rollback of optimistic concurrency). Empty lists = visibility-only today.",
+  "entities": [
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.Order",
+      "sourceFile": "Tannous.Pos.Domain/Entities/Order.cs",
+      "expectConcurrencyPropertyNames": [ "RowVersion" ]
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.InventoryItem",
+      "sourceFile": "Tannous.Pos.Domain/Entities/InventoryItem.cs",
+      "expectConcurrencyPropertyNames": [ "RowVersion" ]
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.Shift",
+      "sourceFile": "Tannous.Pos.Domain/Entities/Shift.cs",
+      "expectConcurrencyPropertyNames": [ "RowVersion" ]
+    }
+  ],
+  "notInDomain": [ "InventoryStock" ]
+}

@@ -1,0 +1,362 @@
+{
+  "info": {
+    "name": "Tannous POS API",
+    "description": "API collection for Tannous POS system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": "postman-device-001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"owner\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('authToken', response.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "Get Customers (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/customers?page=1&pageSize=20&q=john&sort=name&dir=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "customers"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "q",
+                  "value": "john"
+                },
+                {
+                  "key": "sort",
+                  "value": "name"
+                },
+                {
+                  "key": "dir",
+                  "value": "asc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"123 Main St\",\n  \"notes\": \"VIP customer\",\n  \"allergies\": \"None\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "customers"]
+            }
+          }
+        },
+        {
+          "name": "Update Customer (with Version)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John Updated\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.updated@example.com\",\n  \"phone\": \"+1234567890\",\n  \"address\": \"456 Oak St\",\n  \"notes\": \"Updated VIP customer\",\n  \"allergies\": \"None\",\n  \"version\": \"base64-encoded-version-bytes\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "customers", "{{customerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": null,\n  \"orderLines\": [\n    {\n      \"menuItemId\": \"{{menuItemId}}\",\n      \"quantity\": 2,\n      \"unitPrice\": 10.99,\n      \"addOns\": []\n    }\n  ],\n  \"notes\": \"Test order\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Finalize Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payments\": [\n    {\n      \"method\": \"Cash\",\n      \"amount\": 21.98,\n      \"transactionId\": \"TXN001\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/orders/{{orderId}}/finalize",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "orders", "{{orderId}}", "finalize"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Database Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/admin/db/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "admin", "db", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Reconcile Receipts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/admin/receipts/reconcile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "admin", "receipts", "reconcile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sync",
+      "item": [
+        {
+          "name": "Sync Pull",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/sync/pull?sinceCursor={{lastCursor}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "sync", "pull"],
+              "query": [
+                {
+                  "key": "sinceCursor",
+                  "value": "{{lastCursor}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sync Push (with Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              },
+              {
+                "key": "Device-Id",
+                "value": "{{deviceId}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceId\": \"{{deviceId}}\",\n  \"sinceCursor\": \"{{lastCursor}}\",\n  \"operations\": [\n    {\n      \"type\": \"UpdateCustomer\",\n      \"opId\": \"{{$guid}}\",\n      \"payload\": {\n        \"id\": \"{{customerId}}\",\n        \"firstName\": \"John Updated\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.updated@example.com\",\n        \"version\": \"base64-encoded-version-bytes\"\n      }\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1.0/sync/push",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1.0", "sync", "push"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

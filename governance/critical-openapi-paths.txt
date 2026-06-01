@@ -1,0 +1,30 @@
+# Critical API surface for mobile + POS governance.
+#
+# OPENAPI — each line must appear as a path key in swagger.json (case-insensitive).
+# PROBE — each line is an HTTP GET against the running CI API (minimal endpoints
+#         such as health are not always listed in Swagger; PROBE avoids false failures).
+#
+# Lines starting with # are ignored. Empty lines ignored.
+
+# --- OPENAPI ---
+# Path keys follow swagger.json (ApiExplorer group format uses v1 + PascalCase controller names).
+/api/v1/Auth/login
+/api/v1/Auth/refresh
+/api/v1/Catalog/menu-items
+/api/v1/Catalog/categories
+/api/v1/Customers
+/api/v1/Settings
+/api/v1/Orders
+/api/v1/Shifts/current
+/api/v1/Orders/{id}/finalize
+/api/v1/Orders/{id}/void
+/api/v1/Shifts/open
+/api/v1/Shifts/{id}/close
+/api/v1/Shifts/{id}/cash-drop
+/api/v1/Sync/push
+/api/v1/Sync/pull
+/api/Inventory/ingredients/{id}
+
+# --- PROBE (not required in swagger.json) ---
+PROBE /api/v1.0/health/live
+PROBE /api/v1.0/health/ready

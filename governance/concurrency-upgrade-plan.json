@@ -1,0 +1,59 @@
+{
+  "_comment": "Governance planning metadata: RowVersion byte[] exists on Order, InventoryItem, Shift (see Domain + migration). Payment / InventoryMovement remain planning-only entries until an explicit phase.",
+  "entities": [
+    {
+      "name": "InventoryItem",
+      "recommendedToken": "RowVersion",
+      "risk": "inventory",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "SyncController"
+      ],
+      "migrationComplexity": "medium",
+      "notes": "CurrentStock updates from finalize and sync paths; RowVersion on InventoryItem enables optimistic concurrency — stale writers get DbUpdateConcurrencyException; sync push paths remain separate risk surface."
+    },
+    {
+      "name": "InventoryMovement",
+      "recommendedToken": "RowVersion",
+      "risk": "inventory",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "SyncController"
+      ],
+      "migrationComplexity": "medium",
+      "notes": "Append-heavy ledger rows; duplicate sync replays can still insert duplicate movements without durable per-operation idempotency — token helps detect conflicting writes, not replay dedupe alone."
+    },
+    {
+      "name": "Order",
+      "recommendedToken": "RowVersion",
+      "risk": "money",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "VoidOrderCommandHandler"
+      ],
+      "migrationComplexity": "medium",
+      "notes": "Aggregate root now carries RowVersion; concurrent finalize/void paths surface conflicts via Application handlers + HTTP 409 — Payment rows remain non-tokenized child entities."
+    },
+    {
+      "name": "Payment",
+      "recommendedToken": "RowVersion",
+      "risk": "money",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler"
+      ],
+      "migrationComplexity": "low",
+      "notes": "Rows created inside finalize transaction; Paid idempotency avoids duplicate rows for same finalize key, but broader concurrent mutation windows remain unversioned at the row level."
+    },
+    {
+      "name": "Shift",
+      "recommendedToken": "RowVersion",
+      "risk": "money",
+      "hotPaths": [
+        "ShiftsController",
+        "SyncController"
+      ],
+      "migrationComplexity": "medium",
+      "notes": "Shift rows include RowVersion; concurrent shift mutations can conflict — broader sync/outbox semantics unchanged."
+    }
+  ]
+}

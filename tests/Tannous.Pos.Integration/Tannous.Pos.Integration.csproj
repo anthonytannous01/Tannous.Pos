@@ -1,0 +1,104 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.0" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Tannous.Pos.Integration.Infrastructure" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Tannous.Pos.WebApi\Tannous.Pos.WebApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Tannous.Pos.Integration\Infrastructure\*.cs" Link="Integration\Infrastructure\%(Filename)%(Extension)" />
+    <Compile Include="..\..\Tannous.Pos.Integration\IntegrationTestBase.cs" Link="Integration\IntegrationTestBase.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OrderFinalizationTests.cs" Link="Integration\OrderFinalizationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\SyncDurableReplayIntegrationTests.cs" Link="Integration\SyncDurableReplayIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\ReplayConcurrencyStressIntegrationTests.cs" Link="Integration\ReplayConcurrencyStressIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\SyncBatchClassificationIntegrationTests.cs" Link="Integration\SyncBatchClassificationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\PaidVoidInventoryReversalIntegrationTests.cs" Link="Integration\PaidVoidInventoryReversalIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\PaidVoidRefundIntegrationTests.cs" Link="Integration\PaidVoidRefundIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OrderSettlementIntegrationTests.cs" Link="Integration\OrderSettlementIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\SyncReconciliationIntegrationTests.cs" Link="Integration\SyncReconciliationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAuditIntegrationTests.cs" Link="Integration\OperationalAuditIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAuditDiagnosticsIntegrationTests.cs" Link="Integration\OperationalAuditDiagnosticsIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\ReconciliationWorkflowIntegrationTests.cs" Link="Integration\ReconciliationWorkflowIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalForensicExportIntegrationTests.cs" Link="Integration\OperationalForensicExportIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalRetentionIntegrationTests.cs" Link="Integration\OperationalRetentionIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalResilienceIntegrationTests.cs" Link="Integration\OperationalResilienceIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalIncidentCorrelationIntegrationTests.cs" Link="Integration\OperationalIncidentCorrelationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAlertDiagnosticsIntegrationTests.cs" Link="Integration\OperationalAlertDiagnosticsIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalResilienceCacheIntegrationTests.cs" Link="Integration\OperationalResilienceCacheIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalResilienceCacheBypassIntegrationTests.cs" Link="Integration\OperationalResilienceCacheBypassIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalReconciliationCacheIntegrationTests.cs" Link="Integration\OperationalReconciliationCacheIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalReconciliationCacheBypassIntegrationTests.cs" Link="Integration\OperationalReconciliationCacheBypassIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalIncidentCacheIntegrationTests.cs" Link="Integration\OperationalIncidentCacheIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAlertCacheIntegrationTests.cs" Link="Integration\OperationalAlertCacheIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalForensicCacheIntegrationTests.cs" Link="Integration\OperationalForensicCacheIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheDiagnosticsIntegrationTests.cs" Link="Integration\OperationalCacheDiagnosticsIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheInvalidationIntegrationTests.cs" Link="Integration\OperationalCacheInvalidationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAlertCacheLayerIntegrationTests.cs" Link="Integration\OperationalAlertCacheLayerIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheAdaptiveIntegrationTests.cs" Link="Integration\OperationalCacheAdaptiveIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheGovernanceHardeningIntegrationTests.cs" Link="Integration\OperationalCacheGovernanceHardeningIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheGovernanceFinalizationIntegrationTests.cs" Link="Integration\OperationalCacheGovernanceFinalizationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheInvalidationGovernanceIntegrationTests.cs" Link="Integration\OperationalCacheInvalidationGovernanceIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCacheConsistencyGovernanceIntegrationTests.cs" Link="Integration\OperationalCacheConsistencyGovernanceIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalPressureGovernanceIntegrationTests.cs" Link="Integration\OperationalPressureGovernanceIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceProjectionConsistencyIntegrationTests.cs" Link="Integration\OperationalGovernanceProjectionConsistencyIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernancePipelineIntegrationTests.cs" Link="Integration\OperationalGovernancePipelineIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceRuntimeProtectionIntegrationTests.cs" Link="Integration\OperationalGovernanceRuntimeProtectionIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceSnapshotReuseIntegrationTests.cs" Link="Integration\OperationalGovernanceSnapshotReuseIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceFingerprintingIntegrationTests.cs" Link="Integration\OperationalGovernanceFingerprintingIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceProductionReadinessIntegrationTests.cs" Link="Integration\OperationalGovernanceProductionReadinessIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalGovernanceDeterminismIntegrationTests.cs" Link="Integration\OperationalGovernanceDeterminismIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalDashboardIntegrationTests.cs" Link="Integration\OperationalDashboardIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalWorkbenchIntegrationTests.cs" Link="Integration\OperationalWorkbenchIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalInventoryWorkbenchIntegrationTests.cs" Link="Integration\OperationalInventoryWorkbenchIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalReplayWorkbenchIntegrationTests.cs" Link="Integration\OperationalReplayWorkbenchIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCompositionIntegrationTests.cs" Link="Integration\OperationalCompositionIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalTrendIntegrationTests.cs" Link="Integration\OperationalTrendIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalNavigationIntegrationTests.cs" Link="Integration\OperationalNavigationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalTimelineIntegrationTests.cs" Link="Integration\OperationalTimelineIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalTriageIntegrationTests.cs" Link="Integration\OperationalTriageIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalRecoveryIntegrationTests.cs" Link="Integration\OperationalRecoveryIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalIncidentIntegrationTests.cs" Link="Integration\OperationalIncidentIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalCausalityIntegrationTests.cs" Link="Integration\OperationalCausalityIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalSituationRoomIntegrationTests.cs" Link="Integration\OperationalSituationRoomIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalSimulationIntegrationTests.cs" Link="Integration\OperationalSimulationIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalPlaybookIntegrationTests.cs" Link="Integration\OperationalPlaybookIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalPatternIntegrationTests.cs" Link="Integration\OperationalPatternIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalIntegrityIntegrationTests.cs" Link="Integration\OperationalIntegrityIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalExperienceGraphIntegrationTests.cs" Link="Integration\OperationalExperienceGraphIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalDigestIntegrationTests.cs" Link="Integration\OperationalDigestIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalEvolutionIntegrationTests.cs" Link="Integration\OperationalEvolutionIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalTopologyIntegrationTests.cs" Link="Integration\OperationalTopologyIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalConvergenceIntegrationTests.cs" Link="Integration\OperationalConvergenceIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalSurvivabilityIntegrationTests.cs" Link="Integration\OperationalSurvivabilityIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalAttentionIntegrationTests.cs" Link="Integration\OperationalAttentionIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalStrategyIntegrationTests.cs" Link="Integration\OperationalStrategyIntegrationTests.cs" />
+    <Compile Include="..\..\Tannous.Pos.Integration\OperationalEquilibriumIntegrationTests.cs" Link="Integration\OperationalEquilibriumIntegrationTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

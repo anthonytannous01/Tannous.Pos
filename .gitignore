@@ -1,0 +1,32 @@
+# .NET / ASP.NET Core
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.log
+appsettings.Development.json
+
+# Android / Gradle
+mobile/.gradle/
+mobile/**/build/
+mobile/**/.transforms/
+mobile/local.properties
+mobile/*.keystore
+mobile/*.jks
+mobile/app/google-services.json
+
+# Secrets / environment
+.env
+*.pfx
+*.p12
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+.vscode/

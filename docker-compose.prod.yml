@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tannous_pos}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tannous_network
+
+  api:
+    image: ghcr.io/${GITHUB_REPOSITORY:-your-org}/tannous-pos-api:latest
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      # Program.cs reads DB_CONNECTION_STRING first; DefaultConnection key does not bind to appsettings "Default"
+      - DB_CONNECTION_STRING=Host=postgres;Database=${POSTGRES_DB:-tannous_pos};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD};Pooling=true;Maximum Pool Size=100;Timeout=15;Command Timeout=30
+      - JWT_KEY=${JWT_KEY}
+      - JWT_ISSUER=${JWT_ISSUER:-TannousPOS}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-TannousPOS}
+      # JwtAuthService reads JWT_ACCESS_TOKEN_EXPIRY_MINUTES or Jwt:AccessTokenExpiryInMinutes (not Jwt:ExpiryInMinutes)
+      - JWT_ACCESS_TOKEN_EXPIRY_MINUTES=${JWT_EXPIRY_MINUTES:-240}
+      - Cors__AllowedOrigins__0=${CORS_ORIGIN_1}
+      - Cors__AllowedOrigins__1=${CORS_ORIGIN_2}
+    ports:
+      - "0.0.0.0:8080:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - tannous_network
+    volumes:
+      - data_protection_keys:/app/keys
+
+volumes:
+  postgres_data:
+    driver: local
+  data_protection_keys:
+    driver: local
+
+networks:
+  tannous_network:
+    driver: bridge

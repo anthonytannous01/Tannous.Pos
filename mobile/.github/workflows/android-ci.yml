@@ -1,0 +1,351 @@
+name: Android CI/CD
+
+on:
+  push:
+    branches: [ main, release/* ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.parallel=true -Dorg.gradle.caching=true
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.1.4
+
+      - name: Generate release notes
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            scripts\changelog.bat
+          else
+            bash scripts/changelog.sh
+          fi
+
+      - name: Decode keystore
+        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          mkdir -p ci
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ci/keystore.jks
+
+      - name: Write Play service account
+        run: |
+          mkdir -p ci
+          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > ci/play-service-account.json
+
+      - name: Write Firebase service account
+        run: |
+          mkdir -p ci
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ci/firebase-service-account.json
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Run unit tests
+        run: ./gradlew :core:test :app:test
+
+      - name: Run lint checks
+        run: ./gradlew :app:lint
+
+      - name: Assemble staging release AAB
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:bundleStagingRelease
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-aab
+          path: app/build/outputs/bundle/stagingRelease/*.aab
+          retention-days: 30
+
+      - name: Upload build reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-reports
+          path: |
+            app/build/reports/
+            app/build/outputs/
+          retention-days: 30
+
+  distribute-qa:
+    name: Distribute to QA
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.1.4
+
+      - name: Write Firebase service account
+        run: |
+          mkdir -p ci
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > ci/firebase-service-account.json
+
+      - name: Generate release notes
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            scripts\changelog.bat
+          else
+            bash scripts/changelog.sh
+          fi
+
+      - name: Download AAB
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-aab
+          path: dist
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Distribute to Firebase App Distribution (staging)
+        env:
+          FIREBASE_TESTERS: ${{ secrets.QA_TESTERS_EMAILS }}
+        run: |
+          ./gradlew :app:appDistributionUploadStagingRelease \
+            -PfirebaseServiceCredentialsFile=ci/firebase-service-account.json \
+            -PfirebaseTesters="${FIREBASE_TESTERS}" \
+            -PfirebaseReleaseNotesFile=ci/release-notes.txt
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('QA Distribution')
+            );
+            
+            const commentBody = `🚀 **QA Distribution Complete**
+            
+            **Build**: Staging Release AAB
+            **Distribution**: Firebase App Distribution
+            **Testers**: ${process.env.FIREBASE_TESTERS || 'QA Team'}
+            **Release Notes**: Generated from commits since last tag
+            
+            The app has been distributed to QA testers via Firebase App Distribution.`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                comment_id: botComment.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody,
+              });
+            }
+        env:
+          FIREBASE_TESTERS: ${{ secrets.QA_TESTERS_EMAILS }}
+
+  publish-play:
+    name: Publish to Play Console
+    needs: build-test
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.1.4
+
+      - name: Write Play service account
+        run: |
+          mkdir -p ci
+          echo '${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}' > ci/play-service-account.json
+
+      - name: Decode keystore
+        run: |
+          mkdir -p ci
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > ci/keystore.jks
+
+      - name: Generate release notes
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            scripts\changelog.bat
+          else
+            bash scripts/changelog.sh
+          fi
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Build production AAB
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:bundleProdRelease
+
+      - name: Upload to Play Console (internal track)
+        run: |
+          ./gradlew :app:publishProdRelease \
+            -PplayServiceAccountCredentials=ci/play-service-account.json \
+            -PplayTrack=internal \
+            -PreleaseNotesFile=ci/release-notes.txt
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-aab
+          path: app/build/outputs/bundle/prodRelease/*.aab
+          retention-days: 90
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            ## 🚀 Production Release
+            
+            **Build Number**: ${{ github.run_number }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: ${{ github.sha }}
+            
+            ### Release Notes
+            ```
+            $(cat ci/release-notes.txt)
+            ```
+            
+            ### Artifacts
+            - Production AAB uploaded to Play Console internal track
+            - Build artifacts available in workflow run
+            
+            ### Next Steps
+            1. Review the release in Play Console
+            2. Promote to beta track after internal testing
+            3. Monitor crash reports and analytics
+          draft: false
+          prerelease: false
+
+  security-scan:
+    name: Security Scan
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  notify:
+    name: Notify Team
+    needs: [build-test, distribute-qa, publish-play]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Notify Slack
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#android-releases'
+          text: |
+            🚀 Android CI/CD Pipeline - ${{ job.status }}
+            
+            **Repository**: ${{ github.repository }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: ${{ github.sha }}
+            
+            **Jobs**:
+            - Build & Test: ${{ needs.build-test.result }}
+            - QA Distribution: ${{ needs.distribute-qa.result }}
+            - Play Publishing: ${{ needs.publish-play.result }}
+            
+            **Workflow**: ${{ github.workflow }}
+            **Run**: ${{ github.run_number }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

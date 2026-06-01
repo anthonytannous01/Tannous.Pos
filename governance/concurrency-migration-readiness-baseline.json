@@ -1,0 +1,30 @@
+{
+  "_comment": "Migration readiness visibility. If expectRetentionSubstrings lists a substring, it must remain in the inspected source (entity file and BaseEntity.cs when includeBaseEntity is true). Empty = visibility-only.",
+  "entities": [
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.Order",
+      "sourceFile": "Tannous.Pos.Domain/Entities/Order.cs",
+      "includeBaseEntity": true
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.InventoryItem",
+      "sourceFile": "Tannous.Pos.Domain/Entities/InventoryItem.cs",
+      "includeBaseEntity": true
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.Shift",
+      "sourceFile": "Tannous.Pos.Domain/Entities/Shift.cs",
+      "includeBaseEntity": true
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.Payment",
+      "sourceFile": "Tannous.Pos.Domain/Entities/Payment.cs",
+      "includeBaseEntity": true
+    },
+    {
+      "typeName": "Tannous.Pos.Domain.Entities.InventoryMovement",
+      "sourceFile": "Tannous.Pos.Domain/Entities/InventoryMovement.cs",
+      "includeBaseEntity": true
+    }
+  ]
+}

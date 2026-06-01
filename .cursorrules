@@ -1,0 +1,58 @@
+# Tannous.Pos AI Implementation Rules
+
+Use these rules as mandatory defaults for all generated code in this repository.
+
+## 1) Architecture and Dependencies
+- Preserve layered flow: `WebApi` -> `Application` -> `Domain`; `Infrastructure` implements persistence/external services.
+- Do not add dependencies that invert layer direction.
+- For new backend business logic, use CQRS (`MediatR` command/query handlers) in `Application`.
+- Do not introduce new architectural styles or frameworks unless already established in the touched area.
+
+## 2) Controller / Service / Repository Responsibilities
+- Keep controllers transport-focused (HTTP concerns, auth attributes, result mapping, status codes).
+- Put business orchestration in `Application` handlers/services, not controllers.
+- Repository interfaces belong in `Domain`; implementations belong in `Infrastructure`.
+- Use `UnitOfWork`/transactions for multi-step writes requiring atomicity.
+
+## 3) DTO and API Contract Rules
+- Use DTOs at API/application boundaries; do not expose EF entities directly in API responses.
+- Keep API route/versioning consistent with existing versioned conventions for new/updated endpoints.
+- Keep request/response and error shapes consistent for equivalent endpoints.
+- Prefer existing pagination DTO conventions where pagination is required.
+
+## 4) Validation and Error Handling
+- Use FluentValidation validators in `Application` for request/business validation.
+- Keep controller validation limited to transport checks (headers/route/body format).
+- Prefer centralized exception-to-response handling conventions over ad-hoc per-endpoint error shapes.
+- Do not duplicate reusable header checks when shared filters/middleware already exist.
+
+## 5) Security and Logging
+- Keep JWT/auth settings in configuration/environment; never hardcode secrets.
+- Use existing role/policy constants and authorization extensions; avoid inline role strings.
+- Preserve rate-limiting, idempotency, and device validation patterns for write-sensitive endpoints.
+- Follow Serilog + correlation-id/log enrichment conventions; do not log sensitive data.
+- Keep CORS policies environment-appropriate; do not widen production exposure by default.
+
+## 6) Async, Naming, and Code Style
+- Use async end-to-end for I/O paths and suffix async methods with `Async`.
+- Avoid fake async wrappers around synchronous operations in new code.
+- Use existing naming conventions: `PascalCase` types/methods/properties, `camelCase` locals/params, `I*` interfaces, `*Command/*Query/*Handler/*Validator/*Dto`.
+- Prefer constructor injection and focused, single-responsibility classes.
+- Follow nullable reference conventions and explicit null handling used in this codebase.
+
+## 7) Folder Placement and Change Discipline
+- Place files in the matching layer/feature folder (`Domain`, `Application`, `Infrastructure`, `WebApi`, `mobile` modules).
+- Keep `EF Core` model/migration changes inside Infrastructure migration flow.
+- Maintain consistency with existing local mapping style in touched modules (currently mostly manual mapping).
+- Prefer incremental consistency improvements over broad rewrites.
+
+## 8) Operational Cognition Sustainability (post–Step 45)
+
+The operational cognition stack (Steps 29–45) is complete. Future steps are **sustainability-governed**, not expansion-driven.
+
+- **Before any step:** pass all four admission gates — Semantic, Complexity, Continuity, Operator (see `IMPROVEMENT_REPORT.md`).
+- **Do not add cognition layers** without gate justification; prefer Direction A (consolidation), B (delivery surfaces), or C (historical continuity).
+- **Consolidation only:** light, explicit shared primitives — no generic cognition engines, reflection, metadata-driven aggregation, or plugin systems.
+- **Every step report** must include "Remaining Limitations & Architectural Pressure Assessment."
+- **Hard constraints unchanged:** bounded FIFO stores, process-local, GET-only, sequential hub composition, inline aggregations, no synthesis-service recursion, advisory-only.
+

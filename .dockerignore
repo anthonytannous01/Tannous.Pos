@@ -1,0 +1,25 @@
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+
+# Git / IDE
+.git
+.gitignore
+**/.vs
+**/.idea
+**/*.user
+**/*.suo
+
+# Android / Gradle
+**/mobile/**/build/
+**/mobile/.gradle/
+
+# Local env (never bake secrets into images)
+.env
+.env.*
+!.env.example
+
+# Docs and tooling noise (optional; speeds docker build context)
+**/*.md
+.github/

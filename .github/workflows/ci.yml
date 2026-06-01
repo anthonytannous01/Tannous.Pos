@@ -1,0 +1,219 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build (Release)
+      run: dotnet build --no-restore --configuration Release --verbosity minimal
+
+    - name: Format check
+      run: dotnet format --verify-no-changes
+
+    - name: Architecture & governance tests
+      run: dotnet test tests/Tannous.Pos.Architecture.Tests/Tannous.Pos.Architecture.Tests.csproj --no-build --configuration Release --verbosity normal
+
+    - name: Governance debt scan and budget
+      shell: pwsh
+      run: |
+        pwsh -NoProfile -ExecutionPolicy Bypass -File governance/scan-debt.ps1
+        pwsh -NoProfile -ExecutionPolicy Bypass -File governance/check-debt-budget.ps1
+
+    - name: Download previous debt report from main (best-effort, PRs)
+      if: github.event_name == 'pull_request'
+      continue-on-error: true
+      uses: dawidd6/action-download-artifact@v6
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        workflow: ci.yml
+        branch: main
+        name: governance-debt-report
+        path: governance-previous
+
+    - name: Governance metrics summary (grouped + deltas)
+      shell: pwsh
+      run: pwsh -NoProfile -ExecutionPolicy Bypass -File governance/print-debt-summary.ps1
+
+    - name: Upload governance debt report
+      uses: actions/upload-artifact@v4
+      with:
+        name: governance-debt-report
+        path: governance/debt-report.json
+        retention-days: 30
+
+    - name: Generate OpenAPI specification
+      env:
+        ASPNETCORE_ENVIRONMENT: Development
+        ConnectionStrings__Default: "Host=127.0.0.1;Database=openapi_ci;Username=ci;Password=ci"
+      run: |
+        set -euo pipefail
+        dotnet build Tannous.Pos.WebApi/Tannous.Pos.WebApi.csproj --configuration Release --no-restore
+        dotnet run --project Tannous.Pos.WebApi/Tannous.Pos.WebApi.csproj --configuration Release --urls "http://localhost:5000" &
+        API_PID=$!
+        cleanup() {
+          kill $API_PID || true
+        }
+        trap cleanup EXIT
+        for i in {1..30}; do
+          if curl -fsS http://localhost:5000/health/ready >/dev/null; then
+            break
+          fi
+          sleep 1
+        done
+        curl -fsS http://localhost:5000/api/v1.0/health/ready >/dev/null
+        curl -fsS -o OpenAPI.json http://localhost:5000/swagger/v1/swagger.json
+
+        python3 << 'PY'
+        import json
+        import pathlib
+        import subprocess
+        import sys
+
+        spec = json.load(open("OpenAPI.json"))
+        paths = set(spec.get("paths") or ())
+        paths_lower = {p.lower() for p in paths}
+        baseline = pathlib.Path("governance/critical-openapi-paths.txt")
+        openapi_required = []
+        probe_paths = []
+        for raw in baseline.read_text(encoding="utf-8").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.upper().startswith("PROBE"):
+                parts = line.split(None, 1)
+                if len(parts) < 2:
+                    print("FAIL: malformed PROBE line:", raw)
+                    sys.exit(1)
+                probe_paths.append(parts[1].strip())
+                continue
+            openapi_required.append(line)
+
+        missing = [p for p in openapi_required if p.lower() not in paths_lower]
+        if missing:
+            print("FAIL: OpenAPI is missing required path keys:")
+            for p in missing:
+                print("  -", p)
+            print("\nSample of actual paths:")
+            for p in sorted(paths)[:50]:
+                print(" ", p)
+            sys.exit(1)
+        print("OK:", len(openapi_required), "critical OpenAPI paths present.")
+
+        base = "http://localhost:5000"
+        for rel in probe_paths:
+            url = base + rel
+            print("PROBE", url)
+            subprocess.run(["curl", "-fsS", url], check=True)
+        print("OK:", len(probe_paths), "HTTP probes succeeded.")
+        PY
+
+    - name: Upload OpenAPI specification
+      uses: actions/upload-artifact@v4
+      with:
+        name: openapi-spec
+        path: OpenAPI.json
+        retention-days: 30
+
+  docker:
+    needs: governance
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/tannous-pos-api:${{ github.sha }}
+          ghcr.io/${{ github.repository }}/tannous-pos-api:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'ghcr.io/${{ github.repository }}/tannous-pos-api:${{ github.sha }}'
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v3
+      if: always()
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+  integration-tests:
+    needs: governance
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: tannous_pos_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build integration test project
+      run: dotnet build tests/Tannous.Pos.Integration/Tannous.Pos.Integration.csproj --no-restore --configuration Release
+
+    - name: Run integration tests
+      run: dotnet test tests/Tannous.Pos.Integration/Tannous.Pos.Integration.csproj --no-build --verbosity normal --configuration Release
+      env:
+        ConnectionStrings__Default: "Host=localhost;Database=tannous_pos_test;Username=postgres;Password=password"
+        Jwt__Key: "test-jwt-key-for-integration-tests-only"
+        Jwt__Issuer: "TannousPOS"
+        Jwt__Audience: "TannousPOS"
+        Jwt__ExpiryInMinutes: "480"

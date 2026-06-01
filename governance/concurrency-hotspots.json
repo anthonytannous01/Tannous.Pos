@@ -1,0 +1,54 @@
+{
+  "_comment": "Governance inventory: mutating paths + EF optimistic concurrency on Order, InventoryItem, Shift (byte[] RowVersion). Payment / InventoryMovement rows remain untokenized.",
+  "entities": [
+    {
+      "name": "Order",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "VoidOrderCommandHandler"
+      ],
+      "risk": "money",
+      "hasConcurrencyToken": true,
+      "notes": "Open→Paid and void transitions; RowVersion on Order — concurrent writers get DbUpdateConcurrencyException surfaced as HTTP 409 via handlers / global exception mapping."
+    },
+    {
+      "name": "InventoryItem",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "SyncController"
+      ],
+      "risk": "inventory",
+      "hasConcurrencyToken": true,
+      "notes": "Stock quantities updated during finalize and sync paths; RowVersion on InventoryItem — stale inventory updates fail concurrent SaveChanges (finalize inventory deductions compete safely when conflicts occur)."
+    },
+    {
+      "name": "InventoryMovement",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler",
+        "SyncController"
+      ],
+      "risk": "inventory",
+      "hasConcurrencyToken": false,
+      "notes": "Deduction rows created on finalize; sync processors can add movements — replay/duplicate sync can duplicate movements without durable per-operation idempotency on all processors."
+    },
+    {
+      "name": "Shift",
+      "hotPaths": [
+        "ShiftsController",
+        "SyncController"
+      ],
+      "risk": "money",
+      "hasConcurrencyToken": true,
+      "notes": "Shift cash state and lifecycle; RowVersion on Shift — concurrent close/cash-drop paths can conflict with 409; broader sync/outbox idempotency gaps remain separate debt."
+    },
+    {
+      "name": "Payment",
+      "hotPaths": [
+        "FinalizeOrderCommandHandler"
+      ],
+      "risk": "money",
+      "hasConcurrencyToken": false,
+      "notes": "Payments added inside finalize transaction; Paid short-circuit avoids duplicate adds for same order, but no concurrency token on Payment rows for broader races."
+    }
+  ]
+}

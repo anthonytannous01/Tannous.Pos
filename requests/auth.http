@@ -1,0 +1,31 @@
+@baseUrl = http://localhost:8080
+@apiVersion = 1.0
+@deviceId = dev-terminal-01
+@username = owner
+@password = password123
+
+### Login
+POST {{baseUrl}}/api/v{{apiVersion}}/auth/login
+Content-Type: application/json
+Device-Id: {{deviceId}}
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+### Refresh token (paste refresh token from login response)
+POST {{baseUrl}}/api/v{{apiVersion}}/auth/refresh
+Content-Type: application/json
+Device-Id: {{deviceId}}
+
+{
+  "refreshToken": "PASTE_REFRESH_TOKEN_HERE"
+}
+
+### Get current profile (paste access token from login response)
+GET {{baseUrl}}/api/v{{apiVersion}}/auth/profile
+Authorization: Bearer PASTE_ACCESS_TOKEN_HERE
+Device-Id: {{deviceId}}
+Accept: application/json
+

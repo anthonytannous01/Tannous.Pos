@@ -1,0 +1,4 @@
+{
+  "posDbContextInjectionCountMax": 16,
+  "repositoryInjectionCountMax": 46
+}
