@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -169,8 +170,48 @@ fun SellScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Categories
-                if (uiState.categories.isNotEmpty()) {
+                // Categories / empty catalog
+                if (uiState.categories.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Catalog not loaded",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Connect to the network and sync to load the menu.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                            Button(onClick = { viewModel.refreshCatalogData() }) {
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Sync Catalog")
+                            }
+                        }
+                    }
+                } else {
                     Text(
                         text = "Categories",
                         style = MaterialTheme.typography.titleMedium,
@@ -189,7 +230,7 @@ fun SellScreen(
                         }
                     }
                 }
-                
+
                 // Menu Items
                 if (selectedCategory != null) {
                     val categoryItems = uiState.menuItems.filter { it.categoryId == selectedCategory!!.id }

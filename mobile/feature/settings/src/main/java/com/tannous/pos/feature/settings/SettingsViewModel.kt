@@ -2,6 +2,8 @@ package com.tannous.pos.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tannous.pos.core.data.local.dao.OutboxDao
+import com.tannous.pos.core.data.local.entity.OutboxStatus
 import com.tannous.pos.core.data.model.UpdateSettingsRequest
 import com.tannous.pos.core.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,12 +12,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.math.BigDecimal
 import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val outboxDao: OutboxDao
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -23,6 +27,24 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadSettings()
+        loadFailedSyncCount()
+    }
+
+    private fun loadFailedSyncCount() {
+        viewModelScope.launch {
+            try {
+                val counts = outboxDao.getOperationCounts()
+                val failedCount = counts
+                    .filter {
+                        it.status == OutboxStatus.FAILED ||
+                            it.status == OutboxStatus.FAILED_CONFLICT
+                    }
+                    .sumOf { it.count }
+                _uiState.update { it.copy(failedSyncCount = failedCount) }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not load outbox counts")
+            }
+        }
     }
 
     fun loadSettings() {
@@ -153,7 +175,8 @@ data class SettingsUiState(
     val receiptFooter: String = "",
     val requireCustomerInfo: Boolean = false,
     val enableInventoryTracking: Boolean = true,
-    val enableRecipeManagement: Boolean = false
+    val enableRecipeManagement: Boolean = false,
+    val failedSyncCount: Int = 0
 )
 
 enum class SettingsField {

@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 78):** `:core`, `:feature:shifts`, `:feature:sell`, `:feature:reports`, `:feature:inventory`, `:app:compileDevDebugKotlin` **PASS** (currency hardening — Step 78).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 79):** `:core`, `:feature:sell`, `:feature:settings`, `:app:compileDevDebugKotlin` **PASS** (sell empty state + failed sync banner — Step 79).
+
+**Step 79 (Sell empty state + failed outbox banner — mobile Batch 18):** **`SellScreen`**: empty catalog state (icon, message, Sync Catalog → **`refreshCatalogData()`**, full-screen spinner via existing **`isLoading`**). **`SettingsViewModel`**: inject **`OutboxDao`**, load **`failedSyncCount`** (FAILED + FAILED_CONFLICT only). **`SettingsScreen`**: error-container banner when count > 0. Audited: token refresh on push ✅; order history filter in-memory ✅. Build PASS.
 
 **Step 78 (Currency hardening — mobile Batch 17):** Centralized **`currencyFormatterFor`** in **`core/util/CurrencyFormat.kt`**; removed duplicates from **`SellScreen`**, **`feature:reports`**, **`feature:inventory`**. **`ShiftUiState.currencyCode`** + **`ShiftViewModel`** loads from **`SettingsRepository`** (SellViewModel pattern). **`ShiftsScreen`** and **`CashPaymentDialog`** use **`remember(currencyCode)`** with dynamic formatter (no hardcoded **`Locale.US`**). Build PASS.
 
