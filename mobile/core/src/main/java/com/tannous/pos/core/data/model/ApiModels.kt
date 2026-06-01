@@ -56,18 +56,39 @@ data class RefreshTokenResponse(
 // Business Settings
 @Serializable
 data class BusinessSettingsDto(
-    val id: String,
-    val businessName: String,
-    val address: String?,
-    val phone: String?,
-    val email: String?,
-    val website: String?,
-    val taxNumber: String?,
+    val id: String = "",
+    @SerialName("storeName")
+    val storeName: String = "",
+    val address: String? = null,
+    val phone: String? = null,
+    val email: String? = null,
+    val website: String? = null,
+    val taxNumber: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val taxRate: BigDecimal = BigDecimal.ZERO,
+    val currency: String = "USD",
+    val taxEnabled: Boolean = false,
+    val receiptHeader: String? = null,
+    val receiptFooter: String? = null,
+    val requireCustomerInfo: Boolean = false,
+    val enableInventoryTracking: Boolean = false,
+    val enableRecipeManagement: Boolean = false
+)
+
+@Serializable
+data class UpdateSettingsRequest(
+    val storeName: String,
+    val address: String? = null,
+    val phone: String? = null,
+    val email: String? = null,
+    val website: String? = null,
+    val taxNumber: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val taxRate: BigDecimal,
     val currency: String,
-    val receiptHeader: String?,
-    val receiptFooter: String?,
+    val taxEnabled: Boolean,
+    val receiptHeader: String? = null,
+    val receiptFooter: String? = null,
     val requireCustomerInfo: Boolean,
     val enableInventoryTracking: Boolean,
     val enableRecipeManagement: Boolean

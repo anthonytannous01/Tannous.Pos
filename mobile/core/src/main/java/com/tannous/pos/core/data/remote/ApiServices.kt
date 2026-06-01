@@ -118,6 +118,9 @@ interface SettingsService {
     
     @GET("settings")
     suspend fun getSettings(): BusinessSettingsDto
+
+    @PUT("settings")
+    suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
 }
 
 interface HealthService {
