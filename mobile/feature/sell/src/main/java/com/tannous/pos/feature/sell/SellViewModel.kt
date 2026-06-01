@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.local.entity.AddOnEntity
 import com.tannous.pos.core.data.local.entity.CategoryEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
+import com.tannous.pos.core.data.local.entity.OrderEntity
 import com.tannous.pos.core.data.model.OrderDto
 import com.tannous.pos.core.data.model.PaymentDto
 import com.tannous.pos.core.data.repository.CatalogRepository
@@ -43,6 +44,29 @@ class SellViewModel @Inject constructor(
         observeCatalogData()
         observeAddOns()
         loadCurrency()
+        loadActiveShiftAndOrderHistory()
+    }
+
+    private fun loadActiveShiftAndOrderHistory() {
+        viewModelScope.launch {
+            try {
+                val shift = shiftRepository.getActiveShift()
+                if (shift != null) {
+                    _uiState.update { it.copy(activeShiftId = shift.id) }
+                    observeShiftOrders(shift.id)
+                }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not load active shift for order history")
+            }
+        }
+    }
+
+    private fun observeShiftOrders(shiftId: String) {
+        viewModelScope.launch {
+            orderRepository.getShiftOrders(shiftId).collect { orders ->
+                _uiState.update { it.copy(shiftOrders = orders) }
+            }
+        }
     }
 
     private fun loadCurrency() {
@@ -290,6 +314,23 @@ class SellViewModel @Inject constructor(
     fun clearFinalizedOrder() {
         _finalizedOrder.value = null
     }
+
+    fun voidShiftOrder(orderId: String, reason: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(voidingOrderId = orderId, historyVoidError = null) }
+            val result = orderRepository.voidOrder(orderId, reason)
+            _uiState.update { state ->
+                state.copy(
+                    voidingOrderId = null,
+                    historyVoidError = result.exceptionOrNull()?.message
+                )
+            }
+        }
+    }
+
+    fun clearHistoryVoidError() {
+        _uiState.update { it.copy(historyVoidError = null) }
+    }
 }
 
 data class SellUiState(
@@ -300,7 +341,11 @@ data class SellUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val isFinalizing: Boolean = false,
-    val currencyCode: String = "USD"
+    val currencyCode: String = "USD",
+    val activeShiftId: String? = null,
+    val shiftOrders: List<OrderEntity> = emptyList(),
+    val voidingOrderId: String? = null,
+    val historyVoidError: String? = null
 )
 
 data class CartItem(

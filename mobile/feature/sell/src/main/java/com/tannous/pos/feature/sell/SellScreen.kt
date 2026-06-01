@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -21,6 +22,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.local.entity.CategoryEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
+import com.tannous.pos.core.data.local.entity.OrderEntity
+import com.tannous.pos.core.data.repository.isAlreadyVoidedStatus
+import com.tannous.pos.core.data.repository.isVoidableStatus
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.*
@@ -56,8 +60,20 @@ fun SellScreen(
     var showPaymentDialog by remember { mutableStateOf(false) }
     var showAddOnPicker by remember { mutableStateOf(false) }
     var pendingMenuItem by remember { mutableStateOf<MenuItemEntity?>(null) }
-    
+    var showOrderHistory by remember { mutableStateOf(false) }
+    var historyVoidDialogOrderId by remember { mutableStateOf<String?>(null) }
+    var historyVoidReason by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val snackbarHostState = remember { SnackbarHostState() }
+
     val currencyFormatter = remember(uiState.currencyCode) { currencyFormatterFor(uiState.currencyCode) }
+
+    LaunchedEffect(uiState.historyVoidError) {
+        uiState.historyVoidError?.let { error ->
+            snackbarHostState.showSnackbar(error, duration = SnackbarDuration.Long)
+            viewModel.clearHistoryVoidError()
+        }
+    }
 
     fun onAddMenuItem(menuItem: MenuItemEntity) {
         if (menuItem.hasAddOns && uiState.availableAddOns.isNotEmpty()) {
@@ -80,10 +96,19 @@ fun SellScreen(
     }
     
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Sell") },
                 actions = {
+                    if (uiState.shiftOrders.isNotEmpty()) {
+                        IconButton(onClick = { showOrderHistory = true }) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = "Order history"
+                            )
+                        }
+                    }
                     IconButton(onClick = onNavigateToShifts) {
                         Icon(Icons.Default.Info, contentDescription = "Shifts")
                     }
@@ -298,6 +323,93 @@ fun SellScreen(
             }
         }
         
+        if (showOrderHistory) {
+            ModalBottomSheet(
+                onDismissRequest = { showOrderHistory = false },
+                sheetState = sheetState
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 32.dp)
+                ) {
+                    Text(
+                        text = "This Shift's Orders",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(vertical = 12.dp)
+                    )
+
+                    if (uiState.shiftOrders.isEmpty()) {
+                        Text(
+                            text = "No orders this shift",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 400.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.shiftOrders, key = { it.id }) { order ->
+                                ShiftOrderRow(
+                                    order = order,
+                                    currencyFormatter = currencyFormatter,
+                                    isVoiding = uiState.voidingOrderId == order.id,
+                                    onVoidClick = {
+                                        historyVoidDialogOrderId = order.id
+                                        historyVoidReason = ""
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        historyVoidDialogOrderId?.let { orderId ->
+            AlertDialog(
+                onDismissRequest = {
+                    historyVoidDialogOrderId = null
+                    historyVoidReason = ""
+                },
+                title = { Text("Void Order") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Enter a reason to void this order.")
+                        OutlinedTextField(
+                            value = historyVoidReason,
+                            onValueChange = { if (it.length <= 500) historyVoidReason = it },
+                            label = { Text("Reason") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            supportingText = { Text("${historyVoidReason.length}/500") }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.voidShiftOrder(orderId, historyVoidReason)
+                            historyVoidDialogOrderId = null
+                            historyVoidReason = ""
+                        },
+                        enabled = historyVoidReason.isNotBlank()
+                    ) {
+                        Text("Void", color = MaterialTheme.colorScheme.error)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        historyVoidDialogOrderId = null
+                        historyVoidReason = ""
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         if (showAddOnPicker && pendingMenuItem != null) {
             AddOnPickerDialog(
                 menuItem = pendingMenuItem!!,
@@ -441,4 +553,56 @@ fun CartItemRow(
             )
         }
     }
+}
+
+@Composable
+private fun ShiftOrderRow(
+    order: OrderEntity,
+    currencyFormatter: NumberFormat,
+    isVoiding: Boolean,
+    onVoidClick: () -> Unit
+) {
+    val statusText = when {
+        order.status.isAlreadyVoidedStatus() -> "Voided"
+        order.receiptNumber?.startsWith("PENDING") == true -> "Sync pending"
+        order.status.isVoidableStatus() -> "Paid / Open"
+        else -> order.status
+    }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = order.orderNumber ?: order.id.take(8),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = "${currencyFormatter.format(order.total)}  ·  $statusText",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        when {
+            isVoiding -> CircularProgressIndicator(modifier = Modifier.size(20.dp))
+            order.status.isAlreadyVoidedStatus() -> Unit
+            order.receiptNumber?.startsWith("PENDING") == true -> {
+                Text(
+                    text = "Sync first",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            order.status.isVoidableStatus() -> {
+                TextButton(onClick = onVoidClick) {
+                    Text("Void", color = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
+    }
+    Divider(modifier = Modifier.padding(top = 8.dp))
 }
