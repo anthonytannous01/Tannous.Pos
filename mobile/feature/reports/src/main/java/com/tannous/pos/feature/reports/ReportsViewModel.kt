@@ -2,6 +2,7 @@ package com.tannous.pos.feature.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tannous.pos.core.data.model.CogsReportDto
 import com.tannous.pos.core.data.model.EodReportDto
 import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.SettingsRepository
@@ -76,6 +77,63 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    fun selectTab(index: Int) {
+        _uiState.update { it.copy(selectedTab = index) }
+        if (index == 1 &&
+            _uiState.value.cogsReport == null &&
+            !_uiState.value.isCogsLoading
+        ) {
+            loadCogsReport()
+        }
+    }
+
+    fun loadCogsReport(
+        from: LocalDate = _uiState.value.cogsFromDate,
+        to: LocalDate = _uiState.value.cogsToDate
+    ) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCogsLoading = true, cogsError = null) }
+            try {
+                val report = reportsService.getCogsReport(from.toString(), to.toString())
+                _uiState.update {
+                    it.copy(
+                        isCogsLoading = false,
+                        cogsReport = report,
+                        cogsFromDate = from,
+                        cogsToDate = to
+                    )
+                }
+            } catch (e: HttpException) {
+                val msg = if (e.code() == 403) {
+                    "Reports require owner access"
+                } else {
+                    "Server error: ${e.code()}"
+                }
+                _uiState.update { it.copy(isCogsLoading = false, cogsError = msg) }
+            } catch (e: IOException) {
+                _uiState.update {
+                    it.copy(
+                        isCogsLoading = false,
+                        cogsError = "No connection. Connect to load reports."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isCogsLoading = false,
+                        cogsError = e.message ?: "Failed to load COGS report"
+                    )
+                }
+            }
+        }
+    }
+
+    fun selectCogsRange(from: LocalDate, to: LocalDate) {
+        if (from != _uiState.value.cogsFromDate || to != _uiState.value.cogsToDate) {
+            loadCogsReport(from, to)
+        }
+    }
+
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
@@ -86,5 +144,11 @@ data class ReportsUiState(
     val error: String? = null,
     val report: EodReportDto? = null,
     val selectedDate: LocalDate = LocalDate.now(),
-    val currencyCode: String = "USD"
+    val currencyCode: String = "USD",
+    val selectedTab: Int = 0,
+    val cogsFromDate: LocalDate = LocalDate.now().withDayOfMonth(1),
+    val cogsToDate: LocalDate = LocalDate.now(),
+    val cogsReport: CogsReportDto? = null,
+    val isCogsLoading: Boolean = false,
+    val cogsError: String? = null
 )

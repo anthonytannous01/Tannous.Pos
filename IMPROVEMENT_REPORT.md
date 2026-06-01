@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 73):** `:feature:printing`, `:app:compileDevDebugKotlin` **PASS** (printing preview actions — Step 73).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 74):** `:core`, `:feature:reports`, `:app:compileDevDebugKotlin` **PASS** (COGS tab in reports — Step 74).
+
+**Step 74 (COGS tab in reports — mobile Batch 13):** **`CogsReportDto`/`CogsItemDto`** + **`ReportsService.getCogsReport`**. **`ReportsViewModel`**: tab index, COGS month range (default current month), auto-load on first COGS tab switch only. **`ReportsScreen`**: pinned **`TabRow`** (EOD | COGS) outside scroll; EOD unchanged; COGS month prev/next with **`minOf`** clamp to today; summary cards + ingredient table; same **403**/retry as EOD. Build: `:core` + `:feature:reports` + `:app` PASS.
 
 **Step 73 (Printing preview actions — mobile Batch 12):** **`PrintingPreviewViewModel`**: injects **`Printer`** + **`SettingsRepository`**; **`printSampleReceipt`** builds sample **`ReceiptToPrint`** (footer from settings); snackbar via **`printResult`**. **`PrintingPreviewScreen`**: Copy → clipboard + snackbar (`ContentCopy` icon); Share → system chooser; Print Receipt / Test Print → ViewModel with loading state. **`hilt-navigation-compose`** added to **`feature:printing`**. Build: `:feature:printing` + `:app` PASS.
 

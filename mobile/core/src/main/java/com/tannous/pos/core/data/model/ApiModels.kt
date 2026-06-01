@@ -119,6 +119,29 @@ data class EodTopItemDto(
     val sales: BigDecimal = BigDecimal.ZERO
 )
 
+@Serializable
+data class CogsReportDto(
+    val from: String = "",
+    val to: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val salesTotal: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val cogsTotal: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val grossMargin: BigDecimal = BigDecimal.ZERO,
+    val ingredientUsage: List<CogsItemDto> = emptyList()
+)
+
+@Serializable
+data class CogsItemDto(
+    val ingredientId: String = "",
+    val name: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val qtyUsed: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val cost: BigDecimal = BigDecimal.ZERO
+)
+
 // Catalog
 @Serializable
 data class CategoryDto(

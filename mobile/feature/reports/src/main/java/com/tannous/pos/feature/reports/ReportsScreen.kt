@@ -18,6 +18,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,135 +54,317 @@ fun ReportsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(scrollState)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = {
-                    viewModel.selectDate(uiState.selectedDate.minusDays(1))
-                }) {
-                    Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Previous day")
-                }
-                Text(
-                    text = dateLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
+            TabRow(selectedTabIndex = uiState.selectedTab) {
+                Tab(
+                    selected = uiState.selectedTab == 0,
+                    onClick = { viewModel.selectTab(0) },
+                    text = { Text("End of Day") }
                 )
-                IconButton(
-                    onClick = { viewModel.selectDate(uiState.selectedDate.plusDays(1)) },
-                    enabled = uiState.selectedDate.isBefore(LocalDate.now())
-                ) {
-                    Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Next day")
-                }
+                Tab(
+                    selected = uiState.selectedTab == 1,
+                    onClick = { viewModel.selectTab(1) },
+                    text = { Text("COGS") }
+                )
             }
 
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                uiState.error != null -> {
-                    Text(
-                        text = uiState.error!!,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(8.dp)
-                    )
-                    Button(
-                        onClick = { viewModel.loadReport() },
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text("Retry")
-                    }
-                }
-                uiState.report != null -> {
-                    val report = uiState.report!!
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                if (uiState.selectedTab == 0) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SummaryCard(
-                            label = "Net Sales",
-                            value = currencyFormatter.format(report.netSales),
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryCard(
-                            label = "Orders",
-                            value = report.ordersCount.toString(),
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryCard(
-                            label = "Avg Ticket",
-                            value = currencyFormatter.format(report.avgTicket),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SummaryCard(
-                            label = "Cash Drops",
-                            value = currencyFormatter.format(report.cashDrops),
-                            modifier = Modifier.weight(1f)
-                        )
-                        SummaryCard(
-                            label = "Variance",
-                            value = report.variance?.let { currencyFormatter.format(it) } ?: "—",
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    if (report.topItems.isNotEmpty()) {
+                        IconButton(onClick = {
+                            viewModel.selectDate(uiState.selectedDate.minusDays(1))
+                        }) {
+                            Icon(
+                                Icons.Default.KeyboardArrowLeft,
+                                contentDescription = "Previous day"
+                            )
+                        }
                         Text(
-                            text = "Top Items",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            text = dateLabel,
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
                         )
-                        report.topItems.forEach { item ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = item.name,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text("×${item.qty}")
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(currencyFormatter.format(item.sales))
-                            }
+                        IconButton(
+                            onClick = {
+                                viewModel.selectDate(uiState.selectedDate.plusDays(1))
+                            },
+                            enabled = uiState.selectedDate.isBefore(LocalDate.now())
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowRight,
+                                contentDescription = "Next day"
+                            )
                         }
                     }
 
-                    TextButton(
-                        onClick = { viewModel.loadReport() },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Refresh")
+                    when {
+                        uiState.isLoading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        uiState.error != null -> {
+                            Text(
+                                text = uiState.error!!,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            Button(
+                                onClick = { viewModel.loadReport() },
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                        uiState.report != null -> {
+                            val report = uiState.report!!
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SummaryCard(
+                                    label = "Net Sales",
+                                    value = currencyFormatter.format(report.netSales),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SummaryCard(
+                                    label = "Orders",
+                                    value = report.ordersCount.toString(),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SummaryCard(
+                                    label = "Avg Ticket",
+                                    value = currencyFormatter.format(report.avgTicket),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SummaryCard(
+                                    label = "Cash Drops",
+                                    value = currencyFormatter.format(report.cashDrops),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SummaryCard(
+                                    label = "Variance",
+                                    value = report.variance?.let { currencyFormatter.format(it) }
+                                        ?: "—",
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            if (report.topItems.isNotEmpty()) {
+                                Text(
+                                    text = "Top Items",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                                report.topItems.forEach { item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = item.name,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text("×${item.qty}")
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(currencyFormatter.format(item.sales))
+                                    }
+                                }
+                            }
+
+                            TextButton(
+                                onClick = { viewModel.loadReport() },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Refresh")
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = "No data for this date.",
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
                     }
                 }
-                else -> {
-                    Text(
-                        text = "No data for this date.",
-                        modifier = Modifier.padding(8.dp)
+
+                if (uiState.selectedTab == 1) {
+                    CogsDateRangeRow(
+                        fromDate = uiState.cogsFromDate,
+                        onRangeSelected = { from, to -> viewModel.selectCogsRange(from, to) }
                     )
+
+                    when {
+                        uiState.isCogsLoading -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        uiState.cogsError != null -> {
+                            Text(
+                                text = uiState.cogsError!!,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(8.dp)
+                            )
+                            Button(
+                                onClick = { viewModel.loadCogsReport() },
+                                modifier = Modifier.align(Alignment.CenterHorizontally)
+                            ) {
+                                Text("Retry")
+                            }
+                        }
+                        uiState.cogsReport != null -> {
+                            val report = uiState.cogsReport!!
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                SummaryCard(
+                                    label = "Sales",
+                                    value = currencyFormatter.format(report.salesTotal),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SummaryCard(
+                                    label = "COGS",
+                                    value = currencyFormatter.format(report.cogsTotal),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                SummaryCard(
+                                    label = "Margin",
+                                    value = currencyFormatter.format(report.grossMargin),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+
+                            if (report.ingredientUsage.isNotEmpty()) {
+                                Text(
+                                    text = "Ingredient Usage",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = "Ingredient",
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                    Text(
+                                        text = "Qty Used",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Cost",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                }
+                                Divider()
+                                report.ingredientUsage.forEach { item ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = item.name,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(item.qtyUsed.stripTrailingZeros().toPlainString())
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Text(currencyFormatter.format(item.cost))
+                                    }
+                                }
+                            } else {
+                                Text(
+                                    text = "No ingredient usage data for this period.",
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+
+                            TextButton(
+                                onClick = { viewModel.loadCogsReport() },
+                                modifier = Modifier.align(Alignment.End)
+                            ) {
+                                Icon(Icons.Default.Refresh, contentDescription = null)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Refresh")
+                            }
+                        }
+                        else -> {
+                            Text(
+                                text = "Select a date range and tap Refresh.",
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CogsDateRangeRow(
+    fromDate: LocalDate,
+    onRangeSelected: (LocalDate, LocalDate) -> Unit
+) {
+    val currentMonth = LocalDate.now().withDayOfMonth(1)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = {
+            val prevFirst = fromDate.minusMonths(1).withDayOfMonth(1)
+            val prevLast = prevFirst.plusMonths(1).minusDays(1)
+            onRangeSelected(prevFirst, prevLast)
+        }) {
+            Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Previous month")
+        }
+        Text(
+            text = "${fromDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${fromDate.year}",
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.titleMedium
+        )
+        IconButton(
+            onClick = {
+                val nextFirst = fromDate.plusMonths(1).withDayOfMonth(1)
+                val nextLast = minOf(nextFirst.plusMonths(1).minusDays(1), LocalDate.now())
+                onRangeSelected(nextFirst, nextLast)
+            },
+            enabled = fromDate.withDayOfMonth(1).isBefore(currentMonth)
+        ) {
+            Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Next month")
         }
     }
 }

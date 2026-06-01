@@ -129,6 +129,12 @@ interface ReportsService {
     suspend fun getEodReport(
         @Query("date") date: String? = null
     ): EodReportDto
+
+    @GET("reports/cogs")
+    suspend fun getCogsReport(
+        @Query("from") from: String,
+        @Query("to") to: String
+    ): CogsReportDto
 }
 
 interface HealthService {
