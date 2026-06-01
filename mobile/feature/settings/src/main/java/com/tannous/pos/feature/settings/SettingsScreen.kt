@@ -24,6 +24,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPrintingPreview: () -> Unit,
     onNavigateToReports: () -> Unit,
+    onNavigateToOrderHistory: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,31 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Reports")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToOrderHistory
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Order History")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,

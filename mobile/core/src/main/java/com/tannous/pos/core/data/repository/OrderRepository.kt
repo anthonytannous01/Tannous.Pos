@@ -10,9 +10,13 @@ import com.tannous.pos.core.data.model.VoidOrderRequest
 import java.io.IOException
 import com.tannous.pos.core.sync.OutboxManager
 import kotlinx.coroutines.flow.Flow
+import retrofit2.HttpException
 import timber.log.Timber
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -259,6 +263,30 @@ class OrderRepository @Inject constructor(
 
     fun getShiftOrders(shiftId: String): Flow<List<OrderEntity>> =
         orderDao.getByShift(shiftId)
+
+    fun observeAllOrders(): Flow<List<OrderEntity>> = orderDao.getAll()
+
+    suspend fun refreshOrders(): Result<Int> {
+        return try {
+            val startDate = LocalDate.now()
+                .minusDays(7)
+                .atStartOfDay(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+            val orders = orderService.getOrders(startDate = startDate)
+            orders.forEach { dto ->
+                orderDao.insert(dto.toEntityForHistory())
+            }
+            Timber.d("Refreshed ${orders.size} orders from server")
+            Result.success(orders.size)
+        } catch (e: HttpException) {
+            Result.failure(RuntimeException("Server error: ${e.code()}"))
+        } catch (e: IOException) {
+            Result.failure(IOException("Offline — showing cached orders"))
+        } catch (e: Exception) {
+            Timber.e(e, "Error refreshing orders")
+            Result.failure(e)
+        }
+    }
 
     suspend fun voidOrder(orderId: String, reason: String): Result<OrderDto> {
         val trimmed = reason.trim()

@@ -9,16 +9,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.tannous.pos.core.data.repository.AuthState
 import com.tannous.pos.core.ui.AuthViewModel
 import com.tannous.pos.feature.auth.LoginScreen
 import com.tannous.pos.feature.customers.CustomersScreen
 import com.tannous.pos.feature.printing.PrintingPreviewScreen
+import com.tannous.pos.core.data.repository.toOrderDto
+import com.tannous.pos.feature.sell.OrderHistoryScreen
+import com.tannous.pos.feature.sell.OrderReceiptViewModel
+import com.tannous.pos.feature.sell.ReceiptScreen
 import com.tannous.pos.feature.sell.SellScreen
 import com.tannous.pos.feature.sell.SellViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
@@ -80,8 +87,38 @@ fun TannousPosApp(
                     viewModel = sellViewModel,
                     onNavigateToShifts = { navController.navigate("shifts") },
                     onNavigateToCustomers = { navController.navigate("customers") },
-                    onNavigateToSettings = { navController.navigate("settings") }
+                    onNavigateToSettings = { navController.navigate("settings") },
+                    onNavigateToOrderHistory = { navController.navigate("order-history") }
                 )
+            }
+
+            composable("order-history") {
+                OrderHistoryScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToReceipt = { orderId ->
+                        navController.navigate("receipt/$orderId")
+                    }
+                )
+            }
+
+            composable(
+                route = "receipt/{orderId}",
+                arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+                val receiptViewModel: OrderReceiptViewModel = hiltViewModel()
+                val orderEntity by receiptViewModel.order.collectAsStateWithLifecycle()
+
+                LaunchedEffect(orderId) {
+                    receiptViewModel.loadOrder(orderId)
+                }
+
+                orderEntity?.let { entity ->
+                    ReceiptScreen(
+                        order = entity.toOrderDto(),
+                        onDone = { navController.popBackStack() }
+                    )
+                }
             }
             
             composable("shifts") {
@@ -106,7 +143,8 @@ fun TannousPosApp(
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToPrintingPreview = { navController.navigate("printing-preview") },
-                    onNavigateToReports = { navController.navigate("reports") }
+                    onNavigateToReports = { navController.navigate("reports") },
+                    onNavigateToOrderHistory = { navController.navigate("order-history") }
                 )
             }
 

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,6 +51,7 @@ fun SellScreen(
     onNavigateToShifts: () -> Unit,
     onNavigateToCustomers: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToOrderHistory: () -> Unit,
     viewModel: SellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -105,9 +107,15 @@ fun SellScreen(
                         IconButton(onClick = { showOrderHistory = true }) {
                             Icon(
                                 imageVector = Icons.Default.List,
-                                contentDescription = "Order history"
+                                contentDescription = "This shift's orders"
                             )
                         }
+                    }
+                    IconButton(onClick = onNavigateToOrderHistory) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Order history"
+                        )
                     }
                     IconButton(onClick = onNavigateToShifts) {
                         Icon(Icons.Default.Info, contentDescription = "Shifts")

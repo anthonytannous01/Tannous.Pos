@@ -57,6 +57,13 @@ interface OrderService {
     
     @GET("orders/{id}")
     suspend fun getOrder(@Path("id") id: String): OrderDto
+
+    @GET("orders")
+    suspend fun getOrders(
+        @Query("startDate") startDate: String? = null,
+        @Query("endDate") endDate: String? = null,
+        @Query("status") status: String? = null
+    ): List<OrderDto>
     
     @POST("orders/{id}/finalize")
     suspend fun finalizeOrder(
