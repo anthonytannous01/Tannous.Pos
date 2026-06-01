@@ -26,24 +26,9 @@ import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.local.entity.OrderEntity
 import com.tannous.pos.core.data.repository.isAlreadyVoidedStatus
 import com.tannous.pos.core.data.repository.isVoidableStatus
+import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 import java.text.NumberFormat
-import java.util.*
-
-/**
- * Builds a currency formatter for the given ISO 4217 code (e.g. "USD", "LBP"), keeping the
- * device locale's number formatting but overriding the currency symbol. Falls back to US dollars
- * if the code is not a valid ISO 4217 currency.
- */
-fun currencyFormatterFor(currencyCode: String): NumberFormat {
-    return try {
-        NumberFormat.getCurrencyInstance().apply {
-            currency = Currency.getInstance(currencyCode)
-        }
-    } catch (e: Exception) {
-        NumberFormat.getCurrencyInstance(Locale.US)
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

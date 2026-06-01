@@ -14,6 +14,7 @@ import com.tannous.pos.core.printing.ReceiptFormatter
 import com.tannous.pos.core.printing.ReceiptItem
 import com.tannous.pos.core.printing.ReceiptPayment
 import com.tannous.pos.core.printing.ReceiptToPrint
+import com.tannous.pos.core.util.currencyFormatterFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow

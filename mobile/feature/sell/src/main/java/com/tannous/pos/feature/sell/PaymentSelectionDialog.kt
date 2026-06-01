@@ -9,9 +9,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.tannous.pos.core.data.model.PaymentDto
+import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
-import java.text.NumberFormat
-import java.util.*
 
 enum class PaymentMethod {
     CASH, CARD, OTHER

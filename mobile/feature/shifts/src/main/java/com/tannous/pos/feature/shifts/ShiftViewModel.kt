@@ -3,11 +3,13 @@ package com.tannous.pos.feature.shifts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.ShiftDto
+import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.data.repository.ShiftRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.math.BigDecimal
@@ -15,14 +17,32 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ShiftViewModel @Inject constructor(
-    private val shiftRepository: ShiftRepository
+    private val shiftRepository: ShiftRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(ShiftUiState())
     val uiState: StateFlow<ShiftUiState> = _uiState.asStateFlow()
     
     init {
+        loadCurrency()
         loadActiveShift()
+    }
+
+    private fun loadCurrency() {
+        viewModelScope.launch {
+            try {
+                settingsRepository.getSettings()
+            } catch (e: Exception) {
+                Timber.w(e, "Settings warm-up failed — using defaults")
+            }
+            try {
+                val currency = settingsRepository.getCurrency()
+                _uiState.update { it.copy(currencyCode = currency) }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not load currency for shifts; using default")
+            }
+        }
     }
     
     fun loadActiveShift() {
@@ -146,6 +166,7 @@ class ShiftViewModel @Inject constructor(
 data class ShiftUiState(
     val isLoading: Boolean = false,
     val activeShift: ShiftDto? = null,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val currencyCode: String = "USD"
 )
 

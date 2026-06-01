@@ -1,4 +1,4 @@
-package com.tannous.pos.feature.reports
+package com.tannous.pos.core.util
 
 import java.text.NumberFormat
 import java.util.Currency

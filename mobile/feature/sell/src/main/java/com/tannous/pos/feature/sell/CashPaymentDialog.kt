@@ -8,21 +8,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
-import java.text.NumberFormat
-import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashPaymentDialog(
     total: BigDecimal,
+    currencyCode: String = "USD",
     onConfirm: (BigDecimal) -> Unit,
     onDismiss: () -> Unit
 ) {
     var cashTendered by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
     
-    val currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US)
+    val currencyFormatter = remember(currencyCode) {
+        currencyFormatterFor(currencyCode)
+    }
     val change = try {
         val tendered = BigDecimal(cashTendered)
         if (tendered >= total) tendered - total else BigDecimal.ZERO

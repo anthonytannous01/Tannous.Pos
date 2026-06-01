@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.InventoryItemDto
+import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
