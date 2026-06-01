@@ -131,6 +131,15 @@ interface SettingsService {
     suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
 }
 
+interface InventoryService {
+
+    @GET("inventory")
+    suspend fun getInventoryItems(): List<InventoryItemDto>
+
+    @GET("inventory/low-stock")
+    suspend fun getLowStockItems(): List<InventoryItemDto>
+}
+
 interface ReportsService {
 
     @GET("reports/eod")

@@ -142,6 +142,39 @@ data class CogsItemDto(
     val cost: BigDecimal = BigDecimal.ZERO
 )
 
+// Inventory
+@Serializable
+data class InventoryItemDto(
+    val id: String = "",
+    val ingredientId: String = "",
+    val ingredientName: String = "",
+    val ingredientUnit: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val currentStock: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val minimumStock: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val maximumStock: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val averageCost: BigDecimal = BigDecimal.ZERO,
+    val lastUpdated: String = "",
+    val createdAt: String = ""
+)
+
+@Serializable
+data class AdjustInventoryPayload(
+    val ingredientId: String,
+    val quantity: String,
+    val reason: String
+)
+
+@Serializable
+data class RecordWastagePayload(
+    val ingredientId: String,
+    val quantity: String,
+    val reason: String
+)
+
 // Catalog
 @Serializable
 data class CategoryDto(

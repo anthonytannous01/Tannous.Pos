@@ -151,6 +151,7 @@ dependencies {
     implementation(project(":feature:reports"))
     implementation(project(":feature:settings"))
     implementation(project(":feature:printing"))
+    implementation(project(":feature:inventory"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

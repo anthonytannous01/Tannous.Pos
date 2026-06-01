@@ -175,6 +175,12 @@ object NetworkModule {
     fun provideReportsService(retrofit: Retrofit): ReportsService {
         return retrofit.create(ReportsService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideInventoryService(retrofit: Retrofit): InventoryService {
+        return retrofit.create(InventoryService::class.java)
+    }
     
     @Provides
     @Singleton
