@@ -63,6 +63,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.retrofit)
+    implementation(libs.timber)
 
     // Testing
     testImplementation(libs.androidx.test.ext.junit)

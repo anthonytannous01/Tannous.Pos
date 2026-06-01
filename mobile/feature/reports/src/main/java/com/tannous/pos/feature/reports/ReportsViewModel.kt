@@ -1,5 +1,7 @@
 package com.tannous.pos.feature.reports
 
+import android.content.Context
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.CogsReportDto
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
+import timber.log.Timber
 import java.io.IOException
 import java.time.LocalDate
 import javax.inject.Inject
@@ -137,6 +140,60 @@ class ReportsViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    fun exportCsv(context: Context) {
+        val date = _uiState.value.selectedDate
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportError = null) }
+            try {
+                val dateStr = if (date == LocalDate.now()) null else date.toString()
+                val response = reportsService.getEodCsv(dateStr)
+
+                if (!response.isSuccessful) {
+                    val msg = if (response.code() == 403) {
+                        "Reports require owner access"
+                    } else {
+                        "Export failed: ${response.code()}"
+                    }
+                    _uiState.update { it.copy(isExporting = false, exportError = msg) }
+                    return@launch
+                }
+
+                val csvText = response.body()?.use { it.string() }.orEmpty()
+                if (csvText.isBlank()) {
+                    _uiState.update {
+                        it.copy(isExporting = false, exportError = "No data to export")
+                    }
+                    return@launch
+                }
+
+                val label = if (date == LocalDate.now()) "today" else date.toString()
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(Intent.EXTRA_SUBJECT, "EOD Report $label")
+                    putExtra(Intent.EXTRA_TEXT, csvText)
+                }
+                val chooserIntent = Intent.createChooser(shareIntent, "Export EOD Report")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(chooserIntent)
+
+                _uiState.update { it.copy(isExporting = false) }
+            } catch (e: IOException) {
+                _uiState.update {
+                    it.copy(isExporting = false, exportError = "No connection. Cannot export.")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "CSV export error")
+                _uiState.update {
+                    it.copy(isExporting = false, exportError = e.message ?: "Export failed")
+                }
+            }
+        }
+    }
+
+    fun clearExportError() {
+        _uiState.update { it.copy(exportError = null) }
+    }
 }
 
 data class ReportsUiState(
@@ -150,5 +207,7 @@ data class ReportsUiState(
     val cogsToDate: LocalDate = LocalDate.now(),
     val cogsReport: CogsReportDto? = null,
     val isCogsLoading: Boolean = false,
-    val cogsError: String? = null
+    val cogsError: String? = null,
+    val isExporting: Boolean = false,
+    val exportError: String? = null
 )

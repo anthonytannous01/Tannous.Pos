@@ -1,6 +1,7 @@
 package com.tannous.pos.core.data.remote
 
 import com.tannous.pos.core.data.model.*
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -142,6 +143,12 @@ interface ReportsService {
         @Query("from") from: String,
         @Query("to") to: String
     ): CogsReportDto
+
+    @GET("reports/export/eod.csv")
+    @Headers("Accept: text/csv")
+    suspend fun getEodCsv(
+        @Query("date") date: String? = null
+    ): Response<ResponseBody>
 }
 
 interface HealthService {

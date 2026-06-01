@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 75):** `:core`, `:feature:sell`, `:feature:settings`, `:app:compileDevDebugKotlin` **PASS** (order history — Step 75).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 76):** `:core`, `:feature:reports`, `:app:compileDevDebugKotlin` **PASS** (CSV EOD export — Step 76).
+
+**Step 76 (CSV EOD export — mobile Batch 15):** **`ReportsService.getEodCsv`** → `Response<ResponseBody>` with `Accept: text/csv`. **`ReportsViewModel.exportCsv`**: selected EOD date, 403/network handling, share sheet with **`FLAG_ACTIVITY_NEW_TASK`**, `ResponseBody.use { string() }` once. **`ReportsScreen`**: Export CSV + Refresh row on EOD tab; snackbar for export errors. Build: `:core` + `:feature:reports` + `:app` PASS.
 
 **Step 75 (Order history screen — mobile Batch 14):** Tier B — **`GET /orders`** last 7 days → Room upsert via **`toEntityForHistory()`**; **`observeAllOrders()`** Flow. **`OrderEntityMapping.kt`**: **`toOrderDto()`** for offline receipt shell. **`OrderHistoryViewModel`/`OrderHistoryScreen`**: filter chips (All/Paid/Open/Voided/Pending), void dialog, refresh; **`OrderReceiptViewModel`** + **`receipt/{orderId}`** route. Entry: Sell **`Icons.Default.Search`** (full history) + existing List (shift sheet); Settings Order History card. **`OrderService.getOrders`**. Build: `:core` + `:feature:sell` + `:app` PASS.
 

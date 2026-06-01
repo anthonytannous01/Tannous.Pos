@@ -8,10 +8,12 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -28,10 +30,20 @@ fun ReportsScreen(
     viewModel: ReportsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val currencyFormatter = remember(uiState.currencyCode) {
         currencyFormatterFor(uiState.currencyCode)
     }
+
+    LaunchedEffect(uiState.exportError) {
+        uiState.exportError?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearExportError()
+        }
+    }
+
     val dateLabel = if (uiState.selectedDate == LocalDate.now()) {
         "Today"
     } else {
@@ -39,6 +51,7 @@ fun ReportsScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Reports") },
@@ -194,13 +207,33 @@ fun ReportsScreen(
                                 }
                             }
 
-                            TextButton(
-                                onClick = { viewModel.loadReport() },
-                                modifier = Modifier.align(Alignment.End)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Refresh, contentDescription = null)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Refresh")
+                                TextButton(
+                                    onClick = { viewModel.exportCsv(context) },
+                                    enabled = uiState.report != null && !uiState.isExporting
+                                ) {
+                                    if (uiState.isExporting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Exporting…")
+                                    } else {
+                                        Icon(Icons.Default.Share, contentDescription = null)
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Export CSV")
+                                    }
+                                }
+                                TextButton(onClick = { viewModel.loadReport() }) {
+                                    Icon(Icons.Default.Refresh, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Refresh")
+                                }
                             }
                         }
                         else -> {
