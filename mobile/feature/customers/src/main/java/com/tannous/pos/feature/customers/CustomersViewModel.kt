@@ -87,6 +87,61 @@ class CustomersViewModel @Inject constructor(
     fun clearError() {
         _uiState.update { it.copy(error = null) }
     }
+
+    fun startEdit(customer: CustomerEntity) {
+        _uiState.update { it.copy(editingCustomer = customer, updateError = null) }
+    }
+
+    fun dismissEdit() {
+        _uiState.update { it.copy(editingCustomer = null, updateError = null) }
+    }
+
+    fun updateCustomer(
+        firstName: String,
+        lastName: String,
+        email: String?,
+        phone: String?,
+        address: String?,
+        notes: String?,
+        allergies: String?
+    ) {
+        val customer = _uiState.value.editingCustomer ?: return
+        val version = customer.version ?: return
+
+        if (firstName.isBlank() || lastName.isBlank()) {
+            _uiState.update { it.copy(updateError = "First and last name are required") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdating = true, updateError = null) }
+            val result = customerRepository.updateCustomer(
+                id = customer.id,
+                firstName = firstName,
+                lastName = lastName,
+                email = email,
+                phone = phone,
+                address = address,
+                notes = notes,
+                allergies = allergies,
+                version = version
+            )
+            _uiState.update { state ->
+                if (result.isSuccess) {
+                    state.copy(isUpdating = false, editingCustomer = null)
+                } else {
+                    state.copy(
+                        isUpdating = false,
+                        updateError = result.exceptionOrNull()?.message ?: "Update failed"
+                    )
+                }
+            }
+        }
+    }
+
+    fun clearUpdateError() {
+        _uiState.update { it.copy(updateError = null) }
+    }
 }
 
 data class CustomersUiState(
@@ -95,5 +150,8 @@ data class CustomersUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val showCreateDialog: Boolean = false,
-    val createSuccess: Boolean = false
+    val createSuccess: Boolean = false,
+    val editingCustomer: CustomerEntity? = null,
+    val isUpdating: Boolean = false,
+    val updateError: String? = null
 )

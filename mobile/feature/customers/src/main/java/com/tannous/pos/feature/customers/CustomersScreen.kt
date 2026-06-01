@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +35,24 @@ fun CustomersScreen(
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
+
+    var editFirstName by remember { mutableStateOf("") }
+    var editLastName by remember { mutableStateOf("") }
+    var editPhone by remember { mutableStateOf("") }
+    var editEmail by remember { mutableStateOf("") }
+    var editNotes by remember { mutableStateOf("") }
+    var editAllergies by remember { mutableStateOf("") }
+
+    LaunchedEffect(uiState.editingCustomer?.id) {
+        uiState.editingCustomer?.let { customer ->
+            editFirstName = customer.firstName
+            editLastName = customer.lastName
+            editPhone = customer.phone.orEmpty()
+            editEmail = customer.email.orEmpty()
+            editNotes = customer.notes.orEmpty()
+            editAllergies = customer.allergies.orEmpty()
+        }
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
@@ -129,7 +148,8 @@ fun CustomersScreen(
                         items(uiState.customers, key = { it.id }) { customer ->
                             CustomerRow(
                                 customer = customer,
-                                onClick = { onCustomerSelected(customer) }
+                                onClick = { onCustomerSelected(customer) },
+                                onEditClick = { viewModel.startEdit(it) }
                             )
                         }
                     }
@@ -210,18 +230,107 @@ fun CustomersScreen(
             }
         )
     }
+
+    uiState.editingCustomer?.let {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissEdit() },
+            title = { Text("Edit Customer") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editFirstName,
+                        onValueChange = { editFirstName = it },
+                        label = { Text("First name *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editLastName,
+                        onValueChange = { editLastName = it },
+                        label = { Text("Last name *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editPhone,
+                        onValueChange = { editPhone = it },
+                        label = { Text("Phone") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editEmail,
+                        onValueChange = { editEmail = it },
+                        label = { Text("Email") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = editNotes,
+                        onValueChange = { editNotes = it },
+                        label = { Text("Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2
+                    )
+                    OutlinedTextField(
+                        value = editAllergies,
+                        onValueChange = { editAllergies = it },
+                        label = { Text("Allergies") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    uiState.updateError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        TextButton(onClick = { viewModel.dismissEdit() }) {
+                            Text("Dismiss")
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.updateCustomer(
+                            firstName = editFirstName,
+                            lastName = editLastName,
+                            email = editEmail.takeIf { it.isNotBlank() },
+                            phone = editPhone.takeIf { it.isNotBlank() },
+                            address = null,
+                            notes = editNotes.takeIf { it.isNotBlank() },
+                            allergies = editAllergies.takeIf { it.isNotBlank() }
+                        )
+                    },
+                    enabled = editFirstName.isNotBlank() &&
+                        editLastName.isNotBlank() &&
+                        !uiState.isUpdating
+                ) {
+                    if (uiState.isUpdating) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp))
+                    } else {
+                        Text("Save")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissEdit() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
 private fun CustomerRow(
     customer: CustomerEntity,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onEditClick: (CustomerEntity) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -233,7 +342,11 @@ private fun CustomerRow(
                 contentDescription = null,
                 modifier = Modifier.padding(end = 12.dp)
             )
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(onClick = onClick)
+            ) {
                 Text(
                     text = "${customer.firstName} ${customer.lastName}",
                     style = MaterialTheme.typography.bodyLarge,
@@ -249,6 +362,11 @@ private fun CustomerRow(
                 onClick = onClick,
                 label = { Text("${customer.totalOrders} orders") }
             )
+            if (customer.version != null) {
+                IconButton(onClick = { onEditClick(customer) }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit customer")
+                }
+            }
         }
     }
 }
