@@ -169,6 +169,12 @@ object NetworkModule {
     fun provideSettingsService(retrofit: Retrofit): SettingsService {
         return retrofit.create(SettingsService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideReportsService(retrofit: Retrofit): ReportsService {
+        return retrofit.create(ReportsService::class.java)
+    }
     
     @Provides
     @Singleton

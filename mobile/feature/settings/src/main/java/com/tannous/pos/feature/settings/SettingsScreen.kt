@@ -6,6 +6,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPrintingPreview: () -> Unit,
+    onNavigateToReports: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -76,6 +79,31 @@ fun SettingsScreen(
                 ) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToReports
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Reports")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = onNavigateToPrintingPreview
                     ) {
                         Row(
@@ -93,7 +121,7 @@ fun SettingsScreen(
                             Text("Printing Preview")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
-                                Icons.Default.ArrowBack,
+                                Icons.Default.ArrowForward,
                                 contentDescription = null
                             )
                         }

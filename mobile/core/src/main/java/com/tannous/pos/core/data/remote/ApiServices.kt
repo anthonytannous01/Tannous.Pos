@@ -123,6 +123,14 @@ interface SettingsService {
     suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
 }
 
+interface ReportsService {
+
+    @GET("reports/eod")
+    suspend fun getEodReport(
+        @Query("date") date: String? = null
+    ): EodReportDto
+}
+
 interface HealthService {
     
     @GET("health/ready")

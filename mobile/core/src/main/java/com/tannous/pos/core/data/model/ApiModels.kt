@@ -94,6 +94,31 @@ data class UpdateSettingsRequest(
     val enableRecipeManagement: Boolean
 )
 
+// Reports
+@Serializable
+data class EodReportDto(
+    val date: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val netSales: BigDecimal = BigDecimal.ZERO,
+    val ordersCount: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val avgTicket: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val cashDrops: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val variance: BigDecimal? = null,
+    val topItems: List<EodTopItemDto> = emptyList()
+)
+
+@Serializable
+data class EodTopItemDto(
+    val itemId: String = "",
+    val name: String = "",
+    val qty: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val sales: BigDecimal = BigDecimal.ZERO
+)
+
 // Catalog
 @Serializable
 data class CategoryDto(

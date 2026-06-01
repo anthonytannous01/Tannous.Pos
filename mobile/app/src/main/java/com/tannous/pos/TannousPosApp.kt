@@ -19,6 +19,7 @@ import com.tannous.pos.feature.customers.CustomersScreen
 import com.tannous.pos.feature.printing.PrintingPreviewScreen
 import com.tannous.pos.feature.sell.SellScreen
 import com.tannous.pos.feature.sell.SellViewModel
+import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
@@ -104,7 +105,14 @@ fun TannousPosApp(
             composable("settings") {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToPrintingPreview = { navController.navigate("printing-preview") }
+                    onNavigateToPrintingPreview = { navController.navigate("printing-preview") },
+                    onNavigateToReports = { navController.navigate("reports") }
+                )
+            }
+
+            composable("reports") {
+                ReportsScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
             
