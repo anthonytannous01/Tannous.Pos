@@ -1,13 +1,23 @@
 package com.tannous.pos
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,6 +31,7 @@ import com.tannous.pos.feature.customers.CustomersScreen
 import com.tannous.pos.feature.printing.PrintingPreviewScreen
 import com.tannous.pos.core.data.repository.toOrderDto
 import com.tannous.pos.feature.sell.OrderHistoryScreen
+import com.tannous.pos.feature.sell.OrderReceiptState
 import com.tannous.pos.feature.sell.OrderReceiptViewModel
 import com.tannous.pos.feature.sell.ReceiptScreen
 import com.tannous.pos.feature.sell.SellScreen
@@ -108,17 +119,54 @@ fun TannousPosApp(
             ) { backStackEntry ->
                 val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
                 val receiptViewModel: OrderReceiptViewModel = hiltViewModel()
-                val orderEntity by receiptViewModel.order.collectAsStateWithLifecycle()
+                val receiptState by receiptViewModel.state.collectAsStateWithLifecycle()
 
                 LaunchedEffect(orderId) {
                     receiptViewModel.loadOrder(orderId)
                 }
 
-                orderEntity?.let { entity ->
-                    ReceiptScreen(
-                        order = entity.toOrderDto(),
-                        onDone = { navController.popBackStack() }
-                    )
+                when (val s = receiptState) {
+                    is OrderReceiptState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+                    is OrderReceiptState.NotFound -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp),
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Text(
+                                    text = "Receipt not available",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "This order was not found on this device. " +
+                                        "Sync to load recent orders.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
+                                )
+                                TextButton(onClick = { navController.popBackStack() }) {
+                                    Text("Go Back")
+                                }
+                            }
+                        }
+                    }
+                    is OrderReceiptState.Found -> {
+                        ReceiptScreen(
+                            order = s.entity.toOrderDto(),
+                            onDone = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
             

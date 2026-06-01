@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 79):** `:core`, `:feature:sell`, `:feature:settings`, `:app:compileDevDebugKotlin` **PASS** (sell empty state + failed sync banner — Step 79).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 80):** `:feature:sell`, `:app:compileDevDebugKotlin` **PASS** (receipt route loading/not-found — Step 80).
+
+**Step 80 (Receipt route empty/error state — mobile Batch 19):** **`OrderReceiptState`** (Loading / Found / NotFound) in **`OrderReceiptViewModel`**; **`receipt/{orderId}`** route shows spinner, **`ReceiptScreen`**, or not-found message + Go Back. Finalize inline receipt path unchanged. Build PASS.
 
 **Step 79 (Sell empty state + failed outbox banner — mobile Batch 18):** **`SellScreen`**: empty catalog state (icon, message, Sync Catalog → **`refreshCatalogData()`**, full-screen spinner via existing **`isLoading`**). **`SettingsViewModel`**: inject **`OutboxDao`**, load **`failedSyncCount`** (FAILED + FAILED_CONFLICT only). **`SettingsScreen`**: error-container banner when count > 0. Audited: token refresh on push ✅; order history filter in-memory ✅. Build PASS.
 

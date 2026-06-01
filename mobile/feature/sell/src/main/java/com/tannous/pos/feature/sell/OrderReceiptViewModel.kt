@@ -11,17 +11,29 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+sealed class OrderReceiptState {
+    data object Loading : OrderReceiptState()
+    data class Found(val entity: OrderEntity) : OrderReceiptState()
+    data object NotFound : OrderReceiptState()
+}
+
 @HiltViewModel
 class OrderReceiptViewModel @Inject constructor(
     private val orderRepository: OrderRepository
 ) : ViewModel() {
 
-    private val _order = MutableStateFlow<OrderEntity?>(null)
-    val order: StateFlow<OrderEntity?> = _order.asStateFlow()
+    private val _state = MutableStateFlow<OrderReceiptState>(OrderReceiptState.Loading)
+    val state: StateFlow<OrderReceiptState> = _state.asStateFlow()
 
     fun loadOrder(id: String) {
         viewModelScope.launch {
-            _order.value = orderRepository.getOrderById(id)
+            _state.value = OrderReceiptState.Loading
+            val entity = orderRepository.getOrderById(id)
+            _state.value = if (entity != null) {
+                OrderReceiptState.Found(entity)
+            } else {
+                OrderReceiptState.NotFound
+            }
         }
     }
 }
