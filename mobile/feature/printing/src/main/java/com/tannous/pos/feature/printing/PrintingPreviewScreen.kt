@@ -1,12 +1,16 @@
 package com.tannous.pos.feature.printing
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,13 +22,20 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PrintingPreviewScreen(
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: PrintingPreviewViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     val sampleReceipt = """
         TANNOUS POS
         ================
@@ -37,18 +48,18 @@ fun PrintingPreviewScreen(
         
         ITEM                    QTY    PRICE
         --------------------------------
-        Coffee - Large          1     $4.50
-        + Extra Shot            1     $0.75
+        Coffee - Large          1     ${'$'}4.50
+        + Extra Shot            1     ${'$'}0.75
         --------------------------------
-        Subtotal:                    $5.25
-        Tax (8.5%):                  $0.45
-        Total:                        $5.70
+        Subtotal:                    ${'$'}5.25
+        Tax (8.5%):                  ${'$'}0.45
+        Total:                        ${'$'}5.70
         
         ================
         
         Payment: Cash
-        Amount: $6.00
-        Change: $0.30
+        Amount: ${'$'}6.00
+        Change: ${'$'}0.30
         
         ================
         
@@ -58,7 +69,15 @@ fun PrintingPreviewScreen(
         ================
     """.trimIndent()
 
+    LaunchedEffect(uiState.printResult) {
+        uiState.printResult?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearPrintResult()
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Printing Preview") },
@@ -70,14 +89,28 @@ fun PrintingPreviewScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            // TODO: Implement copy to clipboard
+                            val clipboardManager = context.getSystemService(
+                                Context.CLIPBOARD_SERVICE
+                            ) as ClipboardManager
+                            val clip = ClipData.newPlainText("Receipt Preview", sampleReceipt)
+                            clipboardManager.setPrimaryClip(clip)
+                            coroutineScope.launch {
+                                snackbarHostState.showSnackbar("Receipt text copied")
+                            }
                         }
                     ) {
-                        Icon(Icons.Default.Info, contentDescription = "Copy")
+                        Icon(Icons.Default.Create, contentDescription = "Copy")
                     }
                     IconButton(
                         onClick = {
-                            // TODO: Implement share functionality
+                            val intent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, sampleReceipt)
+                                putExtra(Intent.EXTRA_SUBJECT, "Receipt Preview")
+                            }
+                            context.startActivity(
+                                Intent.createChooser(intent, "Share Receipt")
+                            )
                         }
                     ) {
                         Icon(Icons.Default.Share, contentDescription = "Share")
@@ -104,18 +137,18 @@ fun PrintingPreviewScreen(
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Text(
                         text = "This is how your receipt will look when printed:",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Card(
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -136,28 +169,40 @@ fun PrintingPreviewScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = {
-                        // TODO: Implement print functionality
-                    },
+                    onClick = { viewModel.printSampleReceipt("Receipt preview") },
+                    enabled = !uiState.isPrinting,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (uiState.isPrinting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Text("Print Receipt")
                 }
-                
+
                 OutlinedButton(
-                    onClick = {
-                        // TODO: Implement test print
-                    },
+                    onClick = { viewModel.printSampleReceipt("Test print") },
+                    enabled = !uiState.isPrinting,
                     modifier = Modifier.weight(1f)
                 ) {
+                    if (uiState.isPrinting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     Text("Test Print")
                 }
             }

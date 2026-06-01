@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 72):** `:core`, `:feature:customers`, `:app:compileDevDebugKotlin` **PASS** (edit customer — Step 72).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 73):** `:feature:printing`, `:app:compileDevDebugKotlin` **PASS** (printing preview actions — Step 73).
+
+**Step 73 (Printing preview actions — mobile Batch 12):** **`PrintingPreviewViewModel`**: injects **`Printer`** + **`SettingsRepository`**; **`printSampleReceipt`** builds sample **`ReceiptToPrint`** (footer from settings); snackbar via **`printResult`**. **`PrintingPreviewScreen`**: Copy → clipboard + snackbar (`ContentCopy` icon); Share → system chooser; Print Receipt / Test Print → ViewModel with loading state. **`hilt-navigation-compose`** added to **`feature:printing`**. Build: `:feature:printing` + `:app` PASS.
 
 **Step 72 (Edit customer — mobile Batch 11):** **`CustomerRepository.updateCustomer`**: `PUT /customers/{id}` with **`UpdateCustomerRequest.version`**; Room **`insert` REPLACE**; **409** → refresh message; **`HttpException`** handling. **`CustomersViewModel`**: `editingCustomer`, `isUpdating`, `updateError`; `startEdit`/`dismissEdit`/`updateCustomer`. **`CustomersScreen`**: Edit icon only when **`version != null`**; row body tap still selects for order; pre-filled edit dialog with **`LaunchedEffect(editingCustomer?.id)`** field reset; inline error + Dismiss on conflict. Build: `:core` + `:feature:customers` + `:app` PASS.
 
