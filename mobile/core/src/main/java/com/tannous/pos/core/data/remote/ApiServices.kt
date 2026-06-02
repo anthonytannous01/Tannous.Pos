@@ -138,6 +138,24 @@ interface InventoryService {
 
     @GET("inventory/low-stock")
     suspend fun getLowStockItems(): List<InventoryItemDto>
+
+    @GET("inventory/ingredients")
+    suspend fun getIngredients(): List<IngredientDto>
+
+    @POST("inventory/ingredients")
+    suspend fun createIngredient(@Body body: CreateIngredientRequest): IngredientDto
+
+    @PUT("inventory/ingredients/{id}")
+    suspend fun updateIngredient(
+        @Path("id") id: String,
+        @Body body: UpdateIngredientRequest
+    ): IngredientDto
+
+    @DELETE("inventory/ingredients/{id}")
+    suspend fun deleteIngredient(
+        @Path("id") id: String,
+        @Query("force") force: Boolean = false
+    ): Response<Unit>
 }
 
 interface ReportsService {

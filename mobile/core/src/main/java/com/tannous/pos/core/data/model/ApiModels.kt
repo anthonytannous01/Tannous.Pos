@@ -175,6 +175,38 @@ data class RecordWastagePayload(
     val reason: String
 )
 
+@Serializable
+data class IngredientDto(
+    val id: String = "",
+    val name: String = "",
+    val description: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPerUnit: BigDecimal = BigDecimal.ZERO,
+    val unit: String = "",
+    val isActive: Boolean = true,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class CreateIngredientRequest(
+    val name: String,
+    val description: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPerUnit: BigDecimal,
+    val unit: String,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class UpdateIngredientRequest(
+    val name: String,
+    val description: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costPerUnit: BigDecimal,
+    val unit: String,
+    val isActive: Boolean
+)
+
 // Catalog
 @Serializable
 data class CategoryDto(

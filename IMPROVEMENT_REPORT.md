@@ -98,7 +98,9 @@ Every proposed step must document how it passes (or explicitly defers) each admi
 
 ## Integration test stabilization (Docker / Testcontainers — operational cache)
 
-**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 80):** `:feature:sell`, `:app:compileDevDebugKotlin` **PASS** (receipt route loading/not-found — Step 80).
+**Validated (Release):** `dotnet build Tannous.Pos.sln`; **650** architecture tests; **382** integration tests (full project, 0 failures against live Postgres — confirms Direction A wire contracts); governance debt scan/budget **PASS**. **Android (post–Step 81):** `:core`, `:feature:inventory`, `:app:compileDevDebugKotlin` **PASS** (ingredient CRUD — Step 81).
+
+**Step 81 (Ingredient CRUD — mobile Batch 20):** **`IngredientDto`**, create/update requests, **`InventoryService`** CRUD endpoints, **`InventoryRepository`** with **`Response<Unit>`** delete + **`RECIPE_CONFLICT`** sentinel. **`InventoryScreen`**: Stock | Ingredients tabs; create/edit dialog, delete + force-delete flow. Headers via interceptors only. Build PASS.
 
 **Step 80 (Receipt route empty/error state — mobile Batch 19):** **`OrderReceiptState`** (Loading / Found / NotFound) in **`OrderReceiptViewModel`**; **`receipt/{orderId}`** route shows spinner, **`ReceiptScreen`**, or not-found message + Go Back. Finalize inline receipt path unchanged. Build PASS.
 
