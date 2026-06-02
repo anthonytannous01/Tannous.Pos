@@ -188,6 +188,27 @@ data class IngredientDto(
 )
 
 @Serializable
+data class RecipeDto(
+    val id: String = "",
+    val name: String = "",
+    val description: String? = null,
+    val menuItemId: String = "",
+    val isActive: Boolean = true,
+    val createdAt: String = "",
+    val recipeLines: List<RecipeLineDto> = emptyList()
+)
+
+@Serializable
+data class RecipeLineDto(
+    val id: String = "",
+    val ingredientId: String = "",
+    val ingredientName: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val quantityPerItem: BigDecimal = BigDecimal.ZERO,
+    val unit: String = ""
+)
+
+@Serializable
 data class CreateIngredientRequest(
     val name: String,
     val description: String? = null,

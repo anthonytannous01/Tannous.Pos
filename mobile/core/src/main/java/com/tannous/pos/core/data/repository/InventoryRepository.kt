@@ -4,6 +4,7 @@ import com.tannous.pos.core.data.model.AdjustInventoryPayload
 import com.tannous.pos.core.data.model.CreateIngredientRequest
 import com.tannous.pos.core.data.model.IngredientDto
 import com.tannous.pos.core.data.model.InventoryItemDto
+import com.tannous.pos.core.data.model.RecipeDto
 import com.tannous.pos.core.data.model.RecordWastagePayload
 import com.tannous.pos.core.data.model.UpdateIngredientRequest
 import com.tannous.pos.core.data.remote.InventoryService
@@ -120,6 +121,24 @@ class InventoryRepository @Inject constructor(
             Result.failure(IOException("No connection"))
         } catch (e: Exception) {
             Timber.e(e, "Error deleting ingredient")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getRecipes(): Result<List<RecipeDto>> {
+        return try {
+            Result.success(inventoryService.getRecipes())
+        } catch (e: HttpException) {
+            Result.failure(
+                RuntimeException(
+                    if (e.code() == 403) "Inventory requires owner access"
+                    else "Server error: ${e.code()}"
+                )
+            )
+        } catch (e: IOException) {
+            Result.failure(IOException("No connection"))
+        } catch (e: Exception) {
+            Timber.e(e, "Error loading recipes")
             Result.failure(e)
         }
     }

@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.IngredientDto
 import com.tannous.pos.core.data.model.InventoryItemDto
+import com.tannous.pos.core.data.model.RecipeDto
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 
@@ -30,12 +33,23 @@ import java.math.BigDecimal
 @Composable
 fun InventoryScreen(
     onNavigateBack: () -> Unit,
-    viewModel: InventoryViewModel = hiltViewModel()
+    viewModel: InventoryViewModel = hiltViewModel(),
+    recipeViewModel: RecipeViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val recipeUiState by recipeViewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val currencyFormatter = remember(uiState.currencyCode) {
         currencyFormatterFor(uiState.currencyCode)
+    }
+
+    LaunchedEffect(uiState.selectedTab) {
+        if (uiState.selectedTab == 2 &&
+            recipeUiState.recipes.isEmpty() &&
+            !recipeUiState.isLoading
+        ) {
+            recipeViewModel.load()
+        }
     }
 
     LaunchedEffect(uiState.submitSuccess) {
@@ -58,10 +72,10 @@ fun InventoryScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            if (uiState.selectedTab == 0) {
-                                viewModel.load()
-                            } else {
-                                viewModel.loadIngredients()
+                            when (uiState.selectedTab) {
+                                0 -> viewModel.load()
+                                1 -> viewModel.loadIngredients()
+                                2 -> recipeViewModel.load()
                             }
                         }
                     ) {
@@ -87,19 +101,27 @@ fun InventoryScreen(
                     onClick = { viewModel.selectTab(1) },
                     text = { Text("Ingredients") }
                 )
+                Tab(
+                    selected = uiState.selectedTab == 2,
+                    onClick = { viewModel.selectTab(2) },
+                    text = { Text("Recipes") }
+                )
             }
 
-            if (uiState.selectedTab == 0) {
-                StockTabContent(
+            when (uiState.selectedTab) {
+                0 -> StockTabContent(
                     uiState = uiState,
                     currencyFormatter = currencyFormatter,
                     viewModel = viewModel
                 )
-            } else {
-                IngredientsTabContent(
+                1 -> IngredientsTabContent(
                     uiState = uiState,
                     currencyFormatter = currencyFormatter,
                     viewModel = viewModel
+                )
+                2 -> RecipesTabContent(
+                    recipeUiState = recipeUiState,
+                    recipeViewModel = recipeViewModel
                 )
             }
         }
@@ -633,6 +655,130 @@ private fun InventoryItemRow(
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onAdjust) {
                     Text("Adjust")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecipesTabContent(
+    recipeUiState: RecipeUiState,
+    recipeViewModel: RecipeViewModel
+) {
+    when {
+        recipeUiState.isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        recipeUiState.error != null -> {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(recipeUiState.error!!, color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = { recipeViewModel.load() }) { Text("Retry") }
+            }
+        }
+        recipeUiState.recipes.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No recipes found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        else -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(recipeUiState.recipes, key = { it.id }) { recipe ->
+                    RecipeRow(
+                        recipe = recipe,
+                        isExpanded = recipeUiState.expandedRecipeId == recipe.id,
+                        onToggleExpand = { recipeViewModel.toggleExpand(recipe.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecipeRow(
+    recipe: RecipeDto,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp),
+        onClick = onToggleExpand
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            recipe.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Medium
+                        )
+                        if (!recipe.isActive) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Inactive",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Text(
+                        "${recipe.recipeLines.size} ingredient(s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    recipe.description?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
+                                  else Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (isExpanded) "Collapse" else "Expand"
+                )
+            }
+
+            if (isExpanded && recipe.recipeLines.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(8.dp))
+                recipe.recipeLines.forEach { line ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                    ) {
+                        Text(
+                            line.ingredientName,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "${line.quantityPerItem.stripTrailingZeros().toPlainString()} ${line.unit}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

@@ -52,6 +52,8 @@ class InventoryViewModel @Inject constructor(
         ) {
             loadIngredients()
         }
+        // index 2 (Recipes): auto-load triggered from InventoryScreen via
+        // LaunchedEffect(selectedTab), keeping RecipeViewModel independent.
     }
 
     fun load(filter: InventoryFilter = _uiState.value.filter) {

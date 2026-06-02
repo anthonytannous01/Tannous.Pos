@@ -156,6 +156,9 @@ interface InventoryService {
         @Path("id") id: String,
         @Query("force") force: Boolean = false
     ): Response<Unit>
+
+    @GET("inventory/recipes")
+    suspend fun getRecipes(): List<RecipeDto>
 }
 
 interface ReportsService {
