@@ -19,8 +19,8 @@ android {
         applicationId = "com.tannous.pos"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = (rootProject.extra["versionCode"] as? Long)?.toInt() ?: 1
+        versionName = rootProject.extra["versionName"] as? String ?: "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -58,18 +58,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Temporarily disabled signing for basic build
-            // signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.getByName("release")
         }
-        // Temporarily simplified for basic build
-        // create("stagingBuild") {
-        //     isMinifyEnabled = true
-        //     proguardFiles(
-        //         getDefaultProguardFile("proguard-android-optimize.txt"),
-        //         "proguard-rules.pro"
-        //     )
-        //     matchingFallbacks += "release"
-        // }
         debug {
             isDebuggable = true
         }
@@ -120,10 +110,12 @@ android {
         }
     }
     
-    // Temporarily disable strict lint checking to get build working
     lint {
+        // Report lint issues in release builds but don't block — tighten after QA pass
         abortOnError = false
-        checkReleaseBuilds = false
+        checkReleaseBuilds = true
+        htmlReport = true
+        xmlReport = true
     }
 }
 
@@ -171,6 +163,13 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Hilt WorkManager integration (needed in app module for HiltWorkerFactory)
+    implementation(libs.androidx.hilt.work)
+    ksp(libs.androidx.hilt.compiler)
+
+    // WorkManager (needed in app module for Configuration.Provider)
+    implementation(libs.workmanager.ktx)
 
     // Logging
     implementation(libs.timber)
