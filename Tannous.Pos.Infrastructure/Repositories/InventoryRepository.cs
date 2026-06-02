@@ -15,7 +15,7 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
     {
         return await _dbSet
             .Include(ii => ii.Ingredient)
-            .Where(ii => ii.CurrentStock <= ii.MinimumStock)
+            .Where(ii => ii.Ingredient.IsActive && ii.CurrentStock <= ii.MinimumStock)
             .ToListAsync();
     }
 
@@ -41,8 +41,11 @@ public class InventoryRepository : Repository<InventoryItem>, IInventoryReposito
 
     public async Task<IEnumerable<InventoryItem>> GetAllWithIngredientAsync()
     {
+        // Filter to active ingredients only — inactive ingredients should not
+        // appear in the stock screen after they have been deactivated.
         return await _dbSet
             .Include(ii => ii.Ingredient)
+            .Where(ii => ii.Ingredient.IsActive)
             .ToListAsync();
     }
 
