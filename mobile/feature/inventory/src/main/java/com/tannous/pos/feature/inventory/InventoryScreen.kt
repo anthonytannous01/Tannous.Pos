@@ -3,7 +3,10 @@ package com.tannous.pos.feature.inventory
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.IngredientDto
@@ -235,6 +240,78 @@ fun InventoryScreen(
                     onClick = { viewModel.dismissDelete() },
                     enabled = !uiState.isDeletingIngredient
                 ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // ── Recipe dialogs ────────────────────────────────────────────────────────
+
+    if (recipeUiState.showRecipeDialog) {
+        RecipeFormDialog(
+            recipeUiState = recipeUiState,
+            recipeViewModel = recipeViewModel
+        )
+    }
+
+    if (recipeUiState.showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!recipeUiState.isDeleting) recipeViewModel.dismissDelete() },
+            title = { Text("Delete Recipe") },
+            text = {
+                Column {
+                    Text("Delete \"${recipeUiState.deletingRecipe?.name}\"?")
+                    if (recipeUiState.deleteError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            recipeUiState.deleteError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { recipeViewModel.deleteRecipe(force = false) },
+                    enabled = !recipeUiState.isDeleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    if (recipeUiState.isDeleting) CircularProgressIndicator(Modifier.size(16.dp))
+                    else Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { recipeViewModel.dismissDelete() }, enabled = !recipeUiState.isDeleting) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (recipeUiState.showForceDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!recipeUiState.isDeleting) recipeViewModel.dismissDelete() },
+            title = { Text("Recipe In Use") },
+            text = {
+                Text(
+                    "\"${recipeUiState.deletingRecipe?.name}\" is linked to an active menu item. " +
+                        "Force deleting will deactivate that menu item. This cannot be undone."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { recipeViewModel.deleteRecipe(force = true) },
+                    enabled = !recipeUiState.isDeleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    if (recipeUiState.isDeleting) CircularProgressIndicator(Modifier.size(16.dp))
+                    else Text("Force Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { recipeViewModel.dismissDelete() }, enabled = !recipeUiState.isDeleting) {
                     Text("Cancel")
                 }
             }
@@ -666,36 +743,53 @@ private fun RecipesTabContent(
     recipeUiState: RecipeUiState,
     recipeViewModel: RecipeViewModel
 ) {
-    when {
-        recipeUiState.isLoading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Button(onClick = { recipeViewModel.openCreateRecipe() }) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Add Recipe")
             }
         }
-        recipeUiState.error != null -> {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(recipeUiState.error!!, color = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { recipeViewModel.load() }) { Text("Retry") }
+
+        when {
+            recipeUiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        }
-        recipeUiState.recipes.isEmpty() -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No recipes found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            recipeUiState.error != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(recipeUiState.error!!, color = MaterialTheme.colorScheme.error)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(onClick = { recipeViewModel.load() }) { Text("Retry") }
+                }
             }
-        }
-        else -> {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                items(recipeUiState.recipes, key = { it.id }) { recipe ->
-                    RecipeRow(
-                        recipe = recipe,
-                        isExpanded = recipeUiState.expandedRecipeId == recipe.id,
-                        onToggleExpand = { recipeViewModel.toggleExpand(recipe.id) }
-                    )
+            recipeUiState.recipes.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No recipes found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            else -> {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(recipeUiState.recipes, key = { it.id }) { recipe ->
+                        RecipeRow(
+                            recipe = recipe,
+                            isExpanded = recipeUiState.expandedRecipeId == recipe.id,
+                            onToggleExpand = { recipeViewModel.toggleExpand(recipe.id) },
+                            onEdit = { recipeViewModel.openEditRecipe(recipe) },
+                            onDelete = { recipeViewModel.confirmDelete(recipe) }
+                        )
+                    }
                 }
             }
         }
@@ -707,7 +801,9 @@ private fun RecipesTabContent(
 private fun RecipeRow(
     recipe: RecipeDto,
     isExpanded: Boolean,
-    onToggleExpand: () -> Unit
+    onToggleExpand: () -> Unit,
+    onEdit: () -> Unit = {},
+    onDelete: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
@@ -756,6 +852,16 @@ private fun RecipeRow(
                                   else Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) "Collapse" else "Expand"
                 )
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit recipe")
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Delete recipe",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
 
             if (isExpanded && recipe.recipeLines.isNotEmpty()) {
@@ -778,6 +884,270 @@ private fun RecipeRow(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RecipeFormDialog(
+    recipeUiState: RecipeUiState,
+    recipeViewModel: RecipeViewModel
+) {
+    val isEditing = recipeUiState.editingRecipe != null
+    var nameError by remember { mutableStateOf<String?>(null) }
+    var menuItemError by remember { mutableStateOf<String?>(null) }
+    var lineErrors by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var menuItemExpanded by remember { mutableStateOf(false) }
+
+    // Resolve menu item name from current list
+    val selectedMenuItemName = recipeUiState.menuItems
+        .find { it.id == recipeUiState.dialogMenuItemId }?.name
+        ?: recipeUiState.dialogMenuItemName.ifBlank { "Select menu item" }
+
+    Dialog(
+        onDismissRequest = { if (!recipeUiState.isSaving) recipeViewModel.dismissRecipeDialog() },
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .fillMaxHeight(0.9f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = if (isEditing) "Edit Recipe" else "New Recipe",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Name
+                    OutlinedTextField(
+                        value = recipeUiState.dialogName,
+                        onValueChange = { recipeViewModel.updateDialogName(it); nameError = null },
+                        label = { Text("Recipe name") },
+                        isError = nameError != null,
+                        supportingText = nameError?.let { err -> { Text(err) } },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Description
+                    OutlinedTextField(
+                        value = recipeUiState.dialogDescription,
+                        onValueChange = { recipeViewModel.updateDialogDescription(it) },
+                        label = { Text("Description (optional)") },
+                        maxLines = 2,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Menu item picker
+                    ExposedDropdownMenuBox(
+                        expanded = menuItemExpanded,
+                        onExpandedChange = { menuItemExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedMenuItemName,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Menu item") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuItemExpanded) },
+                            isError = menuItemError != null,
+                            supportingText = menuItemError?.let { err -> { Text(err) } },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = menuItemExpanded,
+                            onDismissRequest = { menuItemExpanded = false }
+                        ) {
+                            if (recipeUiState.menuItems.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("No menu items in Room — sync first") },
+                                    onClick = { menuItemExpanded = false }
+                                )
+                            } else {
+                                recipeUiState.menuItems.forEach { item ->
+                                    DropdownMenuItem(
+                                        text = { Text(item.name) },
+                                        onClick = {
+                                            recipeViewModel.selectMenuItem(item)
+                                            menuItemError = null
+                                            menuItemExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Lines header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Ingredients", style = MaterialTheme.typography.titleSmall)
+                        TextButton(onClick = { recipeViewModel.addLine() }) {
+                            Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Add")
+                        }
+                    }
+
+                    // Lines
+                    recipeUiState.dialogLines.forEachIndexed { index, line ->
+                        var ingredientExpanded by remember { mutableStateOf(false) }
+                        val lineError = lineErrors[line.id]
+
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "Line ${index + 1}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (recipeUiState.dialogLines.size > 1) {
+                                        IconButton(
+                                            onClick = { recipeViewModel.removeLine(line.id) },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Icon(Icons.Default.Clear, "Remove line",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+
+                                // Ingredient picker
+                                ExposedDropdownMenuBox(
+                                    expanded = ingredientExpanded,
+                                    onExpandedChange = { ingredientExpanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = line.ingredientName.ifBlank { "Select ingredient" },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text("Ingredient") },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = ingredientExpanded) },
+                                        isError = lineError != null && line.ingredientId.isBlank(),
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = ingredientExpanded,
+                                        onDismissRequest = { ingredientExpanded = false }
+                                    ) {
+                                        if (recipeUiState.ingredients.isEmpty()) {
+                                            DropdownMenuItem(
+                                                text = { Text("No ingredients loaded") },
+                                                onClick = { ingredientExpanded = false }
+                                            )
+                                        } else {
+                                            recipeUiState.ingredients.forEach { ingredient ->
+                                                DropdownMenuItem(
+                                                    text = { Text("${ingredient.name} (${ingredient.unit})") },
+                                                    onClick = {
+                                                        recipeViewModel.updateLineIngredient(line.id, ingredient)
+                                                        lineErrors = lineErrors - line.id
+                                                        ingredientExpanded = false
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Quantity
+                                OutlinedTextField(
+                                    value = line.quantity,
+                                    onValueChange = {
+                                        recipeViewModel.updateLineQuantity(line.id, it)
+                                        lineErrors = lineErrors - line.id
+                                    },
+                                    label = { Text("Quantity") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    isError = lineError != null && line.ingredientId.isNotBlank(),
+                                    supportingText = if (lineError != null && line.ingredientId.isNotBlank()) {
+                                        { Text(lineError) }
+                                    } else null,
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    // Save error
+                    if (recipeUiState.saveError != null) {
+                        Text(
+                            recipeUiState.saveError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(
+                        onClick = { recipeViewModel.dismissRecipeDialog() },
+                        enabled = !recipeUiState.isSaving
+                    ) { Text("Cancel") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            // Client-side validation
+                            var valid = true
+                            nameError = null
+                            menuItemError = null
+                            lineErrors = emptyMap()
+
+                            if (recipeUiState.dialogName.isBlank()) {
+                                nameError = "Name is required"; valid = false
+                            } else if (recipeUiState.dialogName.length > 100) {
+                                nameError = "Max 100 characters"; valid = false
+                            }
+                            if (recipeUiState.dialogMenuItemId.isBlank()) {
+                                menuItemError = "Select a menu item"; valid = false
+                            }
+                            val newLineErrors = mutableMapOf<String, String>()
+                            recipeUiState.dialogLines.forEach { line ->
+                                when {
+                                    line.ingredientId.isBlank() ->
+                                        newLineErrors[line.id] = "Select an ingredient"
+                                    line.quantity.trim().toBigDecimalOrNull()?.let { it <= BigDecimal.ZERO } != false ->
+                                        newLineErrors[line.id] = "Enter a quantity > 0"
+                                }
+                            }
+                            if (newLineErrors.isNotEmpty()) {
+                                lineErrors = newLineErrors; valid = false
+                            }
+                            if (valid) recipeViewModel.saveRecipe()
+                        },
+                        enabled = !recipeUiState.isSaving
+                    ) {
+                        if (recipeUiState.isSaving) CircularProgressIndicator(Modifier.size(16.dp))
+                        else Text("Save")
                     }
                 }
             }

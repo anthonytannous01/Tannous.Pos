@@ -159,6 +159,21 @@ interface InventoryService {
 
     @GET("inventory/recipes")
     suspend fun getRecipes(): List<RecipeDto>
+
+    @POST("inventory/recipes")
+    suspend fun createRecipe(@Body body: CreateRecipeRequest): RecipeDto
+
+    @PUT("inventory/recipes/{id}")
+    suspend fun updateRecipe(
+        @Path("id") id: String,
+        @Body body: UpdateRecipeRequest
+    ): RecipeDto
+
+    @DELETE("inventory/recipes/{id}")
+    suspend fun deleteRecipe(
+        @Path("id") id: String,
+        @Query("force") force: Boolean = false
+    ): Response<Unit>
 }
 
 interface ReportsService {

@@ -2,11 +2,13 @@ package com.tannous.pos.core.data.repository
 
 import com.tannous.pos.core.data.model.AdjustInventoryPayload
 import com.tannous.pos.core.data.model.CreateIngredientRequest
+import com.tannous.pos.core.data.model.CreateRecipeRequest
 import com.tannous.pos.core.data.model.IngredientDto
 import com.tannous.pos.core.data.model.InventoryItemDto
 import com.tannous.pos.core.data.model.RecipeDto
 import com.tannous.pos.core.data.model.RecordWastagePayload
 import com.tannous.pos.core.data.model.UpdateIngredientRequest
+import com.tannous.pos.core.data.model.UpdateRecipeRequest
 import com.tannous.pos.core.data.remote.InventoryService
 import com.tannous.pos.core.sync.OutboxManager
 import retrofit2.HttpException
@@ -139,6 +141,59 @@ class InventoryRepository @Inject constructor(
             Result.failure(IOException("No connection"))
         } catch (e: Exception) {
             Timber.e(e, "Error loading recipes")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createRecipe(request: CreateRecipeRequest): Result<RecipeDto> {
+        return try {
+            Result.success(inventoryService.createRecipe(request))
+        } catch (e: HttpException) {
+            val msg = if (e.code() == 403) "Requires owner access"
+                      else parseErrorMessage(e) ?: "Server error: ${e.code()}"
+            Result.failure(RuntimeException(msg))
+        } catch (e: IOException) {
+            Result.failure(IOException("No connection"))
+        } catch (e: Exception) {
+            Timber.e(e, "Error creating recipe")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateRecipe(id: String, request: UpdateRecipeRequest): Result<RecipeDto> {
+        return try {
+            Result.success(inventoryService.updateRecipe(id, request))
+        } catch (e: HttpException) {
+            val msg = if (e.code() == 403) "Requires owner access"
+                      else parseErrorMessage(e) ?: "Server error: ${e.code()}"
+            Result.failure(RuntimeException(msg))
+        } catch (e: IOException) {
+            Result.failure(IOException("No connection"))
+        } catch (e: Exception) {
+            Timber.e(e, "Error updating recipe")
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteRecipe(id: String, force: Boolean = false): Result<Unit> {
+        return try {
+            val response = inventoryService.deleteRecipe(id, force)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string().orEmpty()
+                val msg = when {
+                    response.code() == 403 -> "Requires owner access"
+                    errorBody.contains("active menu item", ignoreCase = true) ->
+                        "MENU_ITEM_CONFLICT:$errorBody"
+                    else -> "Delete failed: ${response.code()}"
+                }
+                Result.failure(RuntimeException(msg))
+            }
+        } catch (e: IOException) {
+            Result.failure(IOException("No connection"))
+        } catch (e: Exception) {
+            Timber.e(e, "Error deleting recipe")
             Result.failure(e)
         }
     }

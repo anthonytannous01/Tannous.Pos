@@ -209,6 +209,36 @@ data class RecipeLineDto(
 )
 
 @Serializable
+data class CreateRecipeRequest(
+    val name: String,
+    val description: String? = null,
+    val menuItemId: String,
+    val lines: List<CreateRecipeLineRequest>
+)
+
+@Serializable
+data class CreateRecipeLineRequest(
+    val ingredientId: String,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val quantityPerItem: BigDecimal
+)
+
+@Serializable
+data class UpdateRecipeRequest(
+    val name: String,
+    val description: String? = null,
+    val menuItemId: String,
+    val lines: List<UpdateRecipeLineRequest>
+)
+
+@Serializable
+data class UpdateRecipeLineRequest(
+    val ingredientId: String,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val quantityPerItem: BigDecimal
+)
+
+@Serializable
 data class CreateIngredientRequest(
     val name: String,
     val description: String? = null,
