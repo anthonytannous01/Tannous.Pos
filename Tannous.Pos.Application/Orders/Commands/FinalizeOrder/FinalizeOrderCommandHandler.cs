@@ -25,6 +25,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
     private readonly IReceiptNumberService _receiptNumberService;
     private readonly IRecipeRepository _recipeRepository;
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly IBusinessSettingsRepository _businessSettingsRepository;
     private readonly DbContext _dbContext;
     private readonly ISyncConflictRecorder _syncConflictRecorder;
     private readonly IOperationalAuditRecorder _operationalAuditRecorder;
@@ -35,6 +36,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         IReceiptNumberService receiptNumberService,
         IRecipeRepository recipeRepository,
         IInventoryRepository inventoryRepository,
+        IBusinessSettingsRepository businessSettingsRepository,
         DbContext dbContext,
         ISyncConflictRecorder syncConflictRecorder,
         IOperationalAuditRecorder operationalAuditRecorder,
@@ -44,6 +46,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         _receiptNumberService = receiptNumberService;
         _recipeRepository = recipeRepository;
         _inventoryRepository = inventoryRepository;
+        _businessSettingsRepository = businessSettingsRepository;
         _dbContext = dbContext;
         _syncConflictRecorder = syncConflictRecorder;
         _operationalAuditRecorder = operationalAuditRecorder;
@@ -218,7 +221,15 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                     order.Id);
             }
 
-            var taxAmount = OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal);
+            // Use the configured tax rate from BusinessSettings rather than the legacy
+            // hardcoded 10% constant — ensures the finalize path matches receipt printing.
+            // Fall back to LegacyOrderFlowTaxRate if settings are unavailable (e.g. first boot).
+            var businessSettings = await _businessSettingsRepository.GetAsync(cancellationToken);
+            var taxRate = businessSettings?.TaxRate > 0
+                ? businessSettings.TaxRate / 100m   // stored as percentage (e.g. 10 = 10%)
+                : OrderFinancialGovernance.LegacyOrderFlowTaxRate;
+
+            var taxAmount   = decimal.Round(subTotal * taxRate, 28, MidpointRounding.AwayFromZero);
             var totalAmount = subTotal + taxAmount;
 
             OrderFinancialSnapshotGovernance.LogIfSnapshotViolatesInvariants(

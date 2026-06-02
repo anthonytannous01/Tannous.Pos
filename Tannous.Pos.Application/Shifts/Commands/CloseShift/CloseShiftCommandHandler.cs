@@ -29,45 +29,49 @@ public class CloseShiftCommandHandler : IRequestHandler<CloseShiftCommand, Shift
         if (shift.Status != ShiftStatus.Open)
             throw new InvalidOperationException($"Shift {request.ShiftId} is not in Open status");
 
-        // Calculate expected cash from orders and cash drops
-        var orderCash = shift.Orders
+        // Expected cash = opening float + cash sales only − cash drops removed from drawer.
+        // Card and Other payments never enter the physical drawer and must be excluded,
+        // otherwise every card sale appears as a cash shortage in the variance.
+        var cashSales = shift.Orders
             .Where(o => o.Status == OrderStatus.Paid)
-            .Sum(o => o.Payments.Sum(p => p.Amount));
+            .Sum(o => o.Payments
+                .Where(p => string.Equals(p.PaymentMethod, "CASH", StringComparison.OrdinalIgnoreCase))
+                .Sum(p => p.Amount));
 
         var cashDrops = shift.CashDrawerEvents
             .Where(e => e.EventType == "Drop")
             .Sum(e => e.Amount ?? 0);
 
-        var expectedCash = shift.OpeningBalance + orderCash - cashDrops;
-        var actualCash = request.ClosingCount;
-        var variance = actualCash - expectedCash;
+        var expectedCash = shift.OpeningBalance + cashSales - cashDrops;
+        var actualCash   = request.ClosingCount;
+        var variance     = actualCash - expectedCash;
 
         // Update shift
-        shift.Status = ShiftStatus.Closed;
-        shift.EndTime = DateTime.UtcNow;
+        shift.Status         = ShiftStatus.Closed;
+        shift.EndTime        = DateTime.UtcNow;
         shift.ClosingBalance = actualCash;
-        shift.ExpectedCash = expectedCash;
-        shift.ActualCash = actualCash;
+        shift.ExpectedCash   = expectedCash;
+        shift.ActualCash     = actualCash;
         shift.CashDifference = variance;
-        shift.Notes = request.Note;
+        shift.Notes          = request.Note;
 
         await _unitOfWork.SaveChangesAsync();
 
         return new ShiftDto
         {
-            Id = shift.Id,
-            ShiftNumber = shift.ShiftNumber,
-            StartTime = shift.StartTime,
-            EndTime = shift.EndTime,
-            Status = shift.Status.ToString(),
+            Id             = shift.Id,
+            ShiftNumber    = shift.ShiftNumber,
+            StartTime      = shift.StartTime,
+            EndTime        = shift.EndTime,
+            Status         = shift.Status.ToString(),
             OpeningBalance = shift.OpeningBalance,
             ClosingBalance = shift.ClosingBalance,
-            ExpectedCash = shift.ExpectedCash,
-            ActualCash = shift.ActualCash,
+            ExpectedCash   = shift.ExpectedCash,
+            ActualCash     = shift.ActualCash,
             CashDifference = shift.CashDifference,
-            Notes = shift.Notes,
-            UserId = shift.UserId,
-            CreatedAt = shift.CreatedAt
+            Notes          = shift.Notes,
+            UserId         = shift.UserId,
+            CreatedAt      = shift.CreatedAt
         };
     }
 }
