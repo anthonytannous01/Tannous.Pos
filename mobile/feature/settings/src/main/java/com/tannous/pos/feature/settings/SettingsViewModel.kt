@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -27,23 +28,22 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadSettings()
-        loadFailedSyncCount()
+        observeFailedSyncCount()
     }
 
-    private fun loadFailedSyncCount() {
+    private fun observeFailedSyncCount() {
         viewModelScope.launch {
-            try {
-                val counts = outboxDao.getOperationCounts()
-                val failedCount = counts
-                    .filter {
-                        it.status == OutboxStatus.FAILED ||
-                            it.status == OutboxStatus.FAILED_CONFLICT
-                    }
-                    .sumOf { it.count }
-                _uiState.update { it.copy(failedSyncCount = failedCount) }
-            } catch (e: Exception) {
-                Timber.w(e, "Could not load outbox counts")
-            }
+            outboxDao.observeOperationCounts()
+                .catch { e -> Timber.w(e, "Could not observe outbox counts") }
+                .collect { counts ->
+                    val failedCount = counts
+                        .filter {
+                            it.status == OutboxStatus.FAILED ||
+                                it.status == OutboxStatus.FAILED_CONFLICT
+                        }
+                        .sumOf { it.count }
+                    _uiState.update { it.copy(failedSyncCount = failedCount) }
+                }
         }
     }
 

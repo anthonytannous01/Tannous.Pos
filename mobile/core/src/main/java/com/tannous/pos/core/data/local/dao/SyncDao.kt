@@ -56,4 +56,7 @@ interface OutboxDao {
     
     @Query("SELECT status, COUNT(*) as count FROM outbox_operations GROUP BY status")
     suspend fun getOperationCounts(): List<StatusCount>
+
+    @Query("SELECT status, COUNT(*) as count FROM outbox_operations GROUP BY status")
+    fun observeOperationCounts(): Flow<List<StatusCount>>
 }
