@@ -119,6 +119,12 @@ class PullWorker @AssistedInject constructor(
                     totalProcessed += customers.size
                 }
 
+                // NOTE: response.upserts.ingredients and response.upserts.recipes are
+                // intentionally not persisted here. Inventory is currently network-only
+                // (InventoryRepository fetches live from GET /api/inventory). If offline
+                // ingredient browsing becomes a requirement, add IngredientEntity + IngredientDao
+                // and wire them here. Until then, silently dropping is correct behaviour.
+
                 // Process deletes (soft-delete in local DB)
                 response.deletes.items?.forEach { id -> menuItemDao.markDeleted(id) }
                 response.deletes.customers?.forEach { id -> customerDao.markDeleted(id) }
