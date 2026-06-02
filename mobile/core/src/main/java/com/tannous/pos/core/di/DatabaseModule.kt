@@ -71,6 +71,12 @@ object DatabaseModule {
     
     @Provides
     @Singleton
+    fun provideShiftDao(database: AppDatabase): ShiftDao {
+        return database.shiftDao()
+    }
+
+    @Provides
+    @Singleton
     fun provideOutboxDao(database: AppDatabase): OutboxDao {
         return database.outboxDao()
     }
