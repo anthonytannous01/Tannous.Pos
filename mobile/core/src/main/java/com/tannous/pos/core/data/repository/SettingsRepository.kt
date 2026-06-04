@@ -36,7 +36,7 @@ class SettingsRepository @Inject constructor(
     suspend fun getSettings(): BusinessSettingsDto {
         return try {
             val dto = settingsService.getSettings()
-            cacheTaxAndCurrency(dto.taxRate, dto.currency)
+            cacheSettings(dto)
             dto
         } catch (e: IOException) {
             Timber.w(e, "Offline fetching settings; serving cached/default values")
@@ -50,7 +50,7 @@ class SettingsRepository @Inject constructor(
     suspend fun updateSettings(request: UpdateSettingsRequest): Result<BusinessSettingsDto> {
         return try {
             val updated = settingsService.updateSettings(request)
-            cacheTaxAndCurrency(updated.taxRate, updated.currency)
+            cacheSettings(updated)
             Result.success(updated)
         } catch (e: HttpException) {
             if (e.code() == 403) {
@@ -87,9 +87,23 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    /** Cached LBP/USD exchange rate for offline display. Defaults to 0 (rate not configured). */
+    suspend fun getExchangeRate(): BigDecimal {
+        return try {
+            keyValueDao.get(KEY_EXCHANGE_RATE)?.let { BigDecimal(it) } ?: BigDecimal.ZERO
+        } catch (e: Exception) {
+            BigDecimal.ZERO
+        }
+    }
+
     private suspend fun cacheTaxAndCurrency(taxRatePercent: BigDecimal, currency: String) {
         keyValueDao.set(KeyValueEntity(KEY_TAX_RATE, taxRatePercent.toPlainString()))
         keyValueDao.set(KeyValueEntity(KEY_CURRENCY, currency))
+    }
+
+    private suspend fun cacheSettings(dto: com.tannous.pos.core.data.model.BusinessSettingsDto) {
+        cacheTaxAndCurrency(dto.taxRate, dto.currency)
+        keyValueDao.set(KeyValueEntity(KEY_EXCHANGE_RATE, dto.exchangeRateLbpPerUsd.toPlainString()))
     }
 
     private suspend fun syntheticFromCache(): BusinessSettingsDto {
@@ -105,6 +119,7 @@ class SettingsRepository @Inject constructor(
     companion object {
         const val KEY_TAX_RATE = "settings_tax_rate"
         const val KEY_CURRENCY = "settings_currency"
+        const val KEY_EXCHANGE_RATE = "settings_exchange_rate"
         val DEFAULT_TAX_RATE: BigDecimal = BigDecimal("0.10")
         val DEFAULT_TAX_RATE_PERCENT: BigDecimal = BigDecimal("10")
         const val DEFAULT_CURRENCY = "USD"

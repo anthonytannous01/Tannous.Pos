@@ -51,6 +51,10 @@ public class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, Setting
         RequireCustomerInfo      = settings.RequireCustomerInfo,
         EnableInventoryTracking  = settings.EnableInventoryTracking,
         EnableRecipeManagement   = settings.EnableRecipeManagement,
+        ExchangeRateLbpPerUsd    = settings.ExchangeRateLbpPerUsd,
+        ShowLbpOnReceipt         = settings.ShowLbpOnReceipt,
+        StampDutyEnabled         = settings.StampDutyEnabled,
+        StampDutyAmountUsd       = settings.StampDutyAmountUsd,
         CreatedAt                = settings.CreatedAt,
         UpdatedAt                = settings.UpdatedAt ?? DateTime.UtcNow
     };

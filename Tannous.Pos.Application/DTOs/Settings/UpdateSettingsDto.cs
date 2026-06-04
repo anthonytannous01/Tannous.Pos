@@ -16,4 +16,10 @@ public class UpdateSettingsDto
     public bool RequireCustomerInfo { get; set; }
     public bool EnableInventoryTracking { get; set; }
     public bool EnableRecipeManagement { get; set; }
+
+    // Lebanese market: dual-currency & stamp duty
+    public decimal ExchangeRateLbpPerUsd { get; set; }
+    public bool ShowLbpOnReceipt { get; set; }
+    public bool StampDutyEnabled { get; set; }
+    public decimal StampDutyAmountUsd { get; set; } = 2.00m;
 }

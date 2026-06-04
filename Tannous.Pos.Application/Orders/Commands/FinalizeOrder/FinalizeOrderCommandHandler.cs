@@ -225,12 +225,28 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             // hardcoded 10% constant — ensures the finalize path matches receipt printing.
             // Fall back to LegacyOrderFlowTaxRate if settings are unavailable (e.g. first boot).
             var businessSettings = await _businessSettingsRepository.GetAsync(cancellationToken);
-            var taxRate = businessSettings?.TaxRate > 0
-                ? businessSettings.TaxRate / 100m   // stored as percentage (e.g. 10 = 10%)
-                : OrderFinancialGovernance.LegacyOrderFlowTaxRate;
 
-            var taxAmount   = decimal.Round(subTotal * taxRate, 28, MidpointRounding.AwayFromZero);
-            var totalAmount = subTotal + taxAmount;
+            // Tax computation: use configured BusinessSettings.TaxRate when available (e.g. 11% Lebanon VAT).
+            // Fall back to OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal (10% fixed) when settings
+            // are unavailable (first boot) — preserves the legacy order flow tax anchor.
+            var taxAmount = businessSettings?.TaxRate > 0
+                ? decimal.Round(subTotal * (businessSettings.TaxRate / 100m), 28, MidpointRounding.AwayFromZero)
+                : OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal);
+
+            // Stamp duty (Lebanon 2025 Budget Law): $2 USD on USD-denominated receipts.
+            // Applied only when StampDutyEnabled = true in BusinessSettings.
+            var stampDuty = 0m;
+            if (businessSettings?.StampDutyEnabled == true && businessSettings.StampDutyAmountUsd > 0)
+            {
+                // Apply stamp duty when at least one payment is tendered in USD.
+                var hasUsdPayment = request.Payments.Any(p =>
+                    string.IsNullOrEmpty(p.TenderedCurrency) ||
+                    p.TenderedCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase));
+                if (hasUsdPayment)
+                    stampDuty = businessSettings.StampDutyAmountUsd;
+            }
+
+            var totalAmount = subTotal + taxAmount + stampDuty;
 
             OrderFinancialSnapshotGovernance.LogIfSnapshotViolatesInvariants(
                 _logger,
@@ -372,16 +388,37 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             var receiptNumber = await _receiptNumberService.GenerateReceiptNumberAsync();
 
             // Create payments (all within the same transaction)
+            var exchangeRate = businessSettings?.ExchangeRateLbpPerUsd ?? 0m;
             foreach (var paymentDto in request.Payments)
             {
+                var tenderedCurrency = string.IsNullOrWhiteSpace(paymentDto.TenderedCurrency)
+                    ? "USD"
+                    : paymentDto.TenderedCurrency.ToUpperInvariant();
+
+                // Normalise amount to USD for reporting
+                decimal amountInUsd;
+                decimal? exchangeRateUsed = null;
+                if (tenderedCurrency == "LBP" && exchangeRate > 0)
+                {
+                    amountInUsd = decimal.Round(paymentDto.Amount / exchangeRate, 4, MidpointRounding.AwayFromZero);
+                    exchangeRateUsed = exchangeRate;
+                }
+                else
+                {
+                    amountInUsd = paymentDto.Amount; // already USD
+                }
+
                 var payment = new Payment
                 {
-                    OrderId = order.Id,
-                    Amount = paymentDto.Amount,
-                    PaymentMethod = paymentDto.PaymentMethod,
-                    TransactionId = paymentDto.TransactionId,
-                    Notes = paymentDto.Notes,
-                    PaymentDate = DateTime.UtcNow
+                    OrderId          = order.Id,
+                    Amount           = paymentDto.Amount,
+                    PaymentMethod    = paymentDto.PaymentMethod,
+                    TransactionId    = paymentDto.TransactionId,
+                    Notes            = paymentDto.Notes,
+                    PaymentDate      = DateTime.UtcNow,
+                    TenderedCurrency = tenderedCurrency,
+                    ExchangeRateUsed = exchangeRateUsed,
+                    AmountInUsd      = amountInUsd
                 };
                 await _dbContext.Set<Payment>().AddAsync(payment, cancellationToken);
             }
@@ -390,6 +427,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             order.Status = OrderStatus.Paid;
             order.SubTotal = subTotal;
             order.TaxAmount = taxAmount;
+            order.StampDutyAmount = stampDuty;
             order.TotalAmount = totalAmount;
             order.AmountTendered = totalPayments;
             order.ChangeDue = changeDue;
@@ -786,6 +824,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             SubTotal = order.SubTotal,
             TaxAmount = order.TaxAmount,
             DiscountAmount = order.DiscountAmount,
+            StampDutyAmount = order.StampDutyAmount,
             TotalAmount = order.TotalAmount,
             ReceiptNumber = order.ReceiptNumber,
             Notes = order.Notes,

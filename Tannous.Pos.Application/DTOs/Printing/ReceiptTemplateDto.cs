@@ -12,4 +12,10 @@ public class ReceiptTemplateDto
     public bool TaxEnabled { get; set; } = false;
     public string? Footer { get; set; }
     public string NumberFormat { get; set; } = "N0"; // currency formatting
+
+    // Lebanese market
+    public decimal ExchangeRateLbpPerUsd { get; set; } = 0m;
+    public bool ShowLbpOnReceipt { get; set; } = false;
+    public bool StampDutyEnabled { get; set; } = false;
+    public decimal StampDutyAmountUsd { get; set; } = 2.00m;
 }

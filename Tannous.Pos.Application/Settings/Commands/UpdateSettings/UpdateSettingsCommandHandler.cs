@@ -33,10 +33,14 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         settings.Currency              = dto.Currency;
         settings.ReceiptHeader         = dto.ReceiptHeader;
         settings.ReceiptFooter         = dto.ReceiptFooter;
-        settings.RequireCustomerInfo   = dto.RequireCustomerInfo;
-        settings.EnableInventoryTracking = dto.EnableInventoryTracking;
-        settings.EnableRecipeManagement  = dto.EnableRecipeManagement;
-        settings.UpdatedAt             = DateTime.UtcNow;
+        settings.RequireCustomerInfo      = dto.RequireCustomerInfo;
+        settings.EnableInventoryTracking  = dto.EnableInventoryTracking;
+        settings.EnableRecipeManagement   = dto.EnableRecipeManagement;
+        settings.ExchangeRateLbpPerUsd    = dto.ExchangeRateLbpPerUsd;
+        settings.ShowLbpOnReceipt         = dto.ShowLbpOnReceipt;
+        settings.StampDutyEnabled         = dto.StampDutyEnabled;
+        settings.StampDutyAmountUsd       = dto.StampDutyAmountUsd > 0 ? dto.StampDutyAmountUsd : 2.00m;
+        settings.UpdatedAt                = DateTime.UtcNow;
 
         if (isNew)
             await _settingsRepository.CreateAsync(settings, cancellationToken);
@@ -63,6 +67,10 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         RequireCustomerInfo      = settings.RequireCustomerInfo,
         EnableInventoryTracking  = settings.EnableInventoryTracking,
         EnableRecipeManagement   = settings.EnableRecipeManagement,
+        ExchangeRateLbpPerUsd    = settings.ExchangeRateLbpPerUsd,
+        ShowLbpOnReceipt         = settings.ShowLbpOnReceipt,
+        StampDutyEnabled         = settings.StampDutyEnabled,
+        StampDutyAmountUsd       = settings.StampDutyAmountUsd,
         CreatedAt                = settings.CreatedAt,
         UpdatedAt                = settings.UpdatedAt ?? DateTime.UtcNow
     };

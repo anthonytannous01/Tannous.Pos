@@ -9,8 +9,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -18,6 +21,36 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LebanonPresetDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Lebanon Quick Setup") },
+        text = {
+            Text(
+                "This will set:\n" +
+                "• VAT = 11%\n" +
+                "• Show LBP on receipts = ON\n" +
+                "• Stamp duty ($2 USD) = ON\n\n" +
+                "You will still need to enter the current exchange rate manually."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm()
+                onDismiss()
+            }) { Text("Apply") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +65,14 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    var showLebanonPresetDialog by remember { mutableStateOf(false) }
+
+    if (showLebanonPresetDialog) {
+        LebanonPresetDialog(
+            onConfirm = { viewModel.applyLebanonPreset() },
+            onDismiss = { showLebanonPresetDialog = false }
+        )
+    }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { message ->
@@ -325,6 +366,82 @@ fun SettingsScreen(
                             viewModel.onToggleChange(SettingsToggle.EnableRecipeManagement, it)
                         }
                     )
+
+                    // ── Lebanese Market ──────────────────────────────────────
+                    SettingsSectionHeader("Lebanese Market")
+
+                    // Quick-setup banner
+                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Lebanon Quick Setup",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "Set VAT 11%, LBP display, and stamp duty in one tap.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            OutlinedButton(
+                                onClick = { showLebanonPresetDialog = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Apply Lebanon Preset")
+                            }
+                        }
+                    }
+
+                    // Exchange rate field
+                    OutlinedTextField(
+                        value = uiState.exchangeRateLbpPerUsd,
+                        onValueChange = {
+                            viewModel.onFieldChange(SettingsField.ExchangeRateLbpPerUsd, it)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Exchange Rate (LBP per 1 USD)") },
+                        placeholder = { Text("e.g. 89500") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        supportingText = {
+                            val rate = uiState.exchangeRateLbpPerUsd.trim().toBigDecimalOrNull()
+                            if (rate != null && rate > java.math.BigDecimal.ZERO)
+                                Text("1 USD = ${rate.toLong()} LBP")
+                        },
+                        singleLine = true
+                    )
+
+                    SettingsToggleRow(
+                        label = "Show LBP on Receipts",
+                        checked = uiState.showLbpOnReceipt,
+                        onCheckedChange = {
+                            viewModel.onToggleChange(SettingsToggle.ShowLbpOnReceipt, it)
+                        }
+                    )
+
+                    SettingsToggleRow(
+                        label = "Stamp Duty (2025 Budget Law)",
+                        checked = uiState.stampDutyEnabled,
+                        onCheckedChange = {
+                            viewModel.onToggleChange(SettingsToggle.StampDutyEnabled, it)
+                        }
+                    )
+
+                    if (uiState.stampDutyEnabled) {
+                        OutlinedTextField(
+                            value = uiState.stampDutyAmountUsd,
+                            onValueChange = {
+                                viewModel.onFieldChange(SettingsField.StampDutyAmountUsd, it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Stamp Duty Amount (USD)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            supportingText = { Text("Default: \$2.00 per receipt (2025 law)") },
+                            singleLine = true
+                        )
+                    }
 
                     Button(
                         onClick = { viewModel.saveSettings() },

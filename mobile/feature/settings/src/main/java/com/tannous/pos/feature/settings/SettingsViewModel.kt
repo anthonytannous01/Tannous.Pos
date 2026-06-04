@@ -68,7 +68,13 @@ class SettingsViewModel @Inject constructor(
                         receiptFooter = settings.receiptFooter.orEmpty(),
                         requireCustomerInfo = settings.requireCustomerInfo,
                         enableInventoryTracking = settings.enableInventoryTracking,
-                        enableRecipeManagement = settings.enableRecipeManagement
+                        enableRecipeManagement = settings.enableRecipeManagement,
+                        exchangeRateLbpPerUsd = settings.exchangeRateLbpPerUsd
+                            .stripTrailingZeros().toPlainString(),
+                        showLbpOnReceipt = settings.showLbpOnReceipt,
+                        stampDutyEnabled = settings.stampDutyEnabled,
+                        stampDutyAmountUsd = settings.stampDutyAmountUsd
+                            .stripTrailingZeros().toPlainString()
                     )
                 }
             } catch (e: Exception) {
@@ -95,6 +101,8 @@ class SettingsViewModel @Inject constructor(
                 SettingsField.Currency -> state.copy(currency = value)
                 SettingsField.ReceiptHeader -> state.copy(receiptHeader = value)
                 SettingsField.ReceiptFooter -> state.copy(receiptFooter = value)
+                SettingsField.ExchangeRateLbpPerUsd -> state.copy(exchangeRateLbpPerUsd = value)
+                SettingsField.StampDutyAmountUsd -> state.copy(stampDutyAmountUsd = value)
             }
         }
     }
@@ -106,7 +114,26 @@ class SettingsViewModel @Inject constructor(
                 SettingsToggle.RequireCustomerInfo -> state.copy(requireCustomerInfo = value)
                 SettingsToggle.EnableInventoryTracking -> state.copy(enableInventoryTracking = value)
                 SettingsToggle.EnableRecipeManagement -> state.copy(enableRecipeManagement = value)
+                SettingsToggle.ShowLbpOnReceipt -> state.copy(showLbpOnReceipt = value)
+                SettingsToggle.StampDutyEnabled -> state.copy(stampDutyEnabled = value)
             }
+        }
+    }
+
+    /**
+     * One-tap Lebanese market preset:
+     * sets VAT to 11%, enables LBP on receipt, enables stamp duty at $2.
+     * Operator still needs to enter the current exchange rate manually.
+     */
+    fun applyLebanonPreset() {
+        _uiState.update {
+            it.copy(
+                taxEnabled = true,
+                taxRate = "11",
+                showLbpOnReceipt = true,
+                stampDutyEnabled = true,
+                stampDutyAmountUsd = "2.00"
+            )
         }
     }
 
@@ -120,6 +147,18 @@ class SettingsViewModel @Inject constructor(
             BigDecimal(state.taxRate.trim())
         } catch (_: Exception) {
             _uiState.update { it.copy(error = "Invalid tax rate") }
+            return
+        }
+        val exchangeRate = try {
+            BigDecimal(state.exchangeRateLbpPerUsd.trim().ifBlank { "0" })
+        } catch (_: Exception) {
+            _uiState.update { it.copy(error = "Invalid exchange rate") }
+            return
+        }
+        val stampDutyAmount = try {
+            BigDecimal(state.stampDutyAmountUsd.trim().ifBlank { "2.00" })
+        } catch (_: Exception) {
+            _uiState.update { it.copy(error = "Invalid stamp duty amount") }
             return
         }
 
@@ -139,7 +178,11 @@ class SettingsViewModel @Inject constructor(
                 receiptFooter = state.receiptFooter.takeIf { it.isNotBlank() },
                 requireCustomerInfo = state.requireCustomerInfo,
                 enableInventoryTracking = state.enableInventoryTracking,
-                enableRecipeManagement = state.enableRecipeManagement
+                enableRecipeManagement = state.enableRecipeManagement,
+                exchangeRateLbpPerUsd = exchangeRate,
+                showLbpOnReceipt = state.showLbpOnReceipt,
+                stampDutyEnabled = state.stampDutyEnabled,
+                stampDutyAmountUsd = stampDutyAmount
             )
             val result = settingsRepository.updateSettings(request)
             _uiState.update {
@@ -176,6 +219,11 @@ data class SettingsUiState(
     val requireCustomerInfo: Boolean = false,
     val enableInventoryTracking: Boolean = true,
     val enableRecipeManagement: Boolean = false,
+    // Lebanese market
+    val exchangeRateLbpPerUsd: String = "0",
+    val showLbpOnReceipt: Boolean = false,
+    val stampDutyEnabled: Boolean = false,
+    val stampDutyAmountUsd: String = "2.00",
     val failedSyncCount: Int = 0
 )
 
@@ -189,12 +237,16 @@ enum class SettingsField {
     TaxRate,
     Currency,
     ReceiptHeader,
-    ReceiptFooter
+    ReceiptFooter,
+    ExchangeRateLbpPerUsd,
+    StampDutyAmountUsd
 }
 
 enum class SettingsToggle {
     TaxEnabled,
     RequireCustomerInfo,
     EnableInventoryTracking,
-    EnableRecipeManagement
+    EnableRecipeManagement,
+    ShowLbpOnReceipt,
+    StampDutyEnabled
 }

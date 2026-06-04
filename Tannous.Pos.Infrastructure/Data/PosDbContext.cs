@@ -109,6 +109,34 @@ public class PosDbContext : DbContext
             .Property(p => p.Amount)
             .HasColumnType("decimal(18,2)");
 
+        modelBuilder.Entity<Payment>()
+            .Property(p => p.AmountInUsd)
+            .HasColumnType("decimal(18,4)");
+
+        modelBuilder.Entity<Payment>()
+            .Property(p => p.ExchangeRateUsed)
+            .HasColumnType("decimal(18,4)");
+
+        modelBuilder.Entity<Payment>()
+            .Property(p => p.TenderedCurrency)
+            .HasMaxLength(8)
+            .HasDefaultValue("USD");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.StampDutyAmount)
+            .HasColumnType("decimal(18,2)")
+            .HasDefaultValue(0m);
+
+        modelBuilder.Entity<BusinessSettings>()
+            .Property(bs => bs.ExchangeRateLbpPerUsd)
+            .HasColumnType("decimal(18,2)")
+            .HasDefaultValue(0m);
+
+        modelBuilder.Entity<BusinessSettings>()
+            .Property(bs => bs.StampDutyAmountUsd)
+            .HasColumnType("decimal(18,2)")
+            .HasDefaultValue(2.00m);
+
         modelBuilder.Entity<PaymentRefund>()
             .Property(r => r.Amount)
             .HasColumnType("decimal(18,2)");

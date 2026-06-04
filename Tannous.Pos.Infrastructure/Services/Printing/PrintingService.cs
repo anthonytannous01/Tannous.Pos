@@ -29,7 +29,11 @@ public class PrintingService : IPrintingService
             Phone = settings?.Phone,
             Currency = settings?.Currency ?? "USD",
             TaxEnabled = settings?.TaxRate > 0,
-            Footer = settings?.ReceiptFooter
+            Footer = settings?.ReceiptFooter,
+            ExchangeRateLbpPerUsd = settings?.ExchangeRateLbpPerUsd ?? 0m,
+            ShowLbpOnReceipt = settings?.ShowLbpOnReceipt ?? false,
+            StampDutyEnabled = settings?.StampDutyEnabled ?? false,
+            StampDutyAmountUsd = settings?.StampDutyAmountUsd ?? 2.00m
         };
     }
 
@@ -104,19 +108,35 @@ public class PrintingService : IPrintingService
 
         receipt.AppendLine(new string('-', lineWidth));
 
-        // Totals
-        var subtotal = order.OrderLines.Sum(ol => ol.TotalPrice);
-        receipt.AppendLine(AlignText("Subtotal", subtotal.ToString("C"), lineWidth));
+        // Totals — use stored order amounts (single source of truth, avoids recompute drift)
+        var subtotal = order.SubTotal > 0 ? order.SubTotal : order.OrderLines.Sum(ol => ol.TotalPrice);
+        receipt.AppendLine(AlignText("Subtotal", subtotal.ToString("N2"), lineWidth));
 
-        // GOVERNANCE / RISK: Tax on receipt uses BusinessSettings.TaxRate (percentage). This is independent of
-        // OrderFinancialGovernance (fixed 10% on create/finalize) — intentional legacy split; do not assume receipt tax matches order row tax.
-        if (template.TaxEnabled && settings?.TaxRate > 0)
+        // GOVERNANCE / RISK: Receipt tax uses order.TaxAmount (stored at finalize from BusinessSettings.TaxRate).
+        // This is independent of OrderFinancialGovernance (legacy 10% fallback on create/finalize) — intentional
+        // split; the stored TaxAmount is the authoritative value for receipt display. Do not recompute here.
+        if (order.TaxAmount > 0)
         {
-            var taxAmount = subtotal * (settings.TaxRate / 100);
-            receipt.AppendLine(AlignText($"Tax ({settings.TaxRate}%)", taxAmount.ToString("C"), lineWidth));
+            var taxLabel = settings?.TaxRate > 0
+                ? $"VAT ({settings.TaxRate}%)"
+                : "VAT";
+            receipt.AppendLine(AlignText(taxLabel, order.TaxAmount.ToString("N2"), lineWidth));
         }
 
-        receipt.AppendLine(AlignText("TOTAL", order.TotalAmount.ToString("C"), lineWidth));
+        // Stamp duty (Lebanon 2025 Budget Law)
+        if (order.StampDutyAmount > 0)
+            receipt.AppendLine(AlignText("Stamp Duty", order.StampDutyAmount.ToString("N2"), lineWidth));
+
+        receipt.AppendLine(AlignText($"TOTAL ({template.Currency})", order.TotalAmount.ToString("N2"), lineWidth));
+
+        // LBP equivalent line
+        if (template.ShowLbpOnReceipt && template.ExchangeRateLbpPerUsd > 0)
+        {
+            var totalLbp = order.TotalAmount * template.ExchangeRateLbpPerUsd;
+            var lbpFormatted = totalLbp.ToString("N0");
+            receipt.AppendLine(AlignText("TOTAL (LBP)", lbpFormatted, lineWidth));
+            receipt.AppendLine(AlignText($"Rate: 1 USD =", $"{template.ExchangeRateLbpPerUsd:N0} LBP", lineWidth));
+        }
 
         // Footer
         if (!string.IsNullOrEmpty(template.Footer))

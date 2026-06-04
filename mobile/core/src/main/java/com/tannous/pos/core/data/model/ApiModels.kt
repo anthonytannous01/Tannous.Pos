@@ -72,7 +72,14 @@ data class BusinessSettingsDto(
     val receiptFooter: String? = null,
     val requireCustomerInfo: Boolean = false,
     val enableInventoryTracking: Boolean = false,
-    val enableRecipeManagement: Boolean = false
+    val enableRecipeManagement: Boolean = false,
+    // Lebanese market
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
+    val showLbpOnReceipt: Boolean = false,
+    val stampDutyEnabled: Boolean = false,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00")
 )
 
 @Serializable
@@ -91,7 +98,14 @@ data class UpdateSettingsRequest(
     val receiptFooter: String? = null,
     val requireCustomerInfo: Boolean,
     val enableInventoryTracking: Boolean,
-    val enableRecipeManagement: Boolean
+    val enableRecipeManagement: Boolean,
+    // Lebanese market
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
+    val showLbpOnReceipt: Boolean = false,
+    val stampDutyEnabled: Boolean = false,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00")
 )
 
 // Reports

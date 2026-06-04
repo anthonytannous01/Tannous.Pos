@@ -16,4 +16,9 @@ public class PaymentDto
     public decimal Amount { get; set; }
     public string? TransactionId { get; set; }
     public string? Notes { get; set; }
+    /// <summary>
+    /// Currency in which this payment was tendered ("USD" or "LBP").
+    /// Defaults to "USD" when not specified.
+    /// </summary>
+    public string TenderedCurrency { get; set; } = "USD";
 }

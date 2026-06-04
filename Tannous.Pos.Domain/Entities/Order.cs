@@ -17,6 +17,11 @@ public class Order : BaseEntity, IAggregateRoot
     public decimal SubTotal { get; set; } = 0;
     public decimal TaxAmount { get; set; } = 0;
     public decimal DiscountAmount { get; set; } = 0;
+    /// <summary>
+    /// USD stamp duty applied to this receipt per Lebanon's 2025 Budget Law.
+    /// 0 when not applicable (StampDutyEnabled = false in BusinessSettings, or non-USD order).
+    /// </summary>
+    public decimal StampDutyAmount { get; set; } = 0;
     public decimal TotalAmount { get; set; } = 0;
     /// <summary>Total customer payments received at finalize (amount tendered).</summary>
     public decimal AmountTendered { get; set; } = 0;

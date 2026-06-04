@@ -11,6 +11,8 @@ public class OrderDto
     public decimal SubTotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal DiscountAmount { get; set; }
+    /// <summary>Lebanon 2025 Budget Law stamp duty applied to this receipt (0 if not applicable).</summary>
+    public decimal StampDutyAmount { get; set; }
     public decimal TotalAmount { get; set; }
     public string? ReceiptNumber { get; set; }
     public DateTime OrderDate { get; set; }
