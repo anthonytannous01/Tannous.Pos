@@ -38,6 +38,7 @@ import com.tannous.pos.feature.sell.SellScreen
 import com.tannous.pos.feature.sell.SellViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.feature.inventory.InventoryScreen
+import com.tannous.pos.feature.reports.DashboardScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.KdsScreen
@@ -196,8 +197,13 @@ fun TannousPosApp(
                     onNavigateToReports = { navController.navigate("reports") },
                     onNavigateToOrderHistory = { navController.navigate("order-history") },
                     onNavigateToInventory = { navController.navigate("inventory") },
-                    onNavigateToKds = { navController.navigate("kds") }
+                    onNavigateToKds = { navController.navigate("kds") },
+                    onNavigateToDashboard = { navController.navigate("dashboard") }
                 )
+            }
+
+            composable("dashboard") {
+                DashboardScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("kds") {

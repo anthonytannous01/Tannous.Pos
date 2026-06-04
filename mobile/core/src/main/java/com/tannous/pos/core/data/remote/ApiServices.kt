@@ -210,6 +210,13 @@ interface ReportsService {
     suspend fun getEodCsv(
         @Query("date") date: String? = null
     ): Response<ResponseBody>
+
+    /** Real-time owner dashboard summary. Defaults to today when from/to omitted. */
+    @GET("reports/summary")
+    suspend fun getSalesSummary(
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null
+    ): SalesSummaryDto
 }
 
 interface HealthService {

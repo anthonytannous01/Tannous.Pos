@@ -605,3 +605,49 @@ data class ErrorResponse(
     val serverEntity: String? = null
 )
 
+
+// Dashboard / Sales Summary
+@Serializable
+data class SalesSummaryDto(
+    val from: String = "",
+    val to: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val netSales: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val taxCollected: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val stampDutyCollected: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val grossSales: BigDecimal = BigDecimal.ZERO,
+    val ordersCount: Int = 0,
+    val voidedOrdersCount: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val voidRate: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val avgTicket: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val avgItemsPerOrder: BigDecimal = BigDecimal.ZERO,
+    val dineInCount: Int = 0,
+    val takeawayCount: Int = 0,
+    val deliveryCount: Int = 0,
+    val paymentMethods: List<PaymentMethodSummaryDto> = emptyList(),
+    val topItems: List<EodTopItemDto> = emptyList(),
+    val hourlySales: List<HourlySalesDto> = emptyList()
+)
+
+@Serializable
+data class PaymentMethodSummaryDto(
+    val method: String = "",
+    val currency: String = "USD",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal = BigDecimal.ZERO,
+    val count: Int = 0
+)
+
+@Serializable
+data class HourlySalesDto(
+    val hour: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val sales: BigDecimal = BigDecimal.ZERO,
+    val orders: Int = 0
+)

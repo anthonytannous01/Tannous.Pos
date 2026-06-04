@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Tannous.Pos.Application.DTOs.Reports;
 using Tannous.Pos.Application.Reports.Queries.GetCogsReport;
 using Tannous.Pos.Application.Reports.Queries.GetEodReport;
+using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
 using MediatR;
 using Tannous.Pos.WebApi.Constants;
 
@@ -32,6 +33,19 @@ public class ReportsController : ControllerBase
     {
         var query = new GetCogsReportQuery { From = from, To = to };
         var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Real-time sales summary for the owner dashboard.
+    /// Defaults to today (UTC midnight → now). Accepts optional ?from= and ?to= for custom ranges.
+    /// </summary>
+    [HttpGet("summary")]
+    public async Task<ActionResult<SalesSummaryDto>> GetSalesSummary(
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
+    {
+        var result = await _mediator.Send(new GetSalesSummaryQuery { From = from, To = to });
         return Ok(result);
     }
 

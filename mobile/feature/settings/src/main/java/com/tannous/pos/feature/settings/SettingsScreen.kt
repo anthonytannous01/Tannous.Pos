@@ -61,6 +61,7 @@ fun SettingsScreen(
     onNavigateToOrderHistory: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToKds: () -> Unit = {},
+    onNavigateToDashboard: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -255,6 +256,28 @@ fun SettingsScreen(
                                 Icons.Default.ArrowForward,
                                 contentDescription = null
                             )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToDashboard
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Sales Dashboard")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
 
