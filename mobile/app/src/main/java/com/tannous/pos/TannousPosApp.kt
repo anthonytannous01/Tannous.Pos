@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
+import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
 @Composable
@@ -194,8 +195,13 @@ fun TannousPosApp(
                     onNavigateToPrintingPreview = { navController.navigate("printing-preview") },
                     onNavigateToReports = { navController.navigate("reports") },
                     onNavigateToOrderHistory = { navController.navigate("order-history") },
-                    onNavigateToInventory = { navController.navigate("inventory") }
+                    onNavigateToInventory = { navController.navigate("inventory") },
+                    onNavigateToKds = { navController.navigate("kds") }
                 )
+            }
+
+            composable("kds") {
+                KdsScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("inventory") {

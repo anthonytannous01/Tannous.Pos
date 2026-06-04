@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Tannous.Pos.Domain.Entities;
 using Tannous.Pos.Domain.Common.ValueObjects;
+using Tannous.Pos.Domain.Enums;
 using Tannous.Pos.Domain.Interfaces;
 
 namespace Tannous.Pos.Infrastructure.Data;
@@ -100,6 +101,11 @@ public class PosDbContext : DbContext
         modelBuilder.Entity<OrderLine>()
             .Property(ol => ol.TotalPrice)
             .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<OrderLine>()
+            .Property(ol => ol.KdsStatus)
+            .HasDefaultValue(KdsStatus.Pending)
+            .HasConversion<int>();
 
         modelBuilder.Entity<OrderLineAddOn>()
             .Property(ola => ola.Price)

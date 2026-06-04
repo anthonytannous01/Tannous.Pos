@@ -13,5 +13,8 @@ public static class PolicyConstants
     public const string CanViewReports = "CanViewReports";
     public const string CanManageUsers = "CanManageUsers";
     public const string CanManageSettings = "CanManageSettings";
+
+    /// <summary>Kitchen Display System — kitchen staff + managers + owners.</summary>
+    public const string CanViewKds = "CanViewKds";
 }
 

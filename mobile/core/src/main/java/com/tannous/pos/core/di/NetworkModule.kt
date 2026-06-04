@@ -187,4 +187,10 @@ object NetworkModule {
     fun provideHealthService(retrofit: Retrofit): HealthService {
         return retrofit.create(HealthService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideKdsService(retrofit: Retrofit): KdsService {
+        return retrofit.create(KdsService::class.java)
+    }
 }

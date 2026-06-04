@@ -60,6 +60,7 @@ fun SettingsScreen(
     onNavigateToReports: () -> Unit,
     onNavigateToOrderHistory: () -> Unit,
     onNavigateToInventory: () -> Unit,
+    onNavigateToKds: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -249,6 +250,31 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Printing Preview")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = null
+                            )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToKds
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Kitchen Display (KDS)")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,

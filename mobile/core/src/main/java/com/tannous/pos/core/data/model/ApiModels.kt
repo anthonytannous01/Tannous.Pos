@@ -389,7 +389,32 @@ data class OrderLineDto(
     val unitPrice: BigDecimal,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val totalPrice: BigDecimal,
-    val notes: String?
+    val notes: String?,
+    val kdsStatus: Int = 0 // KdsStatus: 0=Pending,1=InProgress,2=Done,3=Cancelled
+)
+
+// KDS
+@Serializable
+data class KdsTicketDto(
+    val orderLineId: String,
+    val orderId: String,
+    val orderNumber: String,
+    val orderType: String,
+    val menuItemName: String,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val quantity: BigDecimal,
+    val notes: String? = null,
+    val addOns: List<String> = emptyList(),
+    val kdsStatus: Int,         // 0=Pending,1=InProgress,2=Done,3=Cancelled
+    val orderCreatedAt: String,
+    val kdsAcknowledgedAt: String? = null,
+    val kdsDoneAt: String? = null,
+    val elapsedMinutes: Int = 0
+)
+
+@Serializable
+data class UpdateKdsStatusRequest(
+    val status: Int              // 0=Pending,1=InProgress,2=Done,3=Cancelled
 )
 
 @Serializable
@@ -579,3 +604,4 @@ data class ErrorResponse(
     val conflict: Boolean = false,
     val serverEntity: String? = null
 )
+

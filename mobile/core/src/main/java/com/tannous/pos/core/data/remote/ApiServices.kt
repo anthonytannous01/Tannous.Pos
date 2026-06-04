@@ -123,12 +123,28 @@ interface PrintingService {
 }
 
 interface SettingsService {
-    
+
     @GET("settings")
     suspend fun getSettings(): BusinessSettingsDto
 
     @PUT("settings")
     suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
+}
+
+interface KdsService {
+
+    /** Poll for active tickets (Pending + InProgress by default). */
+    @GET("v1/kds/tickets")
+    suspend fun getTickets(
+        @Query("status") status: Int? = null
+    ): List<KdsTicketDto>
+
+    /** Update the KDS status of a single order line. */
+    @PATCH("v1/kds/tickets/{orderLineId}/status")
+    suspend fun updateStatus(
+        @Path("orderLineId") orderLineId: String,
+        @Body request: UpdateKdsStatusRequest
+    ): KdsTicketDto
 }
 
 interface InventoryService {

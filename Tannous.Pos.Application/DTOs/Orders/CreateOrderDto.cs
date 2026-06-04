@@ -20,4 +20,5 @@ public class OrderLineDto
     public string? Notes { get; set; }
     public List<Guid> AddOnIds { get; set; } = new List<Guid>();
     public List<OrderLineAddOnDto> AddOns { get; set; } = new();
+    public KdsStatus KdsStatus { get; set; } = KdsStatus.Pending;
 }

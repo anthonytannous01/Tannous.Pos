@@ -41,6 +41,14 @@ public static class AuthorizationExtensions
         // CanManageSettings: Owner only can modify business settings
         options.AddPolicy(PolicyConstants.CanManageSettings, policy =>
             policy.RequireRole(RoleConstants.Owner));
+
+        // CanViewKds: Kitchen staff, Waiters, Managers, and Owners can view/update KDS
+        options.AddPolicy(PolicyConstants.CanViewKds, policy =>
+            policy.RequireRole(
+                RoleConstants.Kitchen,
+                RoleConstants.Waiter,
+                RoleConstants.Manager,
+                RoleConstants.Owner));
     }
 }
 
