@@ -73,6 +73,12 @@ data class BusinessSettingsDto(
     val requireCustomerInfo: Boolean = false,
     val enableInventoryTracking: Boolean = false,
     val enableRecipeManagement: Boolean = false,
+    // Loyalty
+    val loyaltyEnabled: Boolean = false,
+    val loyaltyPointsPerDollar: Int = 10,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val loyaltyPointValueUsd: BigDecimal = BigDecimal("0.01"),
+    val loyaltyMinRedeemPoints: Int = 100,
     // Lebanese market
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
@@ -99,6 +105,12 @@ data class UpdateSettingsRequest(
     val requireCustomerInfo: Boolean,
     val enableInventoryTracking: Boolean,
     val enableRecipeManagement: Boolean,
+    // Loyalty
+    val loyaltyEnabled: Boolean = false,
+    val loyaltyPointsPerDollar: Int = 10,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val loyaltyPointValueUsd: BigDecimal = BigDecimal("0.01"),
+    val loyaltyMinRedeemPoints: Int = 100,
     // Lebanese market
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
@@ -651,3 +663,63 @@ data class HourlySalesDto(
     val sales: BigDecimal = BigDecimal.ZERO,
     val orders: Int = 0
 )
+
+// Menu Engineering
+@Serializable
+data class MenuEngineeringReportDto(
+    val from: String = "",
+    val to: String = "",
+    val totalOrders: Int = 0,
+    val items: List<MenuEngineeringItemDto> = emptyList()
+)
+
+@Serializable
+data class MenuEngineeringItemDto(
+    val menuItemId: String = "",
+    val name: String = "",
+    val categoryName: String = "",
+    val unitsSold: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val popularityIndex: BigDecimal = BigDecimal.ZERO,
+    val isHighPopularity: Boolean = false,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val revenue: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val costOfGoods: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val contributionMargin: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val contributionMarginPct: BigDecimal = BigDecimal.ZERO,
+    val isHighMargin: Boolean = false,
+    val category: Int = 3  // 0=Star,1=Plowhorse,2=Puzzle,3=Dog
+)
+
+// Loyalty
+@Serializable
+data class LoyaltyAccountDto(
+    val id: String = "",
+    val customerId: String = "",
+    val customerName: String = "",
+    val pointBalance: Int = 0,
+    val lifetimePointsEarned: Int = 0,
+    val lifetimePointsRedeemed: Int = 0,
+    val isActive: Boolean = true,
+    val createdAt: String = "",
+    val recentTransactions: List<LoyaltyTransactionDto> = emptyList()
+)
+
+@Serializable
+data class LoyaltyTransactionDto(
+    val id: String = "",
+    val points: Int = 0,
+    val transactionType: Int = 0, // 0=Earn,1=Redeem,2=Adjust,3=Expire
+    val orderId: String? = null,
+    val notes: String? = null,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class EarnPointsRequest(val points: Int, val orderId: String? = null, val notes: String? = null)
+
+@Serializable
+data class RedeemPointsRequest(val points: Int, val orderId: String? = null)

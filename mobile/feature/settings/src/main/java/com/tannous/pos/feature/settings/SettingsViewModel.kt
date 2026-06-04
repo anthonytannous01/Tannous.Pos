@@ -69,6 +69,11 @@ class SettingsViewModel @Inject constructor(
                         requireCustomerInfo = settings.requireCustomerInfo,
                         enableInventoryTracking = settings.enableInventoryTracking,
                         enableRecipeManagement = settings.enableRecipeManagement,
+                        loyaltyEnabled = settings.loyaltyEnabled,
+                        loyaltyPointsPerDollar = settings.loyaltyPointsPerDollar.toString(),
+                        loyaltyPointValueUsd = settings.loyaltyPointValueUsd
+                            .stripTrailingZeros().toPlainString(),
+                        loyaltyMinRedeemPoints = settings.loyaltyMinRedeemPoints.toString(),
                         exchangeRateLbpPerUsd = settings.exchangeRateLbpPerUsd
                             .stripTrailingZeros().toPlainString(),
                         showLbpOnReceipt = settings.showLbpOnReceipt,
@@ -103,6 +108,9 @@ class SettingsViewModel @Inject constructor(
                 SettingsField.ReceiptFooter -> state.copy(receiptFooter = value)
                 SettingsField.ExchangeRateLbpPerUsd -> state.copy(exchangeRateLbpPerUsd = value)
                 SettingsField.StampDutyAmountUsd -> state.copy(stampDutyAmountUsd = value)
+                SettingsField.LoyaltyPointsPerDollar -> state.copy(loyaltyPointsPerDollar = value)
+                SettingsField.LoyaltyPointValueUsd -> state.copy(loyaltyPointValueUsd = value)
+                SettingsField.LoyaltyMinRedeemPoints -> state.copy(loyaltyMinRedeemPoints = value)
             }
         }
     }
@@ -116,6 +124,7 @@ class SettingsViewModel @Inject constructor(
                 SettingsToggle.EnableRecipeManagement -> state.copy(enableRecipeManagement = value)
                 SettingsToggle.ShowLbpOnReceipt -> state.copy(showLbpOnReceipt = value)
                 SettingsToggle.StampDutyEnabled -> state.copy(stampDutyEnabled = value)
+                SettingsToggle.LoyaltyEnabled -> state.copy(loyaltyEnabled = value)
             }
         }
     }
@@ -161,6 +170,10 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(error = "Invalid stamp duty amount") }
             return
         }
+        val loyaltyPpd = state.loyaltyPointsPerDollar.trim().toIntOrNull() ?: 10
+        val loyaltyPv  = try { BigDecimal(state.loyaltyPointValueUsd.trim().ifBlank { "0.01" }) }
+                         catch (_: Exception) { BigDecimal("0.01") }
+        val loyaltyMin = state.loyaltyMinRedeemPoints.trim().toIntOrNull() ?: 100
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, saveSuccess = false) }
@@ -179,6 +192,10 @@ class SettingsViewModel @Inject constructor(
                 requireCustomerInfo = state.requireCustomerInfo,
                 enableInventoryTracking = state.enableInventoryTracking,
                 enableRecipeManagement = state.enableRecipeManagement,
+                loyaltyEnabled = state.loyaltyEnabled,
+                loyaltyPointsPerDollar = loyaltyPpd,
+                loyaltyPointValueUsd = loyaltyPv,
+                loyaltyMinRedeemPoints = loyaltyMin,
                 exchangeRateLbpPerUsd = exchangeRate,
                 showLbpOnReceipt = state.showLbpOnReceipt,
                 stampDutyEnabled = state.stampDutyEnabled,
@@ -219,6 +236,11 @@ data class SettingsUiState(
     val requireCustomerInfo: Boolean = false,
     val enableInventoryTracking: Boolean = true,
     val enableRecipeManagement: Boolean = false,
+    // Loyalty
+    val loyaltyEnabled: Boolean = false,
+    val loyaltyPointsPerDollar: String = "10",
+    val loyaltyPointValueUsd: String = "0.01",
+    val loyaltyMinRedeemPoints: String = "100",
     // Lebanese market
     val exchangeRateLbpPerUsd: String = "0",
     val showLbpOnReceipt: Boolean = false,
@@ -239,7 +261,10 @@ enum class SettingsField {
     ReceiptHeader,
     ReceiptFooter,
     ExchangeRateLbpPerUsd,
-    StampDutyAmountUsd
+    StampDutyAmountUsd,
+    LoyaltyPointsPerDollar,
+    LoyaltyPointValueUsd,
+    LoyaltyMinRedeemPoints
 }
 
 enum class SettingsToggle {
@@ -248,5 +273,6 @@ enum class SettingsToggle {
     EnableInventoryTracking,
     EnableRecipeManagement,
     ShowLbpOnReceipt,
-    StampDutyEnabled
+    StampDutyEnabled,
+    LoyaltyEnabled
 }

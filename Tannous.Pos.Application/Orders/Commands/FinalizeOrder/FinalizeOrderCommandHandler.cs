@@ -485,6 +485,54 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 },
                 cancellationToken);
 
+            // Loyalty point accrual — runs AFTER the main transaction commits.
+            // GOVERNANCE: loyalty is a separate concern; a loyalty failure must never roll back a completed sale.
+            // Points = floor(TotalAmount * LoyaltyPointsPerDollar). Only when customer is attached and loyalty is enabled.
+            if (order.CustomerId.HasValue && businessSettings?.LoyaltyEnabled == true && businessSettings.LoyaltyPointsPerDollar > 0)
+            {
+                try
+                {
+                    var points = (int)Math.Floor(totalAmount * businessSettings.LoyaltyPointsPerDollar);
+                    if (points > 0)
+                    {
+                        var earnAccount = await _dbContext.Set<LoyaltyAccount>()
+                            .FirstOrDefaultAsync(la => la.CustomerId == order.CustomerId.Value && la.IsActive, cancellationToken);
+
+                        if (earnAccount == null)
+                        {
+                            earnAccount = new LoyaltyAccount { CustomerId = order.CustomerId.Value };
+                            _dbContext.Set<LoyaltyAccount>().Add(earnAccount);
+                        }
+
+                        earnAccount.PointBalance         += points;
+                        earnAccount.LifetimePointsEarned += points;
+                        earnAccount.UpdatedAt             = DateTime.UtcNow;
+
+                        _dbContext.Set<LoyaltyTransaction>().Add(new LoyaltyTransaction
+                        {
+                            LoyaltyAccountId = earnAccount.Id,
+                            Points           = points,
+                            TransactionType  = LoyaltyTransactionType.Earn,
+                            OrderId          = order.Id,
+                            Notes            = $"Earned on order {order.OrderNumber}"
+                        });
+
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+
+                        _logger.LogInformation(
+                            "Loyalty points accrued. CustomerId={CustomerId}, Points={Points}, OrderId={OrderId}",
+                            order.CustomerId.Value, points, order.Id);
+                    }
+                }
+                catch (Exception loyaltyEx)
+                {
+                    // Non-fatal: log and continue — the sale is already committed.
+                    _logger.LogError(loyaltyEx,
+                        "Loyalty accrual failed after successful finalize (non-fatal). OrderId={OrderId}",
+                        order.Id);
+                }
+            }
+
             // Return updated order DTO
             return MapToOrderDto(order);
         }

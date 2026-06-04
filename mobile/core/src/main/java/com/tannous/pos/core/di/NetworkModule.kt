@@ -193,4 +193,10 @@ object NetworkModule {
     fun provideKdsService(retrofit: Retrofit): KdsService {
         return retrofit.create(KdsService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideLoyaltyService(retrofit: Retrofit): LoyaltyService {
+        return retrofit.create(LoyaltyService::class.java)
+    }
 }

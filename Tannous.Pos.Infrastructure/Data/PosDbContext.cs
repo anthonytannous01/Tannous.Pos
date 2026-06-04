@@ -36,6 +36,8 @@ public class PosDbContext : DbContext
     public DbSet<CashDrawerEvent> CashDrawerEvents { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Customer> Customers { get; set; }
+    public DbSet<LoyaltyAccount> LoyaltyAccounts { get; set; }
+    public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
     public DbSet<Device> Devices { get; set; }
     public DbSet<Printer> Printers { get; set; }
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -142,6 +144,38 @@ public class PosDbContext : DbContext
             .Property(bs => bs.StampDutyAmountUsd)
             .HasColumnType("decimal(18,2)")
             .HasDefaultValue(2.00m);
+
+        modelBuilder.Entity<BusinessSettings>()
+            .Property(bs => bs.LoyaltyPointValueUsd)
+            .HasColumnType("decimal(18,4)")
+            .HasDefaultValue(0.01m);
+
+        // ── Loyalty ──────────────────────────────────────────────────────────
+        modelBuilder.Entity<LoyaltyAccount>()
+            .HasIndex(la => la.CustomerId)
+            .IsUnique();
+
+        modelBuilder.Entity<LoyaltyAccount>()
+            .HasOne(la => la.Customer)
+            .WithOne()
+            .HasForeignKey<LoyaltyAccount>(la => la.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<LoyaltyTransaction>()
+            .HasOne(lt => lt.LoyaltyAccount)
+            .WithMany(la => la.Transactions)
+            .HasForeignKey(lt => lt.LoyaltyAccountId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<LoyaltyTransaction>()
+            .Property(lt => lt.TransactionType)
+            .HasConversion<int>();
+
+        modelBuilder.Entity<LoyaltyTransaction>()
+            .HasIndex(lt => lt.LoyaltyAccountId);
+
+        modelBuilder.Entity<LoyaltyTransaction>()
+            .HasIndex(lt => lt.OrderId);
 
         modelBuilder.Entity<PaymentRefund>()
             .Property(r => r.Amount)

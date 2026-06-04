@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Tannous.Pos.Application.DTOs.Reports;
 using Tannous.Pos.Application.Reports.Queries.GetCogsReport;
 using Tannous.Pos.Application.Reports.Queries.GetEodReport;
+using Tannous.Pos.Application.Reports.Queries.GetMenuEngineering;
 using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
 using MediatR;
 using Tannous.Pos.WebApi.Constants;
@@ -46,6 +47,19 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime? to = null)
     {
         var result = await _mediator.Send(new GetSalesSummaryQuery { From = from, To = to });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Menu engineering matrix — classifies items as Stars, Plowhorses, Puzzles, Dogs
+    /// based on sales popularity vs contribution margin. Requires ?from= and ?to= date range.
+    /// </summary>
+    [HttpGet("menu-engineering")]
+    public async Task<ActionResult<MenuEngineeringReportDto>> GetMenuEngineering(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var result = await _mediator.Send(new GetMenuEngineeringQuery { From = from, To = to });
         return Ok(result);
     }
 

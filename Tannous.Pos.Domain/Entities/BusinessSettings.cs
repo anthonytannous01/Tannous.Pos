@@ -19,6 +19,19 @@ public class BusinessSettings : BaseEntity, IAggregateRoot
     public bool EnableInventoryTracking { get; set; } = true;
     public bool EnableRecipeManagement { get; set; } = true;
 
+    // ── Loyalty programme configuration ─────────────────────────────────────
+    /// <summary>Enable the loyalty points programme.</summary>
+    public bool LoyaltyEnabled { get; set; } = false;
+
+    /// <summary>Points earned per 1 USD spent (e.g. 10 = 10 points per dollar).</summary>
+    public int LoyaltyPointsPerDollar { get; set; } = 10;
+
+    /// <summary>USD value of one loyalty point at redemption (e.g. 0.01 = 1 cent per point).</summary>
+    public decimal LoyaltyPointValueUsd { get; set; } = 0.01m;
+
+    /// <summary>Minimum point balance required before redemption is allowed.</summary>
+    public int LoyaltyMinRedeemPoints { get; set; } = 100;
+
     // ── Lebanese market: dual-currency support ──────────────────────────────
     /// <summary>
     /// LBP per 1 USD exchange rate. 0 means not configured (dual-currency display disabled).

@@ -39,9 +39,11 @@ import com.tannous.pos.feature.sell.SellViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.DashboardScreen
+import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.KdsScreen
+import com.tannous.pos.feature.sell.LoyaltyScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
 @Composable
@@ -198,12 +200,28 @@ fun TannousPosApp(
                     onNavigateToOrderHistory = { navController.navigate("order-history") },
                     onNavigateToInventory = { navController.navigate("inventory") },
                     onNavigateToKds = { navController.navigate("kds") },
-                    onNavigateToDashboard = { navController.navigate("dashboard") }
+                    onNavigateToDashboard = { navController.navigate("dashboard") },
+                    onNavigateToMenuEngineering = { navController.navigate("menu-engineering") }
                 )
             }
 
             composable("dashboard") {
                 DashboardScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable("menu-engineering") {
+                MenuEngineeringScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable(
+                route = "loyalty/{customerId}",
+                arguments = listOf(navArgument("customerId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val customerId = backStackEntry.arguments?.getString("customerId") ?: return@composable
+                LoyaltyScreen(
+                    customerId = customerId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable("kds") {

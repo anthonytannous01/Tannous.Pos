@@ -36,6 +36,10 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         settings.RequireCustomerInfo      = dto.RequireCustomerInfo;
         settings.EnableInventoryTracking  = dto.EnableInventoryTracking;
         settings.EnableRecipeManagement   = dto.EnableRecipeManagement;
+        settings.LoyaltyEnabled           = dto.LoyaltyEnabled;
+        settings.LoyaltyPointsPerDollar   = dto.LoyaltyPointsPerDollar;
+        settings.LoyaltyPointValueUsd     = dto.LoyaltyPointValueUsd;
+        settings.LoyaltyMinRedeemPoints   = dto.LoyaltyMinRedeemPoints;
         settings.ExchangeRateLbpPerUsd    = dto.ExchangeRateLbpPerUsd;
         settings.ShowLbpOnReceipt         = dto.ShowLbpOnReceipt;
         settings.StampDutyEnabled         = dto.StampDutyEnabled;
@@ -67,6 +71,10 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         RequireCustomerInfo      = settings.RequireCustomerInfo,
         EnableInventoryTracking  = settings.EnableInventoryTracking,
         EnableRecipeManagement   = settings.EnableRecipeManagement,
+        LoyaltyEnabled           = settings.LoyaltyEnabled,
+        LoyaltyPointsPerDollar   = settings.LoyaltyPointsPerDollar,
+        LoyaltyPointValueUsd     = settings.LoyaltyPointValueUsd,
+        LoyaltyMinRedeemPoints   = settings.LoyaltyMinRedeemPoints,
         ExchangeRateLbpPerUsd    = settings.ExchangeRateLbpPerUsd,
         ShowLbpOnReceipt         = settings.ShowLbpOnReceipt,
         StampDutyEnabled         = settings.StampDutyEnabled,

@@ -17,6 +17,12 @@ public class UpdateSettingsDto
     public bool EnableInventoryTracking { get; set; }
     public bool EnableRecipeManagement { get; set; }
 
+    // Loyalty
+    public bool LoyaltyEnabled { get; set; }
+    public int LoyaltyPointsPerDollar { get; set; } = 10;
+    public decimal LoyaltyPointValueUsd { get; set; } = 0.01m;
+    public int LoyaltyMinRedeemPoints { get; set; } = 100;
+
     // Lebanese market: dual-currency & stamp duty
     public decimal ExchangeRateLbpPerUsd { get; set; }
     public bool ShowLbpOnReceipt { get; set; }

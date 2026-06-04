@@ -131,6 +131,24 @@ interface SettingsService {
     suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
 }
 
+interface LoyaltyService {
+
+    @GET("v1/loyalty/customers/{customerId}")
+    suspend fun getAccount(@Path("customerId") customerId: String): LoyaltyAccountDto
+
+    @POST("v1/loyalty/customers/{customerId}/earn")
+    suspend fun earn(
+        @Path("customerId") customerId: String,
+        @Body request: EarnPointsRequest
+    ): LoyaltyAccountDto
+
+    @POST("v1/loyalty/customers/{customerId}/redeem")
+    suspend fun redeem(
+        @Path("customerId") customerId: String,
+        @Body request: RedeemPointsRequest
+    ): LoyaltyAccountDto
+}
+
 interface KdsService {
 
     /** Poll for active tickets (Pending + InProgress by default). */
@@ -217,6 +235,13 @@ interface ReportsService {
         @Query("from") from: String? = null,
         @Query("to") to: String? = null
     ): SalesSummaryDto
+
+    /** Menu engineering matrix — Stars/Plowhorses/Puzzles/Dogs. */
+    @GET("reports/menu-engineering")
+    suspend fun getMenuEngineering(
+        @Query("from") from: String,
+        @Query("to") to: String
+    ): MenuEngineeringReportDto
 }
 
 interface HealthService {

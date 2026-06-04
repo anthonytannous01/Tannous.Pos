@@ -62,6 +62,7 @@ fun SettingsScreen(
     onNavigateToInventory: () -> Unit,
     onNavigateToKds: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
+    onNavigateToMenuEngineering: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -283,6 +284,23 @@ fun SettingsScreen(
 
                     Card(
                         modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToMenuEngineering
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Menu Engineering")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
                         onClick = onNavigateToKds
                     ) {
                         Row(
@@ -415,6 +433,50 @@ fun SettingsScreen(
                             viewModel.onToggleChange(SettingsToggle.EnableRecipeManagement, it)
                         }
                     )
+
+                    // ── Loyalty Programme ────────────────────────────────────
+                    SettingsSectionHeader("Loyalty Programme")
+                    SettingsToggleRow(
+                        label = "Enable Loyalty Points",
+                        checked = uiState.loyaltyEnabled,
+                        onCheckedChange = {
+                            viewModel.onToggleChange(SettingsToggle.LoyaltyEnabled, it)
+                        }
+                    )
+                    if (uiState.loyaltyEnabled) {
+                        OutlinedTextField(
+                            value = uiState.loyaltyPointsPerDollar,
+                            onValueChange = {
+                                viewModel.onFieldChange(SettingsField.LoyaltyPointsPerDollar, it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Points per USD spent") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            supportingText = { Text("e.g. 10 = 10 points per \$1") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = uiState.loyaltyPointValueUsd,
+                            onValueChange = {
+                                viewModel.onFieldChange(SettingsField.LoyaltyPointValueUsd, it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Point value in USD") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            supportingText = { Text("e.g. 0.01 = 1 cent per point") },
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = uiState.loyaltyMinRedeemPoints,
+                            onValueChange = {
+                                viewModel.onFieldChange(SettingsField.LoyaltyMinRedeemPoints, it)
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Minimum points to redeem") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
 
                     // ── Lebanese Market ──────────────────────────────────────
                     SettingsSectionHeader("Lebanese Market")
