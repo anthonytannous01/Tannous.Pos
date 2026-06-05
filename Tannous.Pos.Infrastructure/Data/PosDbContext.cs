@@ -42,6 +42,7 @@ public class PosDbContext : DbContext
     public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
     public DbSet<FloorPlan> FloorPlans { get; set; }
     public DbSet<Table> Tables { get; set; }
+    public DbSet<Reservation> Reservations { get; set; }
     public DbSet<Device> Devices { get; set; }
     public DbSet<Printer> Printers { get; set; }
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -650,6 +651,47 @@ public class PosDbContext : DbContext
             .HasForeignKey(im => im.BranchId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
+
+        // ── Reservation ───────────────────────────────────────────────────────
+        modelBuilder.Entity<Reservation>()
+            .Property(r => r.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(ReservationStatus.Pending);
+
+        modelBuilder.Entity<Reservation>()
+            .Property(r => r.CustomerName)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Reservation>()
+            .Property(r => r.CustomerPhone)
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<Reservation>()
+            .Property(r => r.Notes)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<Reservation>()
+            .HasOne(r => r.Table)
+            .WithMany()
+            .HasForeignKey(r => r.TableId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Reservation>()
+            .HasOne(r => r.Branch)
+            .WithMany()
+            .HasForeignKey(r => r.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Reservation>()
+            .HasIndex(r => r.ReservationDateTime);
+
+        modelBuilder.Entity<Reservation>()
+            .HasIndex(r => r.Status);
+
+        modelBuilder.Entity<Reservation>()
+            .HasIndex(r => r.BranchId);
 
         // ── FeedbackSubmission ────────────────────────────────────────────────
         modelBuilder.Entity<FeedbackSubmission>()

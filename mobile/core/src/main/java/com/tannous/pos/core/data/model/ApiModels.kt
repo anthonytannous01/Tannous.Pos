@@ -714,6 +714,50 @@ data class HourlySalesDto(
     val orders: Int = 0
 )
 
+// Reservations
+@Serializable
+data class ReservationDto(
+    val id: String = "",
+    val customerName: String = "",
+    val customerPhone: String? = null,
+    val partySize: Int = 2,
+    val reservationDateTime: String = "",
+    val notes: String? = null,
+    val status: Int = 0,
+    val statusName: String = "",
+    val tableId: String? = null,
+    val tableNumber: String? = null,
+    val floorPlanName: String? = null,
+    val branchId: String? = null,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class CreateReservationRequest(
+    val customerName: String,
+    val customerPhone: String? = null,
+    val partySize: Int = 2,
+    val reservationDateTime: String,
+    val notes: String? = null,
+    val tableId: String? = null,
+    val branchId: String? = null
+)
+
+@Serializable
+data class UpdateReservationStatusRequest(
+    val status: Int,
+    val tableId: String? = null
+)
+
+@Serializable
+data class AvailableTableDto(
+    val id: String = "",
+    val tableNumber: String = "",
+    val label: String? = null,
+    val capacity: Int = 2,
+    val floorPlan: String = ""
+)
+
 // Feedback
 @Serializable
 data class SubmitFeedbackRequest(

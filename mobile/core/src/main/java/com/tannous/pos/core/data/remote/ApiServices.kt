@@ -257,6 +257,33 @@ interface ReportsService {
     ): MenuEngineeringReportDto
 }
 
+interface ReservationService {
+
+    @GET("v1/reservations")
+    suspend fun getReservations(
+        @Query("branchId") branchId: String? = null,
+        @Query("from")     from:     String? = null,
+        @Query("to")       to:       String? = null,
+        @Query("status")   status:   Int?    = null
+    ): List<ReservationDto>
+
+    @GET("v1/reservations/available-tables")
+    suspend fun getAvailableTables(
+        @Query("slot")      slot:      String,
+        @Query("partySize") partySize: Int = 1,
+        @Query("branchId")  branchId:  String? = null
+    ): List<AvailableTableDto>
+
+    @POST("v1/reservations")
+    suspend fun create(@Body request: CreateReservationRequest): ReservationDto
+
+    @PATCH("v1/reservations/{id}/status")
+    suspend fun updateStatus(
+        @Path("id") id: String,
+        @Body request: UpdateReservationStatusRequest
+    ): ReservationDto
+}
+
 interface FeedbackService {
 
     @POST("v1/feedback")

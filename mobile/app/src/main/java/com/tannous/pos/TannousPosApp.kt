@@ -42,6 +42,7 @@ import com.tannous.pos.feature.reports.DashboardScreen
 import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.QrMenuScreen
+import com.tannous.pos.feature.settings.ReservationsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.sell.LoyaltyScreen
@@ -205,12 +206,17 @@ fun TannousPosApp(
                     onNavigateToDashboard = { navController.navigate("dashboard") },
                     onNavigateToMenuEngineering = { navController.navigate("menu-engineering") },
                     onNavigateToTables = { navController.navigate("tables") },
-                    onNavigateToQrMenu = { navController.navigate("qr-menu") }
+                    onNavigateToQrMenu = { navController.navigate("qr-menu") },
+                    onNavigateToReservations = { navController.navigate("reservations") }
                 )
             }
 
             composable("qr-menu") {
                 QrMenuScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable("reservations") {
+                ReservationsScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("dashboard") {
