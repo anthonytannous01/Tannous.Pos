@@ -41,6 +41,7 @@ import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.DashboardScreen
 import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
+import com.tannous.pos.feature.settings.QrMenuScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.sell.LoyaltyScreen
@@ -203,8 +204,13 @@ fun TannousPosApp(
                     onNavigateToKds = { navController.navigate("kds") },
                     onNavigateToDashboard = { navController.navigate("dashboard") },
                     onNavigateToMenuEngineering = { navController.navigate("menu-engineering") },
-                    onNavigateToTables = { navController.navigate("tables") }
+                    onNavigateToTables = { navController.navigate("tables") },
+                    onNavigateToQrMenu = { navController.navigate("qr-menu") }
                 )
+            }
+
+            composable("qr-menu") {
+                QrMenuScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("dashboard") {

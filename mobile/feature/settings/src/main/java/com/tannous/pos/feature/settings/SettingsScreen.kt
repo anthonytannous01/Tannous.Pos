@@ -64,6 +64,7 @@ fun SettingsScreen(
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToMenuEngineering: () -> Unit = {},
     onNavigateToTables: () -> Unit = {},
+    onNavigateToQrMenu: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -339,6 +340,23 @@ fun SettingsScreen(
                                 Icons.Default.ArrowForward,
                                 contentDescription = null
                             )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToQrMenu
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Digital Menu (QR)")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
 

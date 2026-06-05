@@ -16,6 +16,7 @@ workmanager = "2.9.0"
 datastore = "1.0.0"
 paging = "3.2.1"
 timber = "5.0.1"
+zxing = "3.5.3"
 coroutines = "1.7.3"
 navigation-compose = "2.7.5"
 
@@ -64,6 +65,7 @@ paging-runtime = { group = "androidx.paging", name = "paging-runtime-ktx", versi
 
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 # Monitoring & Crash Handling
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "32.7.0" }

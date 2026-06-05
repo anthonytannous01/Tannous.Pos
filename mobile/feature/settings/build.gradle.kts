@@ -52,6 +52,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     implementation(libs.timber)
+    implementation(libs.zxing.core)
 
     // Testing
     testImplementation(libs.androidx.test.ext.junit)
