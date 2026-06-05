@@ -383,6 +383,16 @@ fun ReceiptScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
+            // SMS confirmation indicator (shown when customer had a phone number)
+            if (!order.customerPhone.isNullOrBlank() && !isPendingSync &&
+                !order.status.isAlreadyVoidedStatus()) {
+                Text(
+                    text = "📱 Confirmation sent to ${order.customerPhone}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // Feedback button (only for paid, synced orders)
             if (!order.status.isAlreadyVoidedStatus() && !isPendingSync) {
                 OutlinedButton(

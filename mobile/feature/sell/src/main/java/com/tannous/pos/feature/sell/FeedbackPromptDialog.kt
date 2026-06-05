@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,13 +49,12 @@ fun FeedbackPromptDialog(
                     ) {
                         (1..5).forEach { star ->
                             Icon(
-                                imageVector = if (star <= uiState.selectedRating)
-                                    Icons.Filled.Star else Icons.Outlined.StarOutline,
+                                imageVector = Icons.Filled.Star,
                                 contentDescription = "$star star",
                                 tint = if (star <= uiState.selectedRating)
                                     MaterialTheme.colorScheme.primary
                                 else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
+                                    MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier
                                     .size(40.dp)
                                     .clickable { viewModel.setRating(star) }

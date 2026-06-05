@@ -31,6 +31,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
     private readonly ISyncConflictRecorder _syncConflictRecorder;
     private readonly IOperationalAuditRecorder _operationalAuditRecorder;
     private readonly ILogger<FinalizeOrderCommandHandler> _logger;
+    private readonly INotificationService _notificationService;
 
     public FinalizeOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -41,7 +42,8 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         DbContext dbContext,
         ISyncConflictRecorder syncConflictRecorder,
         IOperationalAuditRecorder operationalAuditRecorder,
-        ILogger<FinalizeOrderCommandHandler> logger)
+        ILogger<FinalizeOrderCommandHandler> logger,
+        INotificationService notificationService)
     {
         _orderRepository = orderRepository;
         _receiptNumberService = receiptNumberService;
@@ -52,6 +54,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         _syncConflictRecorder = syncConflictRecorder;
         _operationalAuditRecorder = operationalAuditRecorder;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<OrderDto> Handle(FinalizeOrderCommand request, CancellationToken cancellationToken)
@@ -552,6 +555,31 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                     // Non-fatal: log and continue — the sale is already committed.
                     _logger.LogError(loyaltyEx,
                         "Loyalty accrual failed after successful finalize (non-fatal). OrderId={OrderId}",
+                        order.Id);
+                }
+            }
+
+            // SMS/WhatsApp order confirmation — runs AFTER the main transaction and loyalty.
+            // GOVERNANCE: notification failure must never affect the completed sale.
+            // Only fires when the order has a customer phone number.
+            if (!string.IsNullOrWhiteSpace(order.CustomerPhone))
+            {
+                try
+                {
+                    await _notificationService.SendOrderConfirmationAsync(
+                        toPhone:       order.CustomerPhone,
+                        orderNumber:   order.OrderNumber,
+                        receiptNumber: order.ReceiptNumber,
+                        totalAmount:   order.TotalAmount,
+                        currency:      businessSettings?.Currency ?? "USD",
+                        businessName:  businessSettings?.BusinessName ?? "Tannous POS",
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception notifEx)
+                {
+                    // Non-fatal: log and continue — the sale is already committed.
+                    _logger.LogError(notifEx,
+                        "Order confirmation notification failed after successful finalize (non-fatal). OrderId={OrderId}",
                         order.Id);
                 }
             }

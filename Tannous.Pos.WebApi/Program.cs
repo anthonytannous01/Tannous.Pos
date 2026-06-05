@@ -11,6 +11,7 @@ using Tannous.Pos.Infrastructure.Data;
 using Tannous.Pos.Infrastructure.Repositories;
 using Tannous.Pos.Infrastructure.Services;
 using Tannous.Pos.Infrastructure.Services.Printing;
+using Tannous.Pos.Infrastructure.Services.Notifications;
 using Tannous.Pos.Infrastructure.Persistence.Seed;
 using Tannous.Pos.WebApi.HealthChecks;
 using Tannous.Pos.WebApi.Filters;
@@ -246,6 +247,17 @@ builder.Services.AddScoped<ICashDrawerEventRepository, CashDrawerEventRepository
 builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
 builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+
+// Notifications (SMS / WhatsApp via Twilio)
+builder.Services.Configure<NotificationSettings>(
+    builder.Configuration.GetSection(NotificationSettings.Section));
+builder.Services.AddHttpClient("Twilio"); // named client — no raw HttpClient in service
+var notifEnabled = builder.Configuration.GetValue<bool>($"{NotificationSettings.Section}:Enabled");
+var twilioSid    = builder.Configuration.GetValue<string>($"{NotificationSettings.Section}:Twilio:AccountSid");
+if (notifEnabled && !string.IsNullOrWhiteSpace(twilioSid))
+    builder.Services.AddScoped<INotificationService, TwilioNotificationService>();
+else
+    builder.Services.AddScoped<INotificationService, NullNotificationService>();
 builder.Services.AddScoped<Tannous.Pos.Application.Interfaces.IAdminDatabaseStatsRepository, AdminDatabaseStatsRepository>();
 builder.Services.AddScoped<IAdminOrderOperationsRepository, AdminOrderOperationsRepository>();
 builder.Services.AddScoped<IAdminPurgeRepository, AdminPurgeRepository>();

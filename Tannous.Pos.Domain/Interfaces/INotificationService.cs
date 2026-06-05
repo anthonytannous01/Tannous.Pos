@@ -1,0 +1,23 @@
+namespace Tannous.Pos.Domain.Interfaces;
+
+/// <summary>
+/// Sends customer-facing notifications (SMS or WhatsApp).
+/// Implementations must be non-throwing — failures are logged and swallowed by callers.
+/// The default registration is <see cref="NullNotificationService"/> (no-op).
+/// Twilio is activated when Notifications:Twilio:AccountSid is configured.
+/// </summary>
+public interface INotificationService
+{
+    /// <summary>
+    /// Send an order confirmation message to the customer's phone.
+    /// Returns true on success, false on failure (never throws).
+    /// </summary>
+    Task<bool> SendOrderConfirmationAsync(
+        string   toPhone,
+        string   orderNumber,
+        string?  receiptNumber,
+        decimal  totalAmount,
+        string   currency,
+        string   businessName,
+        CancellationToken cancellationToken = default);
+}

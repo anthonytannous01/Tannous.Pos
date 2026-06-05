@@ -385,6 +385,7 @@ data class OrderDto(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val total: BigDecimal,
     val notes: String?,
+    val customerPhone: String? = null,
     val createdAt: String,
     val receiptNumber: String?,
     val syncedAt: String?,
