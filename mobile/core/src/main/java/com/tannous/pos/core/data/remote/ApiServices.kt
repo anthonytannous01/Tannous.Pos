@@ -245,7 +245,8 @@ interface ReportsService {
     @GET("reports/summary")
     suspend fun getSalesSummary(
         @Query("from") from: String? = null,
-        @Query("to") to: String? = null
+        @Query("to") to: String? = null,
+        @Query("branchId") branchId: String? = null
     ): SalesSummaryDto
 
     /** Menu engineering matrix — Stars/Plowhorses/Puzzles/Dogs. */
@@ -254,6 +255,17 @@ interface ReportsService {
         @Query("from") from: String,
         @Query("to") to: String
     ): MenuEngineeringReportDto
+}
+
+interface BranchService {
+
+    @GET("v1/branches")
+    suspend fun getBranches(
+        @Query("activeOnly") activeOnly: Boolean = true
+    ): List<BranchDto>
+
+    @POST("v1/branches")
+    suspend fun createBranch(@Body request: CreateBranchRequest): BranchDto
 }
 
 interface HealthService {

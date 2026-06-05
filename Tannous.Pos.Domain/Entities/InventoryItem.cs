@@ -19,8 +19,11 @@ public class InventoryItem : BaseEntity, IAggregateRoot
     
     // Foreign keys
     public Guid IngredientId { get; set; }
-    
+    /// <summary>Branch this stock record belongs to. Null only for legacy pre-branch data.</summary>
+    public Guid? BranchId { get; set; }
+
     // Navigation properties
     public virtual Ingredient Ingredient { get; set; } = null!;
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<InventoryMovement> InventoryMovements { get; set; } = new List<InventoryMovement>();
 }

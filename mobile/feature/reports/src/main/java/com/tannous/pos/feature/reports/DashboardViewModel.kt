@@ -2,8 +2,10 @@ package com.tannous.pos.feature.reports
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tannous.pos.core.data.model.BranchDto
 import com.tannous.pos.core.data.model.SalesSummaryDto
 import com.tannous.pos.core.data.remote.ReportsService
+import com.tannous.pos.core.data.repository.BranchRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -18,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val reportsService: ReportsService
+    private val reportsService: ReportsService,
+    private val branchRepository: BranchRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
@@ -26,7 +29,16 @@ class DashboardViewModel @Inject constructor(
 
     private var pollJob: Job? = null
 
-    init { startPolling() }
+    init {
+        viewModelScope.launch { loadBranches() }
+        startPolling()
+    }
+
+    private suspend fun loadBranches() {
+        val branches = branchRepository.getBranches()
+        val selected = branchRepository.getDefaultBranch()
+        _uiState.update { it.copy(branches = branches, selectedBranch = selected) }
+    }
 
     private fun startPolling() {
         pollJob?.cancel()
@@ -40,10 +52,17 @@ class DashboardViewModel @Inject constructor(
 
     fun refresh() { viewModelScope.launch { load() } }
 
+    /** Switch the dashboard to a different branch. Triggers an immediate refresh. */
+    fun selectBranch(branch: BranchDto?) {
+        _uiState.update { it.copy(selectedBranch = branch) }
+        viewModelScope.launch { load() }
+    }
+
     private suspend fun load() {
         _uiState.update { it.copy(isLoading = it.summary == null) }
         try {
-            val summary = reportsService.getSalesSummary()
+            val branchId = _uiState.value.selectedBranch?.id
+            val summary = reportsService.getSalesSummary(branchId = branchId)
             _uiState.update { it.copy(summary = summary, error = null, isLoading = false) }
         } catch (e: Exception) {
             Timber.w(e, "Dashboard load failed")
@@ -68,5 +87,7 @@ class DashboardViewModel @Inject constructor(
 data class DashboardUiState(
     val isLoading: Boolean = false,
     val summary: SalesSummaryDto? = null,
+    val branches: List<BranchDto> = emptyList(),
+    val selectedBranch: BranchDto? = null,
     val error: String? = null
 )

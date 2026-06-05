@@ -504,7 +504,8 @@ data class ShiftDto(
 data class OpenShiftRequest(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val openingBalance: BigDecimal,
-    val notes: String? = null
+    val notes: String? = null,
+    val branchId: String? = null
 )
 
 @Serializable
@@ -710,6 +711,28 @@ data class HourlySalesDto(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val sales: BigDecimal = BigDecimal.ZERO,
     val orders: Int = 0
+)
+
+// Branches
+@Serializable
+data class BranchDto(
+    val id: String = "",
+    val name: String = "",
+    val address: String? = null,
+    val phone: String? = null,
+    val isActive: Boolean = true,
+    val isDefault: Boolean = false,
+    val displayOrder: Int = 0,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class CreateBranchRequest(
+    val name: String,
+    val address: String? = null,
+    val phone: String? = null,
+    val isDefault: Boolean = false,
+    val displayOrder: Int = 0
 )
 
 // Menu Engineering

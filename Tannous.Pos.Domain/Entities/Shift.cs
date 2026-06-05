@@ -24,9 +24,12 @@ public class Shift : BaseEntity, IAggregateRoot
     
     // Foreign keys
     public Guid UserId { get; set; }
-    
+    /// <summary>Branch this shift belongs to. Null only for legacy pre-branch data.</summary>
+    public Guid? BranchId { get; set; }
+
     // Navigation properties
     public virtual User User { get; set; } = null!;
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     public virtual ICollection<CashDrawerEvent> CashDrawerEvents { get; set; } = new List<CashDrawerEvent>();
 }

@@ -156,6 +156,8 @@ builder.Services.AddDbContext<PosDbContext>((serviceProvider, options) =>
         options.EnableSensitiveDataLogging(builder.Configuration.GetValue("Db:EnableSensitiveDataLogging", true));
     }
 });
+// Allow handlers that inject DbContext (base class) to resolve the same PosDbContext instance
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<PosDbContext>());
 
 // Configure JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -242,6 +244,7 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<ICashDrawerEventRepository, CashDrawerEventRepository>();
 builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
+builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 builder.Services.AddScoped<Tannous.Pos.Application.Interfaces.IAdminDatabaseStatsRepository, AdminDatabaseStatsRepository>();
 builder.Services.AddScoped<IAdminOrderOperationsRepository, AdminOrderOperationsRepository>();
 builder.Services.AddScoped<IAdminPurgeRepository, AdminPurgeRepository>();

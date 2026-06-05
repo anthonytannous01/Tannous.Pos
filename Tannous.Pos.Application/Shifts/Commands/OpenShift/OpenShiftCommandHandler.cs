@@ -10,21 +10,27 @@ namespace Tannous.Pos.Application.Shifts.Commands.OpenShift;
 
 public class OpenShiftCommandHandler : IRequestHandler<OpenShiftCommand, ShiftDto>
 {
-    private readonly IShiftRepository _shiftRepository;
-    private readonly IReceiptNumberService _receiptNumberService;
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly DbContext _dbContext;
+    private readonly IShiftRepository           _shiftRepository;
+    private readonly IReceiptNumberService       _receiptNumberService;
+    private readonly IUnitOfWork                 _unitOfWork;
+    private readonly DbContext                   _dbContext;
+    private readonly IBranchRepository           _branchRepository;
+    private readonly IBusinessSettingsRepository _settingsRepository;
 
     public OpenShiftCommandHandler(
-        IShiftRepository shiftRepository,
-        IReceiptNumberService receiptNumberService,
-        IUnitOfWork unitOfWork,
-        DbContext dbContext)
+        IShiftRepository           shiftRepository,
+        IReceiptNumberService       receiptNumberService,
+        IUnitOfWork                 unitOfWork,
+        DbContext                   dbContext,
+        IBranchRepository           branchRepository,
+        IBusinessSettingsRepository settingsRepository)
     {
-        _shiftRepository = shiftRepository;
+        _shiftRepository     = shiftRepository;
         _receiptNumberService = receiptNumberService;
-        _unitOfWork = unitOfWork;
-        _dbContext = dbContext;
+        _unitOfWork           = unitOfWork;
+        _dbContext            = dbContext;
+        _branchRepository     = branchRepository;
+        _settingsRepository   = settingsRepository;
     }
 
     public async Task<ShiftDto> Handle(OpenShiftCommand request, CancellationToken cancellationToken)
@@ -46,6 +52,15 @@ public class OpenShiftCommandHandler : IRequestHandler<OpenShiftCommand, ShiftDt
 
             var shiftNumber = await _receiptNumberService.GenerateShiftNumberAsync();
 
+            // Resolve branch: use the one from the request, or fall back to the default branch
+            var branchId = request.BranchId;
+            if (branchId == null)
+            {
+                var settings = await _settingsRepository.GetAsync(cancellationToken);
+                branchId = settings?.DefaultBranchId
+                    ?? (await _branchRepository.GetDefaultAsync(cancellationToken))?.Id;
+            }
+
             var shift = new Shift
             {
                 ShiftNumber    = shiftNumber,
@@ -55,6 +70,7 @@ public class OpenShiftCommandHandler : IRequestHandler<OpenShiftCommand, ShiftDt
                 Status         = ShiftStatus.Open,
                 Notes          = request.Notes,
                 UserId         = request.UserId,
+                BranchId       = branchId,
                 CreatedBy      = request.UserId.ToString()
             };
 

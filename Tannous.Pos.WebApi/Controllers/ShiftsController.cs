@@ -46,7 +46,8 @@ public class ShiftsController : ControllerBase
         {
             OpeningBalance = request.OpeningBalance,
             UserId         = userId,
-            Notes          = request.Notes
+            Notes          = request.Notes,
+            BranchId       = request.BranchId
         };
 
         var result = await _mediator.Send(command);
@@ -68,12 +69,14 @@ public class ShiftsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ShiftDto>>> GetShifts(
         [FromQuery] DateTime? startDate = null,
-        [FromQuery] DateTime? endDate   = null)
+        [FromQuery] DateTime? endDate   = null,
+        [FromQuery] Guid?     branchId  = null)
     {
         var result = await _mediator.Send(new GetShiftsQuery
         {
             StartDate = startDate,
-            EndDate   = endDate
+            EndDate   = endDate,
+            BranchId  = branchId
         });
         return Ok(result);
     }
@@ -194,6 +197,8 @@ public class OpenShiftRequest
 {
     public decimal OpeningBalance { get; set; }
     public string? Notes { get; set; }
+    /// <summary>Optional branch override. Defaults to the system default branch.</summary>
+    public Guid? BranchId { get; set; }
 }
 
 public class CloseShiftRequest

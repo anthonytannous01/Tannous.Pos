@@ -14,7 +14,9 @@ public class WastageRecord : BaseEntity, IAggregateRoot
     
     // Foreign keys
     public Guid InventoryItemId { get; set; }
-    
+    public Guid? BranchId { get; set; }
+
     // Navigation properties
     public virtual InventoryItem InventoryItem { get; set; } = null!;
+    public virtual Branch? Branch { get; set; }
 }

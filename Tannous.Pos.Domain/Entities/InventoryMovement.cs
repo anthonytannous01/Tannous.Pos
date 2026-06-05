@@ -19,8 +19,10 @@ public class InventoryMovement : BaseEntity, IAggregateRoot
     // Foreign keys
     public Guid IngredientId { get; set; }
     public Guid InventoryItemId { get; set; }
-    
+    public Guid? BranchId { get; set; }
+
     // Navigation properties
     public virtual Ingredient Ingredient { get; set; } = null!;
     public virtual InventoryItem InventoryItem { get; set; } = null!;
+    public virtual Branch? Branch { get; set; }
 }

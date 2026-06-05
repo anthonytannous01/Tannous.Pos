@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tannous.pos.core.data.model.BranchDto
 import com.tannous.pos.core.data.model.HourlySalesDto
 import com.tannous.pos.core.data.model.SalesSummaryDto
 import java.math.BigDecimal
@@ -55,29 +56,71 @@ fun DashboardScreen(
             )
         }
     ) { padding ->
-        when {
-            uiState.isLoading -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
-
-            uiState.summary == null -> Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("No data yet", style = MaterialTheme.typography.titleMedium)
-                    Text("No paid orders today.", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+        Column(Modifier.padding(padding)) {
+            // Branch selector — only shown when there are 2+ branches
+            if (uiState.branches.size > 1) {
+                BranchSelectorRow(
+                    branches = uiState.branches,
+                    selectedBranch = uiState.selectedBranch,
+                    onSelect = { viewModel.selectBranch(it) }
+                )
             }
 
-            else -> DashboardContent(
-                summary = uiState.summary!!,
-                modifier = Modifier.padding(padding)
+            when {
+                uiState.isLoading -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+
+                uiState.summary == null -> Box(
+                    Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text("No data yet", style = MaterialTheme.typography.titleMedium)
+                        Text("No paid orders today.", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+
+                else -> DashboardContent(
+                    summary = uiState.summary!!,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BranchSelectorRow(
+    branches: List<BranchDto>,
+    selectedBranch: BranchDto?,
+    onSelect: (BranchDto?) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // "All" chip
+        item {
+            FilterChip(
+                selected = selectedBranch == null,
+                onClick = { onSelect(null) },
+                label = { Text("All Branches") }
+            )
+        }
+        items(branches) { branch ->
+            FilterChip(
+                selected = selectedBranch?.id == branch.id,
+                onClick = { onSelect(branch) },
+                label = { Text(branch.name) }
             )
         }
     }

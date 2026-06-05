@@ -11,8 +11,10 @@ public class GoodsReceipt : BaseEntity, IAggregateRoot
     
     // Foreign keys
     public Guid? PurchaseOrderId { get; set; }
-    
+    public Guid? BranchId { get; set; }
+
     // Navigation properties
     public virtual PurchaseOrder? PurchaseOrder { get; set; }
+    public virtual Branch? Branch { get; set; }
     public virtual ICollection<GoodsReceiptLine> Lines { get; set; } = new List<GoodsReceiptLine>();
 }

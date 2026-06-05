@@ -13,6 +13,7 @@ public class PosDbContext : DbContext
     {
     }
 
+    public DbSet<Branch> Branches { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<MenuItem> MenuItems { get; set; }
     public DbSet<AddOn> AddOns { get; set; }
@@ -586,6 +587,68 @@ public class PosDbContext : DbContext
         modelBuilder.Entity<SyncOperationReceipt>()
             .Property(r => r.OperationType)
             .HasMaxLength(64);
+
+        // ── Branch ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Branch>()
+            .HasIndex(b => b.IsDefault);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Branch)
+            .WithMany(b => b.Orders)
+            .HasForeignKey(o => o.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.BranchId);
+
+        modelBuilder.Entity<Shift>()
+            .HasOne(s => s.Branch)
+            .WithMany(b => b.Shifts)
+            .HasForeignKey(s => s.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Shift>()
+            .HasIndex(s => s.BranchId);
+
+        modelBuilder.Entity<InventoryItem>()
+            .HasOne(ii => ii.Branch)
+            .WithMany(b => b.InventoryItems)
+            .HasForeignKey(ii => ii.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<InventoryItem>()
+            .HasIndex(ii => ii.BranchId);
+
+        modelBuilder.Entity<WastageRecord>()
+            .HasOne(wr => wr.Branch)
+            .WithMany()
+            .HasForeignKey(wr => wr.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<PurchaseOrder>()
+            .HasOne(po => po.Branch)
+            .WithMany()
+            .HasForeignKey(po => po.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<GoodsReceipt>()
+            .HasOne(gr => gr.Branch)
+            .WithMany()
+            .HasForeignKey(gr => gr.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        modelBuilder.Entity<InventoryMovement>()
+            .HasOne(im => im.Branch)
+            .WithMany()
+            .HasForeignKey(im => im.BranchId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 
     private static void ConfigureByteaRowVersion(

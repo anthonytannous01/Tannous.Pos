@@ -27,6 +27,9 @@ public class GetShiftsQueryHandler : IRequestHandler<GetShiftsQuery, IEnumerable
         if (query.EndDate.HasValue)
             shifts = shifts.Where(s => s.StartTime <= query.EndDate.Value);
 
+        if (query.BranchId.HasValue)
+            shifts = shifts.Where(s => s.BranchId == query.BranchId.Value);
+
         return shifts.Select(MapToDto).ToList();
     }
 

@@ -70,7 +70,8 @@ public class OrdersController : ControllerBase
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
         [FromQuery] Guid? customerId = null,
-        [FromQuery] Guid? shiftId = null)
+        [FromQuery] Guid? shiftId = null,
+        [FromQuery] Guid? branchId = null)
     {
         var query = new GetOrdersQuery
         {
@@ -78,7 +79,8 @@ public class OrdersController : ControllerBase
             StartDate = startDate,
             EndDate = endDate,
             CustomerId = customerId,
-            ShiftId = shiftId
+            ShiftId = shiftId,
+            BranchId = branchId
         };
 
         var result = await _mediator.Send(query);

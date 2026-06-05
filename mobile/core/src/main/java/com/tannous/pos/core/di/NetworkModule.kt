@@ -205,4 +205,10 @@ object NetworkModule {
     fun provideTableService(retrofit: Retrofit): TableService {
         return retrofit.create(TableService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideBranchService(retrofit: Retrofit): BranchService {
+        return retrofit.create(BranchService::class.java)
+    }
 }

@@ -42,6 +42,11 @@ public class GetOrdersQueryHandler : IRequestHandler<GetOrdersQuery, IEnumerable
             orders = orders.Where(o => o.ShiftId == request.ShiftId.Value);
         }
 
+        if (request.BranchId.HasValue)
+        {
+            orders = orders.Where(o => o.BranchId == request.BranchId.Value);
+        }
+
         return orders.Select(o => new OrderDto
         {
             Id = o.Id,

@@ -56,4 +56,11 @@ public class BusinessSettings : BaseEntity, IAggregateRoot
     /// Only applied when StampDutyEnabled = true and payment currency is USD.
     /// </summary>
     public decimal StampDutyAmountUsd { get; set; } = 2.00m;
+
+    // ── Multi-branch ──────────────────────────────────────────────────────────
+    /// <summary>
+    /// The branch selected as default when no branch context is provided.
+    /// Null until branches are configured.
+    /// </summary>
+    public Guid? DefaultBranchId { get; set; }
 }
