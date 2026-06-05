@@ -199,4 +199,10 @@ object NetworkModule {
     fun provideLoyaltyService(retrofit: Retrofit): LoyaltyService {
         return retrofit.create(LoyaltyService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideTableService(retrofit: Retrofit): TableService {
+        return retrofit.create(TableService::class.java)
+    }
 }

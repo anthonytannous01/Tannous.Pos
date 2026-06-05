@@ -41,11 +41,14 @@ public class Order : BaseEntity, IAggregateRoot
     public Guid? CustomerId { get; set; }
     public Guid? ShiftId { get; set; }
     public Guid? UserId { get; set; }
-    
+    /// <summary>Assigned restaurant table (DineIn orders only). Null for Takeaway/Delivery.</summary>
+    public Guid? TableId { get; set; }
+
     // Navigation properties
     public virtual Customer? Customer { get; set; }
     public virtual Shift? Shift { get; set; }
     public virtual User? User { get; set; }
+    public virtual Table? Table { get; set; }
     public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
     public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
     public virtual ICollection<PaymentRefund> PaymentRefunds { get; set; } = new List<PaymentRefund>();

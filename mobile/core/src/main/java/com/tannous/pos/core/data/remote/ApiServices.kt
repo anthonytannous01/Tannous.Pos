@@ -131,6 +131,18 @@ interface SettingsService {
     suspend fun updateSettings(@Body request: UpdateSettingsRequest): BusinessSettingsDto
 }
 
+interface TableService {
+
+    @GET("v1/tables/floor-plans")
+    suspend fun getFloorPlans(): List<FloorPlanDto>
+
+    @PATCH("v1/tables/{tableId}/status")
+    suspend fun updateStatus(
+        @Path("tableId") tableId: String,
+        @Body request: UpdateTableStatusRequest
+    ): TableDto
+}
+
 interface LoyaltyService {
 
     @GET("v1/loyalty/customers/{customerId}")

@@ -44,6 +44,7 @@ import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.sell.LoyaltyScreen
+import com.tannous.pos.feature.sell.TableMapScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
 @Composable
@@ -201,7 +202,8 @@ fun TannousPosApp(
                     onNavigateToInventory = { navController.navigate("inventory") },
                     onNavigateToKds = { navController.navigate("kds") },
                     onNavigateToDashboard = { navController.navigate("dashboard") },
-                    onNavigateToMenuEngineering = { navController.navigate("menu-engineering") }
+                    onNavigateToMenuEngineering = { navController.navigate("menu-engineering") },
+                    onNavigateToTables = { navController.navigate("tables") }
                 )
             }
 
@@ -211,6 +213,11 @@ fun TannousPosApp(
 
             composable("menu-engineering") {
                 MenuEngineeringScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            // Table map — view/manage mode
+            composable("tables") {
+                TableMapScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable(

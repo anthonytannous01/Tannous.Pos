@@ -9,6 +9,8 @@ public class CreateOrderDto
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
     public Guid? CustomerId { get; set; }
+    /// <summary>Assigned table for DineIn orders. Null for Takeaway/Delivery.</summary>
+    public Guid? TableId { get; set; }
     public List<OrderLineDto> OrderLines { get; set; } = new List<OrderLineDto>();
 }
 

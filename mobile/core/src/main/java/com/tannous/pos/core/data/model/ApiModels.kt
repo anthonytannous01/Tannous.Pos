@@ -442,6 +442,7 @@ data class OrderLineAddOnDto(
 data class CreateOrderRequest(
     val orderType: String,
     val customerId: String?,
+    val tableId: String? = null,
     val lines: List<CreateOrderLineRequest>,
     val notes: String?
 )
@@ -591,32 +592,79 @@ data class PaginatedResponseDto<T>(
     val pageNumber: Int,
     val pageSize: Int,
     val totalPages: Int,
-    val hasNextPage: Boolean,
-    val hasPreviousPage: Boolean
+    val hasNextPage: Boolean
 )
+
+// Table Management
+@Serializable
+data class FloorPlanDto(
+    val id: String = "",
+    val name: String = "",
+    val description: String? = null,
+    val displayOrder: Int = 0,
+    val isActive: Boolean = true,
+    val tables: List<TableDto> = emptyList()
+)
+
+@Serializable
+data class TableDto(
+    val id: String = "",
+    val tableNumber: String = "",
+    val label: String? = null,
+    val capacity: Int = 2,
+    val status: Int = 0,
+    val isActive: Boolean = true,
+    val displayOrder: Int = 0,
+    val floorPlanId: String = "",
+    val floorPlanName: String = "",
+    val activeOrderId: String? = null
+)
+
+@Serializable
+data class UpdateTableStatusRequest(val status: Int)
 
 // Printing
 @Serializable
 data class PrintReceiptRequest(
     val orderId: String,
-    val format: String = "text"
+    val lineWidth: Int = 42
 )
 
 @Serializable
 data class PrintReceiptResponse(
     val content: String,
-    val format: String
+    val format: String = "text"
 )
 
-// Error responses
+// Loyalty
 @Serializable
-data class ErrorResponse(
-    val message: String,
-    val details: String?,
-    val conflict: Boolean = false,
-    val serverEntity: String? = null
+data class LoyaltyAccountDto(
+    val id: String = "",
+    val customerId: String = "",
+    val customerName: String = "",
+    val pointBalance: Int = 0,
+    val lifetimePointsEarned: Int = 0,
+    val lifetimePointsRedeemed: Int = 0,
+    val isActive: Boolean = true,
+    val createdAt: String = "",
+    val recentTransactions: List<LoyaltyTransactionDto> = emptyList()
 )
 
+@Serializable
+data class LoyaltyTransactionDto(
+    val id: String = "",
+    val points: Int = 0,
+    val transactionType: Int = 0,
+    val orderId: String? = null,
+    val notes: String? = null,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class EarnPointsRequest(val points: Int, val orderId: String? = null, val notes: String? = null)
+
+@Serializable
+data class RedeemPointsRequest(val points: Int, val orderId: String? = null)
 
 // Dashboard / Sales Summary
 @Serializable
@@ -691,35 +739,5 @@ data class MenuEngineeringItemDto(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val contributionMarginPct: BigDecimal = BigDecimal.ZERO,
     val isHighMargin: Boolean = false,
-    val category: Int = 3  // 0=Star,1=Plowhorse,2=Puzzle,3=Dog
+    val category: Int = 3
 )
-
-// Loyalty
-@Serializable
-data class LoyaltyAccountDto(
-    val id: String = "",
-    val customerId: String = "",
-    val customerName: String = "",
-    val pointBalance: Int = 0,
-    val lifetimePointsEarned: Int = 0,
-    val lifetimePointsRedeemed: Int = 0,
-    val isActive: Boolean = true,
-    val createdAt: String = "",
-    val recentTransactions: List<LoyaltyTransactionDto> = emptyList()
-)
-
-@Serializable
-data class LoyaltyTransactionDto(
-    val id: String = "",
-    val points: Int = 0,
-    val transactionType: Int = 0, // 0=Earn,1=Redeem,2=Adjust,3=Expire
-    val orderId: String? = null,
-    val notes: String? = null,
-    val createdAt: String = ""
-)
-
-@Serializable
-data class EarnPointsRequest(val points: Int, val orderId: String? = null, val notes: String? = null)
-
-@Serializable
-data class RedeemPointsRequest(val points: Int, val orderId: String? = null)

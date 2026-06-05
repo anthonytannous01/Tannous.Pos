@@ -37,17 +37,18 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
 
         var order = new Order
         {
-            OrderNumber = orderNumber,
-            OrderType = request.Order.OrderType,
-            Status = OrderStatus.Pending,
-            OrderDate = DateTime.UtcNow,
-            CustomerName = request.Order.CustomerName,
+            OrderNumber   = orderNumber,
+            OrderType     = request.Order.OrderType,
+            Status        = OrderStatus.Pending,
+            OrderDate     = DateTime.UtcNow,
+            CustomerName  = request.Order.CustomerName,
             CustomerPhone = request.Order.CustomerPhone,
-            Notes = request.Order.Notes,
-            CustomerId = request.Order.CustomerId,
-            ShiftId = request.ShiftId,
-            UserId = request.UserId,
-            CreatedBy = request.UserId.ToString()
+            Notes         = request.Order.Notes,
+            CustomerId    = request.Order.CustomerId,
+            TableId       = request.Order.TableId,
+            ShiftId       = request.ShiftId,
+            UserId        = request.UserId,
+            CreatedBy     = request.UserId.ToString()
         };
 
         decimal subTotal = 0;

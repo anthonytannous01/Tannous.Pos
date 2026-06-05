@@ -10,6 +10,7 @@ using Tannous.Pos.Application.Sync;
 using Tannous.Pos.Domain.Entities;
 using Tannous.Pos.Domain.Enums;
 using Tannous.Pos.Domain.Interfaces;
+// Table and TableStatus are in Domain.Entities and Domain.Enums respectively (already imported above)
 
 namespace Tannous.Pos.Application.Orders.Commands.FinalizeOrder;
 
@@ -484,6 +485,28 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                     }
                 },
                 cancellationToken);
+
+            // Table release — mark table Available after order is paid (non-fatal).
+            if (order.TableId.HasValue)
+            {
+                try
+                {
+                    var table = await _dbContext.Set<Table>()
+                        .FindAsync(new object[] { order.TableId.Value }, cancellationToken);
+                    if (table != null && table.Status == TableStatus.Occupied)
+                    {
+                        table.Status    = TableStatus.Cleaning; // staff clears before next seating
+                        table.UpdatedAt = DateTime.UtcNow;
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                }
+                catch (Exception tableEx)
+                {
+                    _logger.LogError(tableEx,
+                        "Table release failed after successful finalize (non-fatal). OrderId={OrderId}, TableId={TableId}",
+                        order.Id, order.TableId);
+                }
+            }
 
             // Loyalty point accrual — runs AFTER the main transaction commits.
             // GOVERNANCE: loyalty is a separate concern; a loyalty failure must never roll back a completed sale.

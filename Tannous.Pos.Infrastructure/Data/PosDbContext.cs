@@ -38,6 +38,8 @@ public class PosDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<LoyaltyAccount> LoyaltyAccounts { get; set; }
     public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
+    public DbSet<FloorPlan> FloorPlans { get; set; }
+    public DbSet<Table> Tables { get; set; }
     public DbSet<Device> Devices { get; set; }
     public DbSet<Printer> Printers { get; set; }
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
@@ -176,6 +178,31 @@ public class PosDbContext : DbContext
 
         modelBuilder.Entity<LoyaltyTransaction>()
             .HasIndex(lt => lt.OrderId);
+
+        // ── Tables ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Table>()
+            .Property(t => t.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(TableStatus.Available);
+
+        modelBuilder.Entity<Table>()
+            .HasOne(t => t.FloorPlan)
+            .WithMany(fp => fp.Tables)
+            .HasForeignKey(t => t.FloorPlanId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Table>()
+            .HasIndex(t => t.FloorPlanId);
+
+        modelBuilder.Entity<Order>()
+            .HasOne(o => o.Table)
+            .WithMany(t => t.Orders)
+            .HasForeignKey(o => o.TableId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.TableId);
 
         modelBuilder.Entity<PaymentRefund>()
             .Property(r => r.Amount)

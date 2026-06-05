@@ -63,6 +63,7 @@ fun SettingsScreen(
     onNavigateToKds: () -> Unit = {},
     onNavigateToDashboard: () -> Unit = {},
     onNavigateToMenuEngineering: () -> Unit = {},
+    onNavigateToTables: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -294,6 +295,23 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Menu Engineering")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToTables
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Table Map")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
