@@ -211,4 +211,10 @@ object NetworkModule {
     fun provideBranchService(retrofit: Retrofit): BranchService {
         return retrofit.create(BranchService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideFeedbackService(retrofit: Retrofit): FeedbackService {
+        return retrofit.create(FeedbackService::class.java)
+    }
 }

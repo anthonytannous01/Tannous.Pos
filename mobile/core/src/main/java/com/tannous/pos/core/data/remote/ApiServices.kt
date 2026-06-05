@@ -257,6 +257,20 @@ interface ReportsService {
     ): MenuEngineeringReportDto
 }
 
+interface FeedbackService {
+
+    @POST("v1/feedback")
+    suspend fun submit(@Body request: SubmitFeedbackRequest): FeedbackDto
+
+    @GET("v1/feedback/summary")
+    suspend fun getSummary(
+        @Query("branchId")  branchId:  String? = null,
+        @Query("from")      from:      String? = null,
+        @Query("to")        to:        String? = null,
+        @Query("recentMax") recentMax: Int = 20
+    ): FeedbackSummaryDto
+}
+
 interface BranchService {
 
     @GET("v1/branches")

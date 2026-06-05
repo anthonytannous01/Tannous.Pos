@@ -39,6 +39,7 @@ fun ReceiptScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     var showVoidDialog by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
     var voidReason by remember { mutableStateOf("") }
 
     val isPendingSync = order.receiptNumber?.startsWith("PENDING") == true
@@ -382,6 +383,16 @@ fun ReceiptScreen(
             
             Spacer(modifier = Modifier.height(8.dp))
             
+            // Feedback button (only for paid, synced orders)
+            if (!order.status.isAlreadyVoidedStatus() && !isPendingSync) {
+                OutlinedButton(
+                    onClick = { showFeedbackDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Leave Feedback ⭐")
+                }
+            }
+
             // Done button
             Button(
                 onClick = onDone,
@@ -390,6 +401,15 @@ fun ReceiptScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 Text("Done")
+            }
+
+            if (showFeedbackDialog) {
+                FeedbackPromptDialog(
+                    orderId     = order.id,
+                    orderNumber = order.orderNumber,
+                    branchId    = null,
+                    onDismiss   = { showFeedbackDialog = false }
+                )
             }
         }
     }

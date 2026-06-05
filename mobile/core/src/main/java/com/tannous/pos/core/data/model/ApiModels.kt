@@ -713,6 +713,45 @@ data class HourlySalesDto(
     val orders: Int = 0
 )
 
+// Feedback
+@Serializable
+data class SubmitFeedbackRequest(
+    val rating: Int,
+    val comment: String? = null,
+    val category: Int = 0,
+    val orderId: String? = null,
+    val orderNumber: String? = null,
+    val customerName: String? = null,
+    val branchId: String? = null
+)
+
+@Serializable
+data class FeedbackDto(
+    val id: String = "",
+    val rating: Int = 0,
+    val comment: String? = null,
+    val category: Int = 0,
+    val categoryName: String = "",
+    val orderId: String? = null,
+    val orderNumber: String? = null,
+    val customerName: String? = null,
+    val branchId: String? = null,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class FeedbackSummaryDto(
+    val totalCount: Int = 0,
+    val averageRating: Double = 0.0,
+    val fiveStars: Int = 0,
+    val fourStars: Int = 0,
+    val threeStars: Int = 0,
+    val twoStars: Int = 0,
+    val oneStar: Int = 0,
+    val complaints: Int = 0,
+    val recent: List<FeedbackDto> = emptyList()
+)
+
 // Branches
 @Serializable
 data class BranchDto(

@@ -14,6 +14,7 @@ public class PosDbContext : DbContext
     }
 
     public DbSet<Branch> Branches { get; set; }
+    public DbSet<FeedbackSubmission> FeedbackSubmissions { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<MenuItem> MenuItems { get; set; }
     public DbSet<AddOn> AddOns { get; set; }
@@ -649,6 +650,46 @@ public class PosDbContext : DbContext
             .HasForeignKey(im => im.BranchId)
             .OnDelete(DeleteBehavior.Restrict)
             .IsRequired(false);
+
+        // ── FeedbackSubmission ────────────────────────────────────────────────
+        modelBuilder.Entity<FeedbackSubmission>()
+            .Property(f => f.Category)
+            .HasConversion<int>();
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .Property(f => f.Comment)
+            .HasMaxLength(1000);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .Property(f => f.CustomerName)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .Property(f => f.OrderNumber)
+            .HasMaxLength(50);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .HasOne(f => f.Order)
+            .WithMany()
+            .HasForeignKey(f => f.OrderId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .HasOne(f => f.Branch)
+            .WithMany()
+            .HasForeignKey(f => f.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .HasIndex(f => f.CreatedAt);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .HasIndex(f => f.Rating);
+
+        modelBuilder.Entity<FeedbackSubmission>()
+            .HasIndex(f => f.BranchId);
     }
 
     private static void ConfigureByteaRowVersion(

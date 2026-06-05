@@ -245,6 +245,7 @@ builder.Services.AddScoped<IShiftRepository, ShiftRepository>();
 builder.Services.AddScoped<ICashDrawerEventRepository, CashDrawerEventRepository>();
 builder.Services.AddScoped<IBusinessSettingsRepository, BusinessSettingsRepository>();
 builder.Services.AddScoped<IBranchRepository, BranchRepository>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<Tannous.Pos.Application.Interfaces.IAdminDatabaseStatsRepository, AdminDatabaseStatsRepository>();
 builder.Services.AddScoped<IAdminOrderOperationsRepository, AdminOrderOperationsRepository>();
 builder.Services.AddScoped<IAdminPurgeRepository, AdminPurgeRepository>();

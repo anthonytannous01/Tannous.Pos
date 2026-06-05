@@ -17,8 +17,9 @@ public class AllowAnonymousGovernanceTests
     /// </summary>
     private static readonly HashSet<string> AllowAnonymousAllowlist = new()
     {
-        "AuthController",   // login + token refresh
-        "MenuController"    // QR digital menu — public customer-facing read-only
+        "AuthController",      // login + token refresh
+        "MenuController",      // QR digital menu — public customer-facing read-only
+        "FeedbackController"   // POST /feedback — public submission (no PII required)
     };
 
     [Fact]
