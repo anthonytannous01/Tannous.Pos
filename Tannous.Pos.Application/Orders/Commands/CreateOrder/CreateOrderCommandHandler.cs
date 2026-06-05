@@ -16,24 +16,42 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
     private readonly IReceiptNumberService _receiptNumberService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<CreateOrderCommandHandler> _logger;
+    private readonly IShiftRepository _shiftRepository;
+    private readonly IBranchRepository _branchRepository;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
         IMenuItemRepository menuItemRepository,
         IReceiptNumberService receiptNumberService,
         IUnitOfWork unitOfWork,
-        ILogger<CreateOrderCommandHandler> logger)
+        ILogger<CreateOrderCommandHandler> logger,
+        IShiftRepository shiftRepository,
+        IBranchRepository branchRepository)
     {
-        _orderRepository = orderRepository;
+        _orderRepository   = orderRepository;
         _menuItemRepository = menuItemRepository;
         _receiptNumberService = receiptNumberService;
-        _unitOfWork = unitOfWork;
-        _logger = logger;
+        _unitOfWork         = unitOfWork;
+        _logger             = logger;
+        _shiftRepository    = shiftRepository;
+        _branchRepository   = branchRepository;
     }
 
     public async Task<OrderDto> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
         var orderNumber = await _receiptNumberService.GenerateOrderNumberAsync();
+
+        // Resolve BranchId: explicit → from active shift → default branch
+        var branchId = request.BranchId;
+        if (branchId == null && request.ShiftId.HasValue)
+        {
+            var shift = await _shiftRepository.GetByIdAsync(request.ShiftId.Value);
+            branchId = shift?.BranchId;
+        }
+        if (branchId == null)
+        {
+            branchId = (await _branchRepository.GetDefaultAsync(cancellationToken))?.Id;
+        }
 
         var order = new Order
         {
@@ -48,6 +66,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
             TableId       = request.Order.TableId,
             ShiftId       = request.ShiftId,
             UserId        = request.UserId,
+            BranchId      = branchId,
             CreatedBy     = request.UserId.ToString()
         };
 

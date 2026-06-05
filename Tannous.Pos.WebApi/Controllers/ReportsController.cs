@@ -43,10 +43,11 @@ public class ReportsController : ControllerBase
     /// </summary>
     [HttpGet("summary")]
     public async Task<ActionResult<SalesSummaryDto>> GetSalesSummary(
-        [FromQuery] DateTime? from = null,
-        [FromQuery] DateTime? to = null)
+        [FromQuery] DateTime? from     = null,
+        [FromQuery] DateTime? to       = null,
+        [FromQuery] Guid?     branchId = null)
     {
-        var result = await _mediator.Send(new GetSalesSummaryQuery { From = from, To = to });
+        var result = await _mediator.Send(new GetSalesSummaryQuery { From = from, To = to, BranchId = branchId });
         return Ok(result);
     }
 

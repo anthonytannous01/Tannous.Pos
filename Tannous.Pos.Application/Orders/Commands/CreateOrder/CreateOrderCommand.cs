@@ -8,4 +8,6 @@ public class CreateOrderCommand : IRequest<OrderDto>
     public CreateOrderDto Order { get; set; } = new CreateOrderDto();
     public Guid UserId { get; set; }
     public Guid? ShiftId { get; set; }
+    /// <summary>Branch this order belongs to. Null → resolved from active shift or default branch.</summary>
+    public Guid? BranchId { get; set; }
 }

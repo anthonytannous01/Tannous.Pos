@@ -11,4 +11,6 @@ public class GetSalesSummaryQuery : IRequest<SalesSummaryDto>
 {
     public DateTime? From { get; set; }
     public DateTime? To { get; set; }
+    /// <summary>When set, only orders belonging to this branch are included. Null = all branches.</summary>
+    public Guid? BranchId { get; set; }
 }

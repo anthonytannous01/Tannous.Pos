@@ -21,13 +21,17 @@ public class GetSalesSummaryQueryHandler : IRequestHandler<GetSalesSummaryQuery,
         var to   = (request.To   ?? DateTime.UtcNow);
 
         // Load all orders in range (Paid + Void) with lines and payments
-        var orders = await _dbContext.Set<Order>()
+        var query = _dbContext.Set<Order>()
             .Include(o => o.OrderLines)
                 .ThenInclude(ol => ol.MenuItem)
             .Include(o => o.Payments)
             .Where(o => o.CreatedAt >= from && o.CreatedAt < to
-                && (o.Status == OrderStatus.Paid || o.Status == OrderStatus.Void))
-            .ToListAsync(cancellationToken);
+                && (o.Status == OrderStatus.Paid || o.Status == OrderStatus.Void));
+
+        if (request.BranchId.HasValue)
+            query = query.Where(o => o.BranchId == request.BranchId.Value);
+
+        var orders = await query.ToListAsync(cancellationToken);
 
         var paidOrders  = orders.Where(o => o.Status == OrderStatus.Paid).ToList();
         var voidedCount = orders.Count(o => o.Status == OrderStatus.Void);
