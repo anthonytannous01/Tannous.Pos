@@ -93,6 +93,18 @@
 -keep class * implements com.google.gson.JsonSerializer
 -keep class * implements com.google.gson.JsonDeserializer
 
+# ZXing (QR code generation)
+-keep class com.google.zxing.** { *; }
+-dontwarn com.google.zxing.**
+
+# Kotlinx Serialization — data classes used in API models
+-keepclassmembers @kotlinx.serialization.Serializable class * {
+    *** Companion;
+    *** INSTANCE;
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep @kotlinx.serialization.Serializable class * { *; }
+
 # Keep logging
 -keep class timber.log.** { *; }
 

@@ -719,6 +719,67 @@ data class HourlySalesDto(
     val orders: Int = 0
 )
 
+// Kiosk / public menu
+@Serializable
+data class PublicMenuDto(
+    val businessName: String = "",
+    val businessNameAr: String? = null,
+    val address: String? = null,
+    val phone: String? = null,
+    val currency: String = "USD",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
+    val categories: List<PublicMenuCategoryDto> = emptyList()
+)
+
+@Serializable
+data class PublicMenuCategoryDto(
+    val id: String = "",
+    val name: String = "",
+    val nameAr: String? = null,
+    val description: String? = null,
+    val displayOrder: Int = 0,
+    val items: List<PublicMenuItemDto> = emptyList()
+)
+
+@Serializable
+data class PublicMenuItemDto(
+    val id: String = "",
+    val name: String = "",
+    val nameAr: String? = null,
+    val description: String? = null,
+    val descriptionAr: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val price: BigDecimal = BigDecimal.ZERO,
+    val imageUrl: String? = null,
+    val displayOrder: Int = 0
+)
+
+@Serializable
+data class KioskOrderRequest(
+    val customerName: String? = null,
+    val notes: String? = null,
+    val lines: List<KioskOrderLineRequest>
+)
+
+@Serializable
+data class KioskOrderLineRequest(
+    val menuItemId: String,
+    val quantity: Int,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val unitPrice: BigDecimal
+)
+
+@Serializable
+data class KioskOrderResultDto(
+    val orderId: String = "",
+    val orderNumber: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalAmount: BigDecimal = BigDecimal.ZERO,
+    val currency: String = "USD",
+    val message: String = ""
+)
+
 // Delivery
 @Serializable
 data class DeliveryDto(

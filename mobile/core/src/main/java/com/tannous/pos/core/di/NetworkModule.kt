@@ -229,4 +229,10 @@ object NetworkModule {
     fun provideDeliveryService(retrofit: Retrofit): DeliveryService {
         return retrofit.create(DeliveryService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideKioskService(retrofit: Retrofit): KioskService {
+        return retrofit.create(KioskService::class.java)
+    }
 }

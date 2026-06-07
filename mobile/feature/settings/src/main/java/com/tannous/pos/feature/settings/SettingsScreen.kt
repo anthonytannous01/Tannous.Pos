@@ -68,6 +68,7 @@ fun SettingsScreen(
     onNavigateToQrMenu: () -> Unit = {},
     onNavigateToReservations: () -> Unit = {},
     onNavigateToDelivery: () -> Unit = {},
+    onNavigateToKiosk: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -420,6 +421,28 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Delivery Queue")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToKiosk
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text("Self-Ordering Kiosk")
+                                Text("PIN: 1234 to exit",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }

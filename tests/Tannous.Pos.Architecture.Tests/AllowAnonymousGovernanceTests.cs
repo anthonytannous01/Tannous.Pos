@@ -19,7 +19,8 @@ public class AllowAnonymousGovernanceTests
     {
         "AuthController",      // login + token refresh
         "MenuController",      // QR digital menu — public customer-facing read-only
-        "FeedbackController"   // POST /feedback — public submission (no PII required)
+        "FeedbackController",  // POST /feedback — public submission (no PII required)
+        "KioskController"      // self-ordering kiosk — customer-facing, unauthenticated
     };
 
     [Fact]
