@@ -274,6 +274,15 @@ interface ReportsService {
     ): MenuEngineeringReportDto
 }
 
+interface KioskService {
+
+    @GET("v1/kiosk/menu")
+    suspend fun getMenu(): PublicMenuDto
+
+    @POST("v1/kiosk/orders")
+    suspend fun placeOrder(@Body request: KioskOrderRequest): KioskOrderResultDto
+}
+
 interface DeliveryService {
 
     @GET("v1/delivery/queue")
