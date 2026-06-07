@@ -26,6 +26,7 @@ public class GetCategoriesQueryHandler : IRequestHandler<GetCategoriesQuery, IEn
         Id           = c.Id,
         Name         = c.Name,
         Description  = c.Description,
+        NameAr       = c.NameAr,
         IsActive     = c.IsActive,
         DisplayOrder = c.DisplayOrder,
         CreatedAt    = c.CreatedAt

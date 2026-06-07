@@ -49,6 +49,7 @@ class PullWorker @AssistedInject constructor(
                         com.tannous.pos.core.data.local.entity.CategoryEntity(
                             id = dto.id,
                             name = dto.name,
+                            nameAr = dto.nameAr,
                             description = dto.description,
                             displayOrder = dto.displayOrder,
                             isActive = dto.isActive,
@@ -66,7 +67,9 @@ class PullWorker @AssistedInject constructor(
                             id = dto.id,
                             categoryId = dto.categoryId,
                             name = dto.name,
+                            nameAr = dto.nameAr,
                             description = dto.description,
+                            descriptionAr = dto.descriptionAr,
                             price = dto.price,
                             imageUrl = dto.imageUrl,
                             isActive = dto.isActive,

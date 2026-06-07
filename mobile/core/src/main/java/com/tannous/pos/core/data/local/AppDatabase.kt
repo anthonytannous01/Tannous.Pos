@@ -24,7 +24,7 @@ import com.tannous.pos.core.data.local.entity.*
         KeyValueEntity::class,
         OutboxOperationEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -66,6 +66,15 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             }
         }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Arabic localisation fields
+                database.execSQL("ALTER TABLE menu_items ADD COLUMN nameAr TEXT")
+                database.execSQL("ALTER TABLE menu_items ADD COLUMN descriptionAr TEXT")
+                database.execSQL("ALTER TABLE categories ADD COLUMN nameAr TEXT")
+            }
+        }
         
         @Volatile
         private var INSTANCE: AppDatabase? = null
@@ -77,7 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tannous_pos_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
                 INSTANCE = instance
                 instance

@@ -106,6 +106,14 @@ class SettingsRepository @Inject constructor(
         keyValueDao.set(KeyValueEntity(KEY_EXCHANGE_RATE, dto.exchangeRateLbpPerUsd.toPlainString()))
     }
 
+    suspend fun getLanguage(): String =
+        try { keyValueDao.get(KEY_LANGUAGE) ?: LANG_EN } catch (e: Exception) { LANG_EN }
+
+    suspend fun setLanguage(lang: String) =
+        keyValueDao.set(KeyValueEntity(KEY_LANGUAGE, lang))
+
+    fun isArabic(lang: String) = lang == LANG_AR
+
     private suspend fun syntheticFromCache(): BusinessSettingsDto {
         val percent = percentFromCachedFraction(getTaxRate())
         return BusinessSettingsDto(
@@ -117,9 +125,12 @@ class SettingsRepository @Inject constructor(
     }
 
     companion object {
-        const val KEY_TAX_RATE = "settings_tax_rate"
-        const val KEY_CURRENCY = "settings_currency"
+        const val KEY_TAX_RATE    = "settings_tax_rate"
+        const val KEY_CURRENCY    = "settings_currency"
         const val KEY_EXCHANGE_RATE = "settings_exchange_rate"
+        const val KEY_LANGUAGE    = "settings_language"
+        const val LANG_EN         = "en"
+        const val LANG_AR         = "ar"
         val DEFAULT_TAX_RATE: BigDecimal = BigDecimal("0.10")
         val DEFAULT_TAX_RATE_PERCENT: BigDecimal = BigDecimal("10")
         const val DEFAULT_CURRENCY = "USD"

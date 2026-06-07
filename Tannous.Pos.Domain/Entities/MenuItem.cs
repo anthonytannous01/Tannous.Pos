@@ -5,8 +5,12 @@ namespace Tannous.Pos.Domain.Entities;
 
 public class MenuItem : BaseEntity, IAggregateRoot
 {
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
+    public string  Name          { get; set; } = string.Empty;
+    public string? Description   { get; set; }
+    /// <summary>Arabic name shown on customer-facing surfaces (QR menu, KDS). Optional.</summary>
+    public string? NameAr        { get; set; }
+    /// <summary>Arabic description. Optional.</summary>
+    public string? DescriptionAr { get; set; }
     public decimal Price { get; set; } = 0;
     public bool IsActive { get; set; } = true;
     public string? ImageUrl { get; set; }

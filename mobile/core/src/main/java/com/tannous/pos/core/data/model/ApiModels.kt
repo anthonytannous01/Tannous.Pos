@@ -85,7 +85,9 @@ data class BusinessSettingsDto(
     val showLbpOnReceipt: Boolean = false,
     val stampDutyEnabled: Boolean = false,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00")
+    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00"),
+    // Arabic
+    val businessNameAr: String? = null
 )
 
 @Serializable
@@ -289,6 +291,7 @@ data class UpdateIngredientRequest(
 data class CategoryDto(
     val id: String,
     val name: String,
+    val nameAr: String? = null,
     val description: String?,
     val displayOrder: Int,
     val isActive: Boolean,
@@ -301,7 +304,9 @@ data class MenuItemDto(
     val id: String,
     val categoryId: String,
     val name: String,
+    val nameAr: String? = null,
     val description: String?,
+    val descriptionAr: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val price: BigDecimal,
     val imageUrl: String?,

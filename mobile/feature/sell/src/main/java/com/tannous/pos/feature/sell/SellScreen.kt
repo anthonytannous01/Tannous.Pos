@@ -27,6 +27,7 @@ import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.local.entity.OrderEntity
 import com.tannous.pos.core.data.repository.isAlreadyVoidedStatus
 import com.tannous.pos.core.data.repository.isVoidableStatus
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 import java.text.NumberFormat
@@ -225,7 +226,10 @@ fun SellScreen(
                             FilterChip(
                                 selected = selectedCategory?.id == category.id,
                                 onClick = { viewModel.selectCategory(category) },
-                                label = { Text(category.name) }
+                                label = {
+                                    val isArabic = LocalIsArabic.current
+                                    Text(if (isArabic) category.nameAr?.takeIf { it.isNotBlank() } ?: category.name else category.name)
+                                }
                             )
                         }
                     }
@@ -539,7 +543,7 @@ fun MenuItemCard(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = menuItem.name,
+                    text = if (LocalIsArabic.current) menuItem.nameAr?.takeIf { it.isNotBlank() } ?: menuItem.name else menuItem.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -588,7 +592,7 @@ fun CartItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.menuItem.name,
+                    text = if (LocalIsArabic.current) item.menuItem.nameAr?.takeIf { it.isNotBlank() } ?: item.menuItem.name else item.menuItem.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )

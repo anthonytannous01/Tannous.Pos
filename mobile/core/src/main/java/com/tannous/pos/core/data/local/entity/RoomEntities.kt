@@ -13,6 +13,7 @@ data class CategoryEntity(
     @PrimaryKey
     val id: String,
     val name: String,
+    val nameAr: String? = null,
     val description: String?,
     val displayOrder: Int,
     val isActive: Boolean,
@@ -27,7 +28,9 @@ data class MenuItemEntity(
     val id: String,
     val categoryId: String,
     val name: String,
+    val nameAr: String? = null,
     val description: String?,
+    val descriptionAr: String? = null,
     val price: BigDecimal,
     val imageUrl: String?,
     val isActive: Boolean,

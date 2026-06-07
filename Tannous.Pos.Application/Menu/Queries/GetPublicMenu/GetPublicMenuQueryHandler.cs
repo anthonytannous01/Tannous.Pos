@@ -37,6 +37,7 @@ public class GetPublicMenuQueryHandler : IRequestHandler<GetPublicMenuQuery, Pub
             {
                 Id           = c.Id,
                 Name         = c.Name,
+                NameAr       = c.NameAr,
                 Description  = c.Description,
                 DisplayOrder = c.DisplayOrder,
                 Items        = itemsByCategory.TryGetValue(c.Id, out var catItems)
@@ -45,12 +46,14 @@ public class GetPublicMenuQueryHandler : IRequestHandler<GetPublicMenuQuery, Pub
                         .OrderBy(i => i.DisplayOrder)
                         .Select(i => new PublicMenuItemDto
                         {
-                            Id           = i.Id,
-                            Name         = i.Name,
-                            Description  = i.Description,
-                            Price        = i.Price,
-                            ImageUrl     = i.ImageUrl,
-                            DisplayOrder = i.DisplayOrder
+                            Id            = i.Id,
+                            Name          = i.Name,
+                            NameAr        = i.NameAr,
+                            Description   = i.Description,
+                            DescriptionAr = i.DescriptionAr,
+                            Price         = i.Price,
+                            ImageUrl      = i.ImageUrl,
+                            DisplayOrder  = i.DisplayOrder
                         }).ToList()
                     : new List<PublicMenuItemDto>()
             })
@@ -59,12 +62,13 @@ public class GetPublicMenuQueryHandler : IRequestHandler<GetPublicMenuQuery, Pub
 
         return new PublicMenuDto
         {
-            BusinessName         = settings?.BusinessName ?? "Our Menu",
-            Address              = settings?.Address,
-            Phone                = settings?.Phone,
-            Currency             = settings?.Currency ?? "USD",
+            BusinessName          = settings?.BusinessName ?? "Our Menu",
+            BusinessNameAr        = settings?.BusinessNameAr,
+            Address               = settings?.Address,
+            Phone                 = settings?.Phone,
+            Currency              = settings?.Currency ?? "USD",
             ExchangeRateLbpPerUsd = settings?.ExchangeRateLbpPerUsd ?? 0m,
-            Categories           = categoryDtos
+            Categories            = categoryDtos
         };
     }
 }

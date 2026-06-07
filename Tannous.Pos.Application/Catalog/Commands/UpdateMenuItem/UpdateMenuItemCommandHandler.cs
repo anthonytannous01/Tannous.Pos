@@ -31,34 +31,38 @@ public class UpdateMenuItemCommandHandler : IRequestHandler<UpdateMenuItemComman
         if (category == null)
             throw new ArgumentException($"Category with ID {request.MenuItem.CategoryId} not found");
 
-        menuItem.Name = request.MenuItem.Name;
-        menuItem.Description = request.MenuItem.Description;
-        menuItem.Price = request.MenuItem.Price;
-        menuItem.IsActive = request.MenuItem.IsActive;
-        menuItem.ImageUrl = request.MenuItem.ImageUrl;
-        menuItem.DisplayOrder = request.MenuItem.DisplayOrder;
-        menuItem.HasAddOns = request.MenuItem.HasAddOns;
+        menuItem.Name          = request.MenuItem.Name;
+        menuItem.Description   = request.MenuItem.Description;
+        menuItem.NameAr        = request.MenuItem.NameAr;
+        menuItem.DescriptionAr = request.MenuItem.DescriptionAr;
+        menuItem.Price         = request.MenuItem.Price;
+        menuItem.IsActive      = request.MenuItem.IsActive;
+        menuItem.ImageUrl      = request.MenuItem.ImageUrl;
+        menuItem.DisplayOrder  = request.MenuItem.DisplayOrder;
+        menuItem.HasAddOns     = request.MenuItem.HasAddOns;
         menuItem.HasIngredients = request.MenuItem.HasIngredients;
-        menuItem.CategoryId = request.MenuItem.CategoryId;
-        menuItem.UpdatedAt = DateTime.UtcNow;
+        menuItem.CategoryId    = request.MenuItem.CategoryId;
+        menuItem.UpdatedAt     = DateTime.UtcNow;
 
         await _menuItemRepository.UpdateAsync(menuItem);
         await _unitOfWork.SaveChangesAsync();
 
         return new MenuItemDto
         {
-            Id = menuItem.Id,
-            Name = menuItem.Name,
-            Description = menuItem.Description,
-            Price = menuItem.Price,
-            IsActive = menuItem.IsActive,
-            ImageUrl = menuItem.ImageUrl,
-            DisplayOrder = menuItem.DisplayOrder,
-            HasAddOns = menuItem.HasAddOns,
+            Id             = menuItem.Id,
+            Name           = menuItem.Name,
+            Description    = menuItem.Description,
+            NameAr         = menuItem.NameAr,
+            DescriptionAr  = menuItem.DescriptionAr,
+            Price          = menuItem.Price,
+            IsActive       = menuItem.IsActive,
+            ImageUrl       = menuItem.ImageUrl,
+            DisplayOrder   = menuItem.DisplayOrder,
+            HasAddOns      = menuItem.HasAddOns,
             HasIngredients = menuItem.HasIngredients,
-            CategoryId = menuItem.CategoryId,
-            CategoryName = category.Name,
-            CreatedAt = menuItem.CreatedAt
+            CategoryId     = menuItem.CategoryId,
+            CategoryName   = category.Name,
+            CreatedAt      = menuItem.CreatedAt
         };
     }
 }

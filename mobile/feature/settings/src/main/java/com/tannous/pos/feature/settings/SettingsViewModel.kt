@@ -29,6 +29,23 @@ class SettingsViewModel @Inject constructor(
     init {
         loadSettings()
         observeFailedSyncCount()
+        loadLanguage()
+    }
+
+    private fun loadLanguage() {
+        viewModelScope.launch {
+            val lang = settingsRepository.getLanguage()
+            _uiState.update { it.copy(language = lang) }
+        }
+    }
+
+    fun toggleLanguage() {
+        val newLang = if (_uiState.value.language == SettingsRepository.LANG_AR)
+            SettingsRepository.LANG_EN else SettingsRepository.LANG_AR
+        viewModelScope.launch {
+            settingsRepository.setLanguage(newLang)
+            _uiState.update { it.copy(language = newLang) }
+        }
     }
 
     private fun observeFailedSyncCount() {
@@ -246,7 +263,8 @@ data class SettingsUiState(
     val showLbpOnReceipt: Boolean = false,
     val stampDutyEnabled: Boolean = false,
     val stampDutyAmountUsd: String = "2.00",
-    val failedSyncCount: Int = 0
+    val failedSyncCount: Int = 0,
+    val language: String = SettingsRepository.LANG_EN
 )
 
 enum class SettingsField {

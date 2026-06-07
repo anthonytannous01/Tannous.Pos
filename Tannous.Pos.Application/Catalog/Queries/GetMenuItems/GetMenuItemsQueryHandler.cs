@@ -36,6 +36,8 @@ public class GetMenuItemsQueryHandler : IRequestHandler<GetMenuItemsQuery, IEnum
         Id             = m.Id,
         Name           = m.Name,
         Description    = m.Description,
+        NameAr         = m.NameAr,
+        DescriptionAr  = m.DescriptionAr,
         Price          = m.Price,
         IsActive       = m.IsActive,
         ImageUrl       = m.ImageUrl,

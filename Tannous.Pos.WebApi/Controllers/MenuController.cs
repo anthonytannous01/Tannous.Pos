@@ -38,32 +38,42 @@ public class MenuController : ControllerBase
     // ── HTML builder ────────────────────────────────────────────────────────
     private static string BuildHtml(PublicMenuDto menu)
     {
-        var sb = new StringBuilder();
+        var sb     = new StringBuilder();
         var showLbp = menu.ExchangeRateLbpPerUsd > 0;
+        var hasAr  = !string.IsNullOrWhiteSpace(menu.BusinessNameAr)
+                     || menu.Categories.Any(c => !string.IsNullOrWhiteSpace(c.NameAr));
 
         sb.Append("""
             <!DOCTYPE html>
-            <html lang="en">
+            <html lang="ar">
             <head>
               <meta charset="UTF-8"/>
               <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
               <title>Menu</title>
               <style>
                 *{box-sizing:border-box;margin:0;padding:0}
-                body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                body{font-family:'Segoe UI',Tahoma,-apple-system,BlinkMacSystemFont,sans-serif;
                      background:#f5f5f5;color:#1a1a1a;padding-bottom:32px}
                 .header{background:#1F497D;color:#fff;padding:24px 16px 20px;text-align:center}
                 .header h1{font-size:1.6rem;font-weight:700;margin-bottom:4px}
+                .header .ar{font-size:1.3rem;opacity:.9;direction:rtl}
                 .header p{font-size:.85rem;opacity:.85;margin-top:4px}
                 .category{margin:16px 12px 0}
                 .category-title{font-size:1.05rem;font-weight:700;color:#1F497D;
-                                padding:10px 4px 6px;border-bottom:2px solid #1F497D;margin-bottom:8px}
+                                padding:10px 4px 6px;border-bottom:2px solid #1F497D;
+                                margin-bottom:8px;display:flex;justify-content:space-between;
+                                align-items:center}
+                .category-title .ar{direction:rtl;font-size:.95rem}
                 .item{background:#fff;border-radius:10px;padding:14px 16px;margin-bottom:8px;
                       display:flex;justify-content:space-between;align-items:flex-start;
                       box-shadow:0 1px 3px rgba(0,0,0,.08)}
-                .item-name{font-weight:600;font-size:.95rem;flex:1;padding-right:12px}
+                .item-info{flex:1;padding-right:12px}
+                .item-name{font-weight:600;font-size:.95rem}
+                .item-name-ar{font-weight:600;font-size:.9rem;direction:rtl;
+                              color:#444;margin-top:2px}
                 .item-desc{font-size:.78rem;color:#666;margin-top:3px;line-height:1.4}
-                .item-price{font-weight:700;font-size:.95rem;color:#1F497D;white-space:nowrap}
+                .item-price{font-weight:700;font-size:.95rem;color:#1F497D;
+                            white-space:nowrap;text-align:right}
                 .item-lbp{font-size:.72rem;color:#888;text-align:right;margin-top:2px}
                 .footer{text-align:center;margin-top:24px;font-size:.75rem;color:#aaa}
               </style>
@@ -71,11 +81,10 @@ public class MenuController : ControllerBase
             <body>
             """);
 
-        // Header
-        sb.Append($"""
-            <div class="header">
-              <h1>{Encode(menu.BusinessName)}</h1>
-            """);
+        // Header — bilingual
+        sb.Append($"""<div class="header"><h1>{Encode(menu.BusinessName)}</h1>""");
+        if (!string.IsNullOrWhiteSpace(menu.BusinessNameAr))
+            sb.Append($"""<div class="ar">{Encode(menu.BusinessNameAr)}</div>""");
         if (!string.IsNullOrEmpty(menu.Address))
             sb.Append($"<p>{Encode(menu.Address)}</p>");
         if (!string.IsNullOrEmpty(menu.Phone))
@@ -85,10 +94,10 @@ public class MenuController : ControllerBase
         // Categories + items
         foreach (var cat in menu.Categories)
         {
-            sb.Append($"""
-                <div class="category">
-                  <div class="category-title">{Encode(cat.Name)}</div>
-                """);
+            sb.Append($"""<div class="category"><div class="category-title"><span>{Encode(cat.Name)}</span>""");
+            if (!string.IsNullOrWhiteSpace(cat.NameAr))
+                sb.Append($"""<span class="ar">{Encode(cat.NameAr)}</span>""");
+            sb.Append("</div>");
 
             foreach (var item in cat.Items)
             {
@@ -96,19 +105,15 @@ public class MenuController : ControllerBase
                     ? $"{(item.Price * menu.ExchangeRateLbpPerUsd):N0} LBP"
                     : null;
 
-                sb.Append($"""
-                    <div class="item">
-                      <div>
-                        <div class="item-name">{Encode(item.Name)}</div>
-                    """);
+                sb.Append("""<div class="item"><div class="item-info">""");
+                sb.Append($"""<div class="item-name">{Encode(item.Name)}</div>""");
+                if (!string.IsNullOrWhiteSpace(item.NameAr))
+                    sb.Append($"""<div class="item-name-ar">{Encode(item.NameAr)}</div>""");
                 if (!string.IsNullOrEmpty(item.Description))
                     sb.Append($"""<div class="item-desc">{Encode(item.Description)}</div>""");
                 sb.Append("</div>");
 
-                sb.Append($"""
-                    <div>
-                      <div class="item-price">{menu.Currency} {item.Price:N2}</div>
-                    """);
+                sb.Append($"""<div><div class="item-price">{menu.Currency} {item.Price:N2}</div>""");
                 if (lbpPrice != null)
                     sb.Append($"""<div class="item-lbp">{lbpPrice}</div>""");
                 sb.Append("</div></div>");
@@ -117,11 +122,7 @@ public class MenuController : ControllerBase
             sb.Append("</div>"); // .category
         }
 
-        sb.Append("""
-            <div class="footer">Powered by Tannous POS</div>
-            </body></html>
-            """);
-
+        sb.Append("""<div class="footer">Powered by Tannous POS</div></body></html>""");
         return sb.ToString();
     }
 

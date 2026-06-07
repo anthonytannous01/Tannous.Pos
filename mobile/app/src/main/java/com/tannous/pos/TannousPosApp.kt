@@ -11,9 +11,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +43,8 @@ import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.DashboardScreen
 import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
+import com.tannous.pos.core.ui.LanguageViewModel
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.feature.settings.QrMenuScreen
 import com.tannous.pos.feature.settings.ReservationsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
@@ -51,10 +55,12 @@ import com.tannous.pos.feature.shifts.ShiftsScreen
 
 @Composable
 fun TannousPosApp(
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
     val navController = rememberNavController()
     val authState by authViewModel.authState.collectAsState()
+    val isArabic  by languageViewModel.isArabic.collectAsState()
     
     // Navigate based on auth state
     LaunchedEffect(authState) {
@@ -79,6 +85,11 @@ fun TannousPosApp(
         }
     }
     
+    CompositionLocalProvider(
+        LocalIsArabic provides isArabic,
+        androidx.compose.ui.platform.LocalLayoutDirection provides
+            if (isArabic) LayoutDirection.Rtl else LayoutDirection.Ltr
+    ) {
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -266,4 +277,5 @@ fun TannousPosApp(
             }
         }
     }
+    } // CompositionLocalProvider
 }

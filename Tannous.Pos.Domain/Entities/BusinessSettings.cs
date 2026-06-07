@@ -5,7 +5,9 @@ namespace Tannous.Pos.Domain.Entities;
 
 public class BusinessSettings : BaseEntity, IAggregateRoot
 {
-    public string BusinessName { get; set; } = string.Empty;
+    public string  BusinessName   { get; set; } = string.Empty;
+    /// <summary>Arabic business name for receipts and QR menu header. Optional.</summary>
+    public string? BusinessNameAr { get; set; }
     public string? Address { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
