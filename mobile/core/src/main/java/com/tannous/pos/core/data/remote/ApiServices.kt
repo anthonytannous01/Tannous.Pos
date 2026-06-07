@@ -257,6 +257,26 @@ interface ReportsService {
     ): MenuEngineeringReportDto
 }
 
+interface DeliveryService {
+
+    @GET("v1/delivery/queue")
+    suspend fun getQueue(
+        @Query("branchId") branchId: String? = null,
+        @Query("status")   status:   Int?    = null,
+        @Query("from")     from:     String? = null,
+        @Query("to")       to:       String? = null
+    ): List<DeliveryDto>
+
+    @POST("v1/delivery")
+    suspend fun create(@Body request: CreateDeliveryInfoRequest): DeliveryDto
+
+    @PATCH("v1/delivery/{id}/status")
+    suspend fun updateStatus(
+        @Path("id") id: String,
+        @Body request: UpdateDeliveryStatusRequest
+    ): DeliveryDto
+}
+
 interface ReservationService {
 
     @GET("v1/reservations")

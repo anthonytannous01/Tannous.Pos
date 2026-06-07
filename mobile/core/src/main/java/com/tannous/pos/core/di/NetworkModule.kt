@@ -223,4 +223,10 @@ object NetworkModule {
     fun provideReservationService(retrofit: Retrofit): ReservationService {
         return retrofit.create(ReservationService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideDeliveryService(retrofit: Retrofit): DeliveryService {
+        return retrofit.create(DeliveryService::class.java)
+    }
 }

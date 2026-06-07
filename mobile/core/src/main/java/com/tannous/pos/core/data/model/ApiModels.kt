@@ -719,6 +719,56 @@ data class HourlySalesDto(
     val orders: Int = 0
 )
 
+// Delivery
+@Serializable
+data class DeliveryDto(
+    val id: String = "",
+    val orderId: String = "",
+    val orderNumber: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val orderTotal: BigDecimal = BigDecimal.ZERO,
+    val customerName: String? = null,
+    val deliveryAddress: String = "",
+    val apartmentDetails: String? = null,
+    val customerPhone: String? = null,
+    val channel: Int = 0,
+    val channelName: String = "",
+    val status: Int = 0,
+    val statusName: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val deliveryFee: BigDecimal = BigDecimal.ZERO,
+    val estimatedMinutes: Int? = null,
+    val notes: String? = null,
+    val driverName: String? = null,
+    val driverPhone: String? = null,
+    val assignedAt: String? = null,
+    val pickedUpAt: String? = null,
+    val deliveredAt: String? = null,
+    val branchId: String? = null,
+    val createdAt: String = ""
+)
+
+@Serializable
+data class CreateDeliveryInfoRequest(
+    val orderId: String,
+    val deliveryAddress: String,
+    val apartmentDetails: String? = null,
+    val customerPhone: String? = null,
+    val channel: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val deliveryFee: BigDecimal = BigDecimal.ZERO,
+    val estimatedMinutes: Int? = null,
+    val notes: String? = null,
+    val branchId: String? = null
+)
+
+@Serializable
+data class UpdateDeliveryStatusRequest(
+    val status: Int,
+    val driverName: String? = null,
+    val driverPhone: String? = null
+)
+
 // Reservations
 @Serializable
 data class ReservationDto(

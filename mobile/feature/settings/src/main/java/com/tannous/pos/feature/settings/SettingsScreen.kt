@@ -67,6 +67,7 @@ fun SettingsScreen(
     onNavigateToTables: () -> Unit = {},
     onNavigateToQrMenu: () -> Unit = {},
     onNavigateToReservations: () -> Unit = {},
+    onNavigateToDelivery: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -402,6 +403,23 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Reservations")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToDelivery
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Delivery Queue")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }

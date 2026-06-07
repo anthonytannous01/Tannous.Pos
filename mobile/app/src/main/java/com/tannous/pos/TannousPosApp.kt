@@ -48,6 +48,7 @@ import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.feature.settings.QrMenuScreen
 import com.tannous.pos.feature.settings.ReservationsScreen
 import com.tannous.pos.feature.settings.SettingsScreen
+import com.tannous.pos.feature.sell.DeliveryQueueScreen
 import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.sell.LoyaltyScreen
 import com.tannous.pos.feature.sell.TableMapScreen
@@ -218,7 +219,8 @@ fun TannousPosApp(
                     onNavigateToMenuEngineering = { navController.navigate("menu-engineering") },
                     onNavigateToTables = { navController.navigate("tables") },
                     onNavigateToQrMenu = { navController.navigate("qr-menu") },
-                    onNavigateToReservations = { navController.navigate("reservations") }
+                    onNavigateToReservations = { navController.navigate("reservations") },
+                    onNavigateToDelivery = { navController.navigate("delivery-queue") }
                 )
             }
 
@@ -228,6 +230,10 @@ fun TannousPosApp(
 
             composable("reservations") {
                 ReservationsScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable("delivery-queue") {
+                DeliveryQueueScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("dashboard") {

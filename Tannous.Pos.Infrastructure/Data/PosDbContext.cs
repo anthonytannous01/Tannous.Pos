@@ -14,6 +14,7 @@ public class PosDbContext : DbContext
     }
 
     public DbSet<Branch> Branches { get; set; }
+    public DbSet<DeliveryInfo> DeliveryInfos { get; set; }
     public DbSet<FeedbackSubmission> FeedbackSubmissions { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<MenuItem> MenuItems { get; set; }
@@ -692,6 +693,57 @@ public class PosDbContext : DbContext
 
         modelBuilder.Entity<Reservation>()
             .HasIndex(r => r.BranchId);
+
+        // ── DeliveryInfo ──────────────────────────────────────────────────────
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.Channel).HasConversion<int>();
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.Status).HasConversion<int>()
+            .HasDefaultValue(DeliveryStatus.Pending);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.DeliveryFee).HasColumnType("decimal(18,2)").HasDefaultValue(0m);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.DeliveryAddress).HasMaxLength(500);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.ApartmentDetails).HasMaxLength(200);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.CustomerPhone).HasMaxLength(50);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.DriverName).HasMaxLength(100);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.DriverPhone).HasMaxLength(50);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.Notes).HasMaxLength(500);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasOne(d => d.Order)
+            .WithOne()
+            .HasForeignKey<DeliveryInfo>(d => d.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasIndex(d => d.OrderId).IsUnique();
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasIndex(d => d.Status);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasIndex(d => d.BranchId);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasOne(d => d.Branch)
+            .WithMany()
+            .HasForeignKey(d => d.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
 
         // ── FeedbackSubmission ────────────────────────────────────────────────
         modelBuilder.Entity<FeedbackSubmission>()

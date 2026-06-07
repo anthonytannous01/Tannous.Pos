@@ -249,6 +249,7 @@ builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<ITableRepository, TableRepository>();
+builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 
 // Notifications (SMS / WhatsApp via Twilio)
 builder.Services.Configure<NotificationSettings>(
