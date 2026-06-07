@@ -5,8 +5,11 @@ using Tannous.Pos.Application.Reports.Queries.GetCogsReport;
 using Tannous.Pos.Application.Reports.Queries.GetEodReport;
 using Tannous.Pos.Application.Reports.Queries.GetMenuEngineering;
 using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
+using Tannous.Pos.Application.Reports.Queries.GetSalesExport;
+using Tannous.Pos.Application.Reports.Queries.GetPurchasesExport;
 using MediatR;
 using Tannous.Pos.WebApi.Constants;
+using System.Text;
 
 namespace Tannous.Pos.WebApi.Controllers;
 
@@ -62,6 +65,85 @@ public class ReportsController : ControllerBase
     {
         var result = await _mediator.Send(new GetMenuEngineeringQuery { From = from, To = to });
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Full sales export — one row per paid order, suitable for loading into Excel or accounting software.
+    /// Includes order number, receipt, type, subtotal, tax, stamp duty, total, payment methods.
+    /// </summary>
+    [HttpGet("export/sales.csv")]
+    [Produces("text/csv")]
+    public async Task<IActionResult> ExportSalesCsv(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] Guid?    branchId = null)
+    {
+        var rows = await _mediator.Send(new GetSalesExportQuery { From = from, To = to, BranchId = branchId });
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Date,OrderNumber,ReceiptNumber,OrderType,CustomerName,SubTotal,TaxAmount,StampDuty,Total,Discount,ChangeDue,PaymentMethods,Currencies,BranchId");
+
+        foreach (var r in rows)
+        {
+            sb.AppendLine(
+                $"{r.Date:yyyy-MM-dd HH:mm}," +
+                $"{CsvEscape(r.OrderNumber)}," +
+                $"{CsvEscape(r.ReceiptNumber)}," +
+                $"{r.OrderType}," +
+                $"{CsvEscape(r.CustomerName)}," +
+                $"{r.SubTotal:F2}," +
+                $"{r.TaxAmount:F2}," +
+                $"{r.StampDuty:F2}," +
+                $"{r.Total:F2}," +
+                $"{r.Discount:F2}," +
+                $"{r.ChangeDue:F2}," +
+                $"{CsvEscape(r.PaymentMethods)}," +
+                $"{CsvEscape(r.Currencies)}," +
+                $"{r.BranchId}");
+        }
+
+        var fileName = $"sales_{from:yyyyMMdd}_{to:yyyyMMdd}.csv";
+        return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", fileName);
+    }
+
+    /// <summary>
+    /// Purchase orders export — for supplier reconciliation and accounts payable.
+    /// </summary>
+    [HttpGet("export/purchases.csv")]
+    [Produces("text/csv")]
+    public async Task<IActionResult> ExportPurchasesCsv(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to)
+    {
+        var rows = await _mediator.Send(new GetPurchasesExportQuery { From = from, To = to });
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Date,OrderNumber,Supplier,Status,SubTotal,TaxAmount,Total,Lines,Notes");
+
+        foreach (var r in rows)
+        {
+            sb.AppendLine(
+                $"{r.Date:yyyy-MM-dd}," +
+                $"{CsvEscape(r.OrderNumber)}," +
+                $"{CsvEscape(r.Supplier)}," +
+                $"{r.Status}," +
+                $"{r.SubTotal:F2}," +
+                $"{r.TaxAmount:F2}," +
+                $"{r.Total:F2}," +
+                $"{r.LineCount}," +
+                $"{CsvEscape(r.Notes)}");
+        }
+
+        var fileName = $"purchases_{from:yyyyMMdd}_{to:yyyyMMdd}.csv";
+        return File(Encoding.UTF8.GetBytes(sb.ToString()), "text/csv", fileName);
+    }
+
+    private static string CsvEscape(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
     }
 
     [HttpGet("export/eod.csv")]

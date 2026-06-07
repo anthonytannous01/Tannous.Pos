@@ -70,16 +70,12 @@ fun ReportsScreen(
                 .padding(paddingValues)
         ) {
             TabRow(selectedTabIndex = uiState.selectedTab) {
-                Tab(
-                    selected = uiState.selectedTab == 0,
-                    onClick = { viewModel.selectTab(0) },
-                    text = { Text("End of Day") }
-                )
-                Tab(
-                    selected = uiState.selectedTab == 1,
-                    onClick = { viewModel.selectTab(1) },
-                    text = { Text("COGS") }
-                )
+                Tab(selected = uiState.selectedTab == 0, onClick = { viewModel.selectTab(0) },
+                    text = { Text("End of Day") })
+                Tab(selected = uiState.selectedTab == 1, onClick = { viewModel.selectTab(1) },
+                    text = { Text("COGS") })
+                Tab(selected = uiState.selectedTab == 2, onClick = { viewModel.selectTab(2) },
+                    text = { Text("Export") })
             }
 
             Column(
@@ -359,6 +355,82 @@ fun ReportsScreen(
                                 text = "Select a date range and tap Refresh.",
                                 modifier = Modifier.padding(8.dp)
                             )
+                        }
+                    }
+                }
+
+                // ── Export tab ────────────────────────────────────────────────
+                if (uiState.selectedTab == 2) {
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    var exportFrom by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
+                    var exportTo   by remember { mutableStateOf(LocalDate.now()) }
+
+                    Text("Accounting Export",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(bottom = 4.dp))
+                    Text(
+                        "Download CSV files for your accountant. Open in Excel or any accounting software.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Date range picker (reuse COGS row)
+                    CogsDateRangeRow(
+                        fromDate = exportFrom,
+                        onRangeSelected = { from, to -> exportFrom = from; exportTo = to }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Sales CSV
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Sales Export", style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                            Text("One row per paid order — date, receipt, type, subtotal, tax, total, payments",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Button(
+                                onClick = { viewModel.exportSalesCsv(context, exportFrom, exportTo) },
+                                enabled = !uiState.isExporting,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (uiState.isExporting) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Text("Export Sales CSV ($exportFrom → $exportTo)")
+                                }
+                            }
+                        }
+                    }
+
+                    // Purchases CSV
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Purchases Export", style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+                            Text("Purchase orders — supplier, status, amounts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Button(
+                                onClick = { viewModel.exportPurchasesCsv(context, exportFrom, exportTo) },
+                                enabled = !uiState.isExporting,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                if (uiState.isExporting) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onPrimary)
+                                } else {
+                                    Text("Export Purchases CSV ($exportFrom → $exportTo)")
+                                }
+                            }
                         }
                     }
                 }

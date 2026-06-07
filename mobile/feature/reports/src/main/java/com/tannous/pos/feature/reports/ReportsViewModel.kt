@@ -194,6 +194,80 @@ class ReportsViewModel @Inject constructor(
     fun clearExportError() {
         _uiState.update { it.copy(exportError = null) }
     }
+
+    /** Export full sales CSV for a date range via the share sheet. */
+    fun exportSalesCsv(context: Context, from: LocalDate, to: LocalDate) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportError = null) }
+            try {
+                val response = reportsService.getSalesCsv(
+                    from = from.toString() + "T00:00:00Z",
+                    to   = to.toString()   + "T23:59:59Z"
+                )
+                if (!response.isSuccessful) {
+                    _uiState.update { it.copy(isExporting = false,
+                        exportError = if (response.code() == 403) "Reports require owner access"
+                                     else "Export failed: ${response.code()}") }
+                    return@launch
+                }
+                val csv = response.body()?.use { it.string() }.orEmpty()
+                if (csv.isBlank()) {
+                    _uiState.update { it.copy(isExporting = false, exportError = "No data to export") }
+                    return@launch
+                }
+                context.startActivity(Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_SUBJECT, "Sales $from to $to")
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                    }, "Export Sales"
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                _uiState.update { it.copy(isExporting = false) }
+            } catch (e: IOException) {
+                _uiState.update { it.copy(isExporting = false, exportError = "No connection") }
+            } catch (e: Exception) {
+                Timber.e(e, "Sales CSV export error")
+                _uiState.update { it.copy(isExporting = false, exportError = e.message ?: "Export failed") }
+            }
+        }
+    }
+
+    /** Export purchase orders CSV for a date range. */
+    fun exportPurchasesCsv(context: Context, from: LocalDate, to: LocalDate) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExporting = true, exportError = null) }
+            try {
+                val response = reportsService.getPurchasesCsv(
+                    from = from.toString() + "T00:00:00Z",
+                    to   = to.toString()   + "T23:59:59Z"
+                )
+                if (!response.isSuccessful) {
+                    _uiState.update { it.copy(isExporting = false,
+                        exportError = if (response.code() == 403) "Reports require owner access"
+                                     else "Export failed: ${response.code()}") }
+                    return@launch
+                }
+                val csv = response.body()?.use { it.string() }.orEmpty()
+                if (csv.isBlank()) {
+                    _uiState.update { it.copy(isExporting = false, exportError = "No data to export") }
+                    return@launch
+                }
+                context.startActivity(Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/csv"
+                        putExtra(Intent.EXTRA_SUBJECT, "Purchases $from to $to")
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                    }, "Export Purchases"
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                _uiState.update { it.copy(isExporting = false) }
+            } catch (e: IOException) {
+                _uiState.update { it.copy(isExporting = false, exportError = "No connection") }
+            } catch (e: Exception) {
+                Timber.e(e, "Purchases CSV export error")
+                _uiState.update { it.copy(isExporting = false, exportError = e.message ?: "Export failed") }
+            }
+        }
+    }
 }
 
 data class ReportsUiState(

@@ -241,6 +241,23 @@ interface ReportsService {
         @Query("date") date: String? = null
     ): Response<ResponseBody>
 
+    /** Full sales export CSV — one row per paid order. */
+    @GET("reports/export/sales.csv")
+    @Headers("Accept: text/csv")
+    suspend fun getSalesCsv(
+        @Query("from")      from:     String,
+        @Query("to")        to:       String,
+        @Query("branchId")  branchId: String? = null
+    ): Response<ResponseBody>
+
+    /** Purchase orders export CSV. */
+    @GET("reports/export/purchases.csv")
+    @Headers("Accept: text/csv")
+    suspend fun getPurchasesCsv(
+        @Query("from") from: String,
+        @Query("to")   to:   String
+    ): Response<ResponseBody>
+
     /** Real-time owner dashboard summary. Defaults to today when from/to omitted. */
     @GET("reports/summary")
     suspend fun getSalesSummary(
