@@ -47,12 +47,17 @@ class ReceiptViewModel @Inject constructor(
     private val _voidState = MutableStateFlow<VoidState>(VoidState.Idle)
     val voidState: StateFlow<VoidState> = _voidState.asStateFlow()
 
+    private val _isArabic = MutableStateFlow(false)
+    val isArabic: StateFlow<Boolean> = _isArabic.asStateFlow()
+
     init {
         viewModelScope.launch {
             try {
                 _currencyCode.value = settingsRepository.getCurrency()
+                val lang = settingsRepository.getLanguage()
+                _isArabic.value = settingsRepository.isArabic(lang)
             } catch (e: Exception) {
-                Timber.w(e, "Could not load currency for receipt; using default")
+                Timber.w(e, "Could not load currency/language for receipt; using default")
             }
         }
     }
@@ -68,15 +73,16 @@ class ReceiptViewModel @Inject constructor(
                 val order = orderService.getOrder(orderId)
                 val lines = order.orderLines ?: emptyList()
                 val resolved = lines.map { line ->
-                    val name = try {
-                        catalogRepository.getMenuItemById(line.menuItemId)?.name
+                    val menuItem = try {
+                        catalogRepository.getMenuItemById(line.menuItemId)
                     } catch (e: Exception) {
                         null
-                    } ?: line.menuItemId.take(8)
+                    }
                     ReceiptLine(
-                        name = name,
-                        quantity = line.quantity,
-                        unitPrice = line.unitPrice,
+                        name    = menuItem?.name ?: line.menuItemId.take(8),
+                        nameAr  = menuItem?.nameAr,
+                        quantity   = line.quantity,
+                        unitPrice  = line.unitPrice,
                         totalPrice = line.totalPrice
                     )
                 }
@@ -92,9 +98,10 @@ class ReceiptViewModel @Inject constructor(
         if (lines.isEmpty()) return null
         return lines.map { line ->
             ReceiptItem(
-                name = line.name,
-                quantity = line.quantity,
-                unitPrice = formatCurrency(line.unitPrice),
+                name       = line.name,
+                nameAr     = line.nameAr,
+                quantity   = line.quantity,
+                unitPrice  = formatCurrency(line.unitPrice),
                 totalPrice = formatCurrency(line.totalPrice)
             )
         }
@@ -160,8 +167,8 @@ class ReceiptViewModel @Inject constructor(
                     payments = payments
                 )
                 
-                // Generate text receipt
-                val receiptText = ReceiptFormatter.formatReceiptText(receipt)
+                // Generate text receipt (bilingual: use Arabic labels + names when language = ar)
+                val receiptText = ReceiptFormatter.formatReceiptText(receipt, isArabic = _isArabic.value)
                 
                 // Create share intent
                 val shareIntent = Intent().apply {
@@ -227,6 +234,7 @@ sealed class VoidState {
  */
 data class ReceiptLine(
     val name: String,
+    val nameAr: String? = null,
     val quantity: Int,
     val unitPrice: BigDecimal,
     val totalPrice: BigDecimal

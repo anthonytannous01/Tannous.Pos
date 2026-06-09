@@ -30,12 +30,27 @@ class SettingsViewModel @Inject constructor(
         loadSettings()
         observeFailedSyncCount()
         loadLanguage()
+        loadKioskPin()
     }
 
     private fun loadLanguage() {
         viewModelScope.launch {
             val lang = settingsRepository.getLanguage()
             _uiState.update { it.copy(language = lang) }
+        }
+    }
+
+    private fun loadKioskPin() {
+        viewModelScope.launch {
+            val pin = settingsRepository.getKioskPin()
+            _uiState.update { it.copy(kioskPin = pin) }
+        }
+    }
+
+    fun saveKioskPin(pin: String) {
+        viewModelScope.launch {
+            settingsRepository.setKioskPin(pin)
+            _uiState.update { it.copy(kioskPin = pin) }
         }
     }
 
@@ -264,7 +279,8 @@ data class SettingsUiState(
     val stampDutyEnabled: Boolean = false,
     val stampDutyAmountUsd: String = "2.00",
     val failedSyncCount: Int = 0,
-    val language: String = SettingsRepository.LANG_EN
+    val language: String = SettingsRepository.LANG_EN,
+    val kioskPin: String = SettingsRepository.DEFAULT_KIOSK_PIN
 )
 
 enum class SettingsField {

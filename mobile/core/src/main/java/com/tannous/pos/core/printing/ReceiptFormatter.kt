@@ -48,28 +48,30 @@ object ReceiptFormatter {
     
     /**
      * Creates a receipt text representation for sharing (plain text format).
+     * @param isArabic When true, item names use the Arabic field (falls back to English if blank).
      */
-    fun formatReceiptText(receipt: ReceiptToPrint): String {
+    fun formatReceiptText(receipt: ReceiptToPrint, isArabic: Boolean = false): String {
         val text = StringBuilder()
-        
+
         text.append("=".repeat(40)).append("\n")
         text.append("TANNOUS POS\n")
         text.append("=".repeat(40)).append("\n\n")
         
         if (receipt.receiptNumber != null) {
-            text.append("Receipt #: ${receipt.receiptNumber}\n")
+            text.append(if (isArabic) "رقم الإيصال: ${receipt.receiptNumber}\n" else "Receipt #: ${receipt.receiptNumber}\n")
         }
         if (receipt.orderNumber != null) {
-            text.append("Order #: ${receipt.orderNumber}\n")
+            text.append(if (isArabic) "رقم الطلب: ${receipt.orderNumber}\n" else "Order #: ${receipt.orderNumber}\n")
         }
-        text.append("Date: ${receipt.dateTime}\n")
+        text.append(if (isArabic) "التاريخ: ${receipt.dateTime}\n" else "Date: ${receipt.dateTime}\n")
         text.append("-".repeat(40)).append("\n\n")
-        
+
         // Items
         if (receipt.items != null && receipt.items.isNotEmpty()) {
-            text.append("ITEMS:\n")
+            text.append(if (isArabic) "الأصناف:\n" else "ITEMS:\n")
             receipt.items.forEach { item ->
-                text.append("${item.quantity}x ${item.name}\n")
+                val displayName = if (isArabic) item.nameAr?.takeIf { it.isNotBlank() } ?: item.name else item.name
+                text.append("${item.quantity}x $displayName\n")
                 text.append("  ${item.unitPrice} each = ${item.totalPrice}\n")
             }
             text.append("-".repeat(40)).append("\n\n")
@@ -79,24 +81,23 @@ object ReceiptFormatter {
         }
         
         // Totals
-        text.append("Subtotal: ${receipt.subtotal}\n")
-        text.append("Tax: ${receipt.tax}\n")
-        text.append("TOTAL: ${receipt.total}\n")
+        text.append(if (isArabic) "المجموع الجزئي: ${receipt.subtotal}\n" else "Subtotal: ${receipt.subtotal}\n")
+        text.append(if (isArabic) "الضريبة: ${receipt.tax}\n" else "Tax: ${receipt.tax}\n")
+        text.append(if (isArabic) "الإجمالي: ${receipt.total}\n" else "TOTAL: ${receipt.total}\n")
         text.append("=".repeat(40)).append("\n\n")
-        
+
         // Payments
-        text.append("PAYMENT:\n")
+        text.append(if (isArabic) "الدفع:\n" else "PAYMENT:\n")
         receipt.payments.forEach { payment ->
             text.append("${payment.method}: ${payment.amount}\n")
             if (payment.change != null) {
-                text.append("  Change: ${payment.change}\n")
+                text.append(if (isArabic) "  الباقي: ${payment.change}\n" else "  Change: ${payment.change}\n")
             }
         }
         text.append("=".repeat(40)).append("\n\n")
-        
+
         // Footer
-        text.append("Thank you for your business!\n")
-        text.append("Please come again!\n")
+        text.append(if (isArabic) "شكراً لزيارتكم!\nنتطلع لرؤيتكم مجدداً!\n" else "Thank you for your business!\nPlease come again!\n")
         
         return text.toString()
     }

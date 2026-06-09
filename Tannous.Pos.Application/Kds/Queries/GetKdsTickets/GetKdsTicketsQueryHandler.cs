@@ -48,6 +48,7 @@ public class GetKdsTicketsQueryHandler : IRequestHandler<GetKdsTicketsQuery, Lis
             OrderNumber      = ol.Order.OrderNumber,
             OrderType        = ol.Order.OrderType,
             MenuItemName     = ol.MenuItem.Name,
+            MenuItemNameAr   = ol.MenuItem.NameAr,
             Quantity         = ol.Quantity,
             Notes            = ol.Notes,
             AddOns           = ol.OrderLineAddOns.Select(a => a.AddOn.Name).ToList(),

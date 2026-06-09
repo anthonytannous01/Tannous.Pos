@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.KdsTicketDto
+import com.tannous.pos.core.ui.LocalIsArabic
 
 // KDS status constants (mirrors backend KdsStatus enum)
 private const val KDS_PENDING     = 0
@@ -155,6 +156,9 @@ private fun KdsTicketCard(
     actionColor: Color,
     onAction: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
+    val displayName = if (isArabic) ticket.menuItemNameAr?.takeIf { it.isNotBlank() } ?: ticket.menuItemName
+                      else ticket.menuItemName
     // Urgency colour: green < 5 min, amber 5–10, red > 10
     val urgencyColor = when {
         ticket.elapsedMinutes >= 10 -> MaterialTheme.colorScheme.errorContainer
@@ -203,7 +207,7 @@ private fun KdsTicketCard(
 
             // Item name + quantity
             Text(
-                text = "${ticket.quantity.toInt()} × ${ticket.menuItemName}",
+                text = "${ticket.quantity.toInt()} × $displayName",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium
             )

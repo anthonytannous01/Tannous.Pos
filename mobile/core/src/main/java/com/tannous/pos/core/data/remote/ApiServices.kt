@@ -159,6 +159,22 @@ interface LoyaltyService {
         @Path("customerId") customerId: String,
         @Body request: RedeemPointsRequest
     ): LoyaltyAccountDto
+
+    /** CRM analytics summary: segment counts, averages, and top customers. */
+    @GET("v1/loyalty/analytics")
+    suspend fun getAnalytics(): CustomerAnalyticsDto
+
+    /** Paginated list of customers in a behavioural segment (enum value 0..4). */
+    @GET("v1/loyalty/segments/{segment}")
+    suspend fun getSegment(
+        @Path("segment") segment: Int,
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 50
+    ): CustomerSegmentPageDto
+
+    /** Dispatch a WhatsApp campaign to all customers in a target segment. */
+    @POST("v1/loyalty/campaigns")
+    suspend fun sendCampaign(@Body request: SendCampaignRequest): LoyaltyCampaignDto
 }
 
 interface KdsService {

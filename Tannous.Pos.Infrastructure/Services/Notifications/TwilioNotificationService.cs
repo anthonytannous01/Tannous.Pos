@@ -90,6 +90,67 @@ public sealed class TwilioNotificationService : INotificationService
         }
     }
 
+    public async Task<bool> SendLoyaltyNotificationAsync(
+        string toPhone, string message, string businessName,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_settings.Enabled) return false;
+
+        if (string.IsNullOrWhiteSpace(toPhone) || string.IsNullOrWhiteSpace(message))
+            return false;
+
+        var twilio = _settings.Twilio;
+        if (string.IsNullOrWhiteSpace(twilio.AccountSid) ||
+            string.IsNullOrWhiteSpace(twilio.AuthToken)  ||
+            string.IsNullOrWhiteSpace(twilio.FromNumber))
+        {
+            _logger.LogWarning("Twilio credentials incomplete — loyalty notification skipped");
+            return false;
+        }
+
+        try
+        {
+            var isWhatsApp  = _settings.Provider.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase);
+            var fromAddress = isWhatsApp ? $"whatsapp:{twilio.FromNumber}" : twilio.FromNumber;
+            var toAddress   = isWhatsApp ? $"whatsapp:{NormalizePhone(toPhone)}" : NormalizePhone(toPhone);
+
+            var formContent = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("From", fromAddress),
+                new KeyValuePair<string, string>("To",   toAddress),
+                new KeyValuePair<string, string>("Body", message)
+            });
+
+            var client = _httpFactory.CreateClient("Twilio");
+            var credentials = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes($"{twilio.AccountSid}:{twilio.AuthToken}"));
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", credentials);
+
+            var url = $"https://api.twilio.com/2010-04-01/Accounts/{twilio.AccountSid}/Messages.json";
+            var response = await client.PostAsync(url, formContent, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "Loyalty {Provider} notification sent to {Phone}",
+                    _settings.Provider, MaskPhone(toPhone));
+                return true;
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning(
+                "Twilio returned {StatusCode} for loyalty notification to {Phone}: {Error}",
+                (int)response.StatusCode, MaskPhone(toPhone), errorBody);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send loyalty notification to {Phone}", MaskPhone(toPhone));
+            return false;
+        }
+    }
+
     private static string BuildMessage(
         string orderNumber, string? receiptNumber,
         decimal totalAmount, string currency, string businessName)

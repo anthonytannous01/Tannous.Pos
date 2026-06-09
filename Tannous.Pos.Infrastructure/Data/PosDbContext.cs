@@ -41,6 +41,7 @@ public class PosDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<LoyaltyAccount> LoyaltyAccounts { get; set; }
     public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
+    public DbSet<LoyaltyCampaign> LoyaltyCampaigns { get; set; }
     public DbSet<FloorPlan> FloorPlans { get; set; }
     public DbSet<Table> Tables { get; set; }
     public DbSet<Reservation> Reservations { get; set; }
@@ -182,6 +183,26 @@ public class PosDbContext : DbContext
 
         modelBuilder.Entity<LoyaltyTransaction>()
             .HasIndex(lt => lt.OrderId);
+
+        // ── Loyalty Campaigns ────────────────────────────────────────────────
+        modelBuilder.Entity<LoyaltyCampaign>()
+            .Property(c => c.Name)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<LoyaltyCampaign>()
+            .Property(c => c.Message)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<LoyaltyCampaign>()
+            .Property(c => c.TargetSegment)
+            .HasConversion<int>();
+
+        modelBuilder.Entity<LoyaltyCampaign>()
+            .Property(c => c.Status)
+            .HasConversion<int>();
+
+        modelBuilder.Entity<LoyaltyCampaign>()
+            .HasIndex(c => c.CreatedAt);
 
         // ── Tables ───────────────────────────────────────────────────────────
         modelBuilder.Entity<Table>()
