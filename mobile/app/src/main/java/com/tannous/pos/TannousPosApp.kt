@@ -30,6 +30,7 @@ import com.tannous.pos.core.data.repository.AuthState
 import com.tannous.pos.core.ui.AuthViewModel
 import com.tannous.pos.feature.auth.LoginScreen
 import com.tannous.pos.feature.customers.CustomersScreen
+import com.tannous.pos.feature.customers.LoyaltyCrmScreen
 import com.tannous.pos.feature.printing.PrintingPreviewScreen
 import com.tannous.pos.core.data.repository.toOrderDto
 import com.tannous.pos.feature.sell.OrderHistoryScreen
@@ -222,8 +223,13 @@ fun TannousPosApp(
                     onNavigateToQrMenu = { navController.navigate("qr-menu") },
                     onNavigateToReservations = { navController.navigate("reservations") },
                     onNavigateToDelivery = { navController.navigate("delivery-queue") },
-                    onNavigateToKiosk    = { navController.navigate("kiosk") }
+                    onNavigateToKiosk    = { navController.navigate("kiosk") },
+                    onNavigateToLoyaltyCrm = { navController.navigate("loyalty-crm") }
                 )
+            }
+
+            composable("loyalty-crm") {
+                LoyaltyCrmScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("qr-menu") {

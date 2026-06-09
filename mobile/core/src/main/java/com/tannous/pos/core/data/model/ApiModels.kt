@@ -419,6 +419,7 @@ data class KdsTicketDto(
     val orderNumber: String,
     val orderType: String,
     val menuItemName: String,
+    val menuItemNameAr: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val quantity: BigDecimal,
     val notes: String? = null,
@@ -672,6 +673,70 @@ data class EarnPointsRequest(val points: Int, val orderId: String? = null, val n
 
 @Serializable
 data class RedeemPointsRequest(val points: Int, val orderId: String? = null)
+
+// Loyalty CRM — analytics, segmentation, campaigns
+@Serializable
+data class CustomerAnalyticsDto(
+    val totalCustomers: Int = 0,
+    val activeLast30Days: Int = 0,
+    val atRiskCount: Int = 0,
+    val lapsedCount: Int = 0,
+    val newCount: Int = 0,
+    val vipCount: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val averageOrderValue: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val averagePointBalance: BigDecimal = BigDecimal.ZERO,
+    val topCustomers: List<TopCustomerDto> = emptyList()
+)
+
+@Serializable
+data class TopCustomerDto(
+    val customerId: String = "",
+    val name: String = "",
+    val phone: String? = null,
+    val lifetimePointsEarned: Int = 0,
+    val pointBalance: Int = 0,
+    val totalOrders: Int = 0,
+    val lastVisitDate: String? = null,
+    val segment: Int = 4 // CustomerSegment enum value (0=VIP,1=Active,2=AtRisk,3=Lapsed,4=New)
+)
+
+@Serializable
+data class SendCampaignRequest(
+    val name: String,
+    val message: String,
+    val targetSegment: Int
+)
+
+@Serializable
+data class LoyaltyCampaignDto(
+    val id: String = "",
+    val name: String = "",
+    val message: String = "",
+    val targetSegment: Int = 0,
+    val recipientCount: Int = 0,
+    val sentCount: Int = 0,
+    val status: Int = 0, // 0=Pending,1=Sending,2=Completed,3=Failed
+    val createdAt: String = "",
+    val sentAt: String? = null,
+    val errorMessage: String? = null
+)
+
+/**
+ * Paginated segment response. Field names mirror the backend JSON shape
+ * (items/total/page/pageSize/totalPages/hasNextPage) and all carry defaults
+ * so deserialization is resilient.
+ */
+@Serializable
+data class CustomerSegmentPageDto(
+    val items: List<TopCustomerDto> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    val pageSize: Int = 50,
+    val totalPages: Int = 0,
+    val hasNextPage: Boolean = false
+)
 
 // Dashboard / Sales Summary
 @Serializable

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.*
@@ -18,6 +19,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,6 +72,7 @@ fun SettingsScreen(
     onNavigateToReservations: () -> Unit = {},
     onNavigateToDelivery: () -> Unit = {},
     onNavigateToKiosk: () -> Unit = {},
+    onNavigateToLoyaltyCrm: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -439,12 +443,82 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
                                 Text("Self-Ordering Kiosk")
-                                Text("PIN: 1234 to exit",
+                                Text("Exit PIN: ${uiState.kioskPin}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToLoyaltyCrm
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Loyalty CRM")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    // Kiosk exit PIN configuration
+                    run {
+                        var pinInput by remember(uiState.kioskPin) { mutableStateOf(uiState.kioskPin) }
+                        var showPin  by remember { mutableStateOf(false) }
+                        var pinError by remember { mutableStateOf("") }
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Kiosk Exit PIN",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold)
+                                Text("4-digit PIN operators enter to exit kiosk mode.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    OutlinedTextField(
+                                        value = pinInput,
+                                        onValueChange = { v ->
+                                            if (v.length <= 8 && v.all { it.isDigit() }) {
+                                                pinInput = v
+                                                pinError = ""
+                                            }
+                                        },
+                                        label = { Text("Exit PIN") },
+                                        visualTransformation = if (showPin) VisualTransformation.None
+                                                               else PasswordVisualTransformation(),
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                        isError = pinError.isNotBlank(),
+                                        supportingText = if (pinError.isNotBlank()) {{ Text(pinError) }} else null,
+                                        modifier = Modifier.weight(1f),
+                                        singleLine = true,
+                                        trailingIcon = {
+                                            TextButton(onClick = { showPin = !showPin }) {
+                                                Text(if (showPin) "Hide" else "Show",
+                                                    style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                    )
+                                    Button(onClick = {
+                                        if (pinInput.length < 4) {
+                                            pinError = "Minimum 4 digits"
+                                        } else {
+                                            viewModel.saveKioskPin(pinInput)
+                                        }
+                                    }) { Text("Save") }
+                                }
+                            }
                         }
                     }
 

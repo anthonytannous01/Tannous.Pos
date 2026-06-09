@@ -28,15 +28,14 @@ import com.tannous.pos.core.data.model.PublicMenuItemDto
 import com.tannous.pos.core.ui.LocalIsArabic
 import java.math.BigDecimal
 
-private const val KIOSK_EXIT_PIN = "1234" // operator changes this in production settings
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun KioskScreen(
     onExit: () -> Unit,
     viewModel: KioskViewModel = hiltViewModel()
 ) {
-    val uiState   by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState    by viewModel.uiState.collectAsStateWithLifecycle()
+    val exitPin    by viewModel.exitPin.collectAsStateWithLifecycle()
     val isArabic   = LocalIsArabic.current
     var showCart   by remember { mutableStateOf(false) }
     var showPinDialog by remember { mutableStateOf(false) }
@@ -64,7 +63,7 @@ fun KioskScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (enteredPin == KIOSK_EXIT_PIN) {
+                    if (enteredPin == exitPin) {
                         showPinDialog = false; onExit()
                     } else {
                         pinError = true; enteredPin = ""

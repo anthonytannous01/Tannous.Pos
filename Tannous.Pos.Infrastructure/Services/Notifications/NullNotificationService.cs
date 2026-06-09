@@ -12,4 +12,9 @@ public sealed class NullNotificationService : INotificationService
         decimal totalAmount, string currency, string businessName,
         CancellationToken cancellationToken = default)
         => Task.FromResult(false);
+
+    public Task<bool> SendLoyaltyNotificationAsync(
+        string toPhone, string message, string businessName,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }

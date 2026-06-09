@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.OrderDto
 import com.tannous.pos.core.data.repository.isAlreadyVoidedStatus
 import com.tannous.pos.core.data.repository.isVoidableStatus
+import com.tannous.pos.core.ui.LocalIsArabic
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,6 +37,7 @@ fun ReceiptScreen(
     val orderLines by viewModel.orderLines.collectAsStateWithLifecycle()
     val currencyCode by viewModel.currencyCode.collectAsStateWithLifecycle()
     val currencyFormatter = remember(currencyCode) { currencyFormatterFor(currencyCode) }
+    val isArabic = LocalIsArabic.current
     
     val snackbarHostState = remember { SnackbarHostState() }
     var showVoidDialog by remember { mutableStateOf(false) }
@@ -228,12 +230,13 @@ fun ReceiptScreen(
                             fontWeight = FontWeight.Bold
                         )
                         orderLines.forEach { line ->
+                            val lineName = if (isArabic) line.nameAr?.takeIf { it.isNotBlank() } ?: line.name else line.name
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "${line.name} × ${line.quantity}",
+                                    text = "$lineName × ${line.quantity}",
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f)
                                 )

@@ -20,4 +20,14 @@ public interface INotificationService
         string   currency,
         string   businessName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send an operator-authored loyalty/CRM message (e.g. a campaign) to a customer's phone.
+    /// The message body is passed through verbatim. Returns true on success, false on failure (never throws).
+    /// </summary>
+    Task<bool> SendLoyaltyNotificationAsync(
+        string   toPhone,
+        string   message,
+        string   businessName,
+        CancellationToken cancellationToken = default);
 }

@@ -12,6 +12,8 @@ public class KdsTicketDto
     public string OrderNumber { get; set; } = string.Empty;
     public OrderType OrderType { get; set; }
     public string MenuItemName { get; set; } = string.Empty;
+    /// <summary>Arabic item name for bilingual KDS display. Null if not configured.</summary>
+    public string? MenuItemNameAr { get; set; }
     public decimal Quantity { get; set; }
     public string? Notes { get; set; }
     public List<string> AddOns { get; set; } = new();

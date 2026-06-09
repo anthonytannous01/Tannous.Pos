@@ -8,6 +8,7 @@ import com.tannous.pos.core.data.model.KioskOrderResultDto
 import com.tannous.pos.core.data.model.PublicMenuCategoryDto
 import com.tannous.pos.core.data.model.PublicMenuItemDto
 import com.tannous.pos.core.data.remote.KioskService
+import com.tannous.pos.core.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,13 +21,22 @@ import javax.inject.Inject
 
 @HiltViewModel
 class KioskViewModel @Inject constructor(
-    private val kioskService: KioskService
+    private val kioskService: KioskService,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(KioskUiState())
     val uiState: StateFlow<KioskUiState> = _uiState.asStateFlow()
 
-    init { loadMenu() }
+    private val _exitPin = MutableStateFlow(SettingsRepository.DEFAULT_KIOSK_PIN)
+    val exitPin: StateFlow<String> = _exitPin.asStateFlow()
+
+    init {
+        loadMenu()
+        viewModelScope.launch {
+            _exitPin.value = settingsRepository.getKioskPin()
+        }
+    }
 
     fun loadMenu() {
         _uiState.update { it.copy(isLoading = true, error = null) }

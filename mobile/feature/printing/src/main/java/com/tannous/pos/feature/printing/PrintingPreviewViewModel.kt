@@ -44,8 +44,8 @@ class PrintingPreviewViewModel @Inject constructor(
                     dateTime = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm")
                         .format(LocalDateTime.now()),
                     items = listOf(
-                        ReceiptItem("Coffee - Large", 1, "$4.50", "$4.50"),
-                        ReceiptItem("+ Extra Shot", 1, "$0.75", "$0.75")
+                        ReceiptItem(name = "Coffee - Large", quantity = 1, unitPrice = "$4.50", totalPrice = "$4.50"),
+                        ReceiptItem(name = "+ Extra Shot",   quantity = 1, unitPrice = "$0.75", totalPrice = "$0.75")
                     ),
                     subtotal = "$5.25",
                     tax = "$0.45",

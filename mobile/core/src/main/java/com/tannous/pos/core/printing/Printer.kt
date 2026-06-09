@@ -36,6 +36,7 @@ data class ReceiptToPrint(
  */
 data class ReceiptItem(
     val name: String,
+    val nameAr: String? = null, // Arabic name for bilingual receipts
     val quantity: Int,
     val unitPrice: String, // Formatted currency string
     val totalPrice: String // Formatted currency string
