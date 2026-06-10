@@ -12,4 +12,7 @@ public class GetKdsTicketsQuery : IRequest<List<KdsTicketDto>>
 {
     /// <summary>When null, returns Pending and InProgress lines. Pass a specific status to filter.</summary>
     public KdsStatus? StatusFilter { get; set; }
+
+    /// <summary>When set, returns only tickets for menu items assigned to this station.</summary>
+    public Guid? StationFilter { get; set; }
 }

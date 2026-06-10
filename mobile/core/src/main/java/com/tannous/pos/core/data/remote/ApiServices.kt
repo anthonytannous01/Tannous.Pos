@@ -215,10 +215,14 @@ interface LoyaltyService {
 
 interface KdsService {
 
+    @GET("v1/kds/stations")
+    suspend fun getStations(@Query("branchId") branchId: String? = null): List<KdsStationDto>
+
     /** Poll for active tickets (Pending + InProgress by default). */
     @GET("v1/kds/tickets")
     suspend fun getTickets(
-        @Query("status") status: Int? = null
+        @Query("status") status: Int? = null,
+        @Query("stationId") stationId: String? = null
     ): List<KdsTicketDto>
 
     /** Update the KDS status of a single order line. */

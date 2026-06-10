@@ -22,6 +22,11 @@ public class KdsTicketDto
     public DateTime? KdsAcknowledgedAt { get; set; }
     public DateTime? KdsDoneAt { get; set; }
 
+    public Guid?   StationId     { get; set; }
+    public string? StationName   { get; set; }
+    public string? StationNameAr { get; set; }
+    public string? StationColor  { get; set; }
+
     /// <summary>Minutes elapsed since the order was placed. Used for colour-coding urgency.</summary>
     public int ElapsedMinutes =>
         (int)(DateTime.UtcNow - OrderCreatedAt).TotalMinutes;

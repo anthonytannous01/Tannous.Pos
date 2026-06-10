@@ -23,9 +23,12 @@ public class MenuItem : BaseEntity, IAggregateRoot
     
     // Foreign keys
     public Guid CategoryId { get; set; }
+    /// <summary>Optional routing to a kitchen station. Null means "all stations" / unrouted.</summary>
+    public Guid? KdsStationId { get; set; }
     
     // Navigation properties
     public virtual Category Category { get; set; } = null!;
+    public virtual KdsStation? KdsStation { get; set; }
     public virtual ICollection<AddOn> AddOns { get; set; } = new List<AddOn>();
     public virtual ICollection<Recipe> Recipes { get; set; } = new List<Recipe>();
     public virtual ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();

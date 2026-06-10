@@ -20,9 +20,15 @@ public class GetKdsTicketsQueryHandler : IRequestHandler<GetKdsTicketsQuery, Lis
         var query = _dbContext.Set<OrderLine>()
             .Include(ol => ol.Order)
             .Include(ol => ol.MenuItem)
+                .ThenInclude(m => m.KdsStation)
             .Include(ol => ol.OrderLineAddOns)
                 .ThenInclude(ola => ola.AddOn)
             .Where(ol => ol.Order.Status == OrderStatus.Open || ol.Order.Status == OrderStatus.Pending);
+
+        if (request.StationFilter.HasValue)
+        {
+            query = query.Where(ol => ol.MenuItem.KdsStationId == request.StationFilter.Value);
+        }
 
         // Apply status filter — default to active (Pending + InProgress)
         if (request.StatusFilter.HasValue)
@@ -55,7 +61,11 @@ public class GetKdsTicketsQueryHandler : IRequestHandler<GetKdsTicketsQuery, Lis
             KdsStatus        = ol.KdsStatus,
             OrderCreatedAt   = ol.Order.CreatedAt,
             KdsAcknowledgedAt = ol.KdsAcknowledgedAt,
-            KdsDoneAt        = ol.KdsDoneAt
+            KdsDoneAt        = ol.KdsDoneAt,
+            StationId        = ol.MenuItem.KdsStationId,
+            StationName      = ol.MenuItem.KdsStation?.Name,
+            StationNameAr    = ol.MenuItem.KdsStation?.NameAr,
+            StationColor     = ol.MenuItem.KdsStation?.Color
         }).ToList();
     }
 }

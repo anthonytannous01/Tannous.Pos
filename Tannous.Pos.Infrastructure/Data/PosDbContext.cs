@@ -18,6 +18,7 @@ public class PosDbContext : DbContext
     public DbSet<FeedbackSubmission> FeedbackSubmissions { get; set; }
     public DbSet<Category> Categories { get; set; }
     public DbSet<MenuItem> MenuItems { get; set; }
+    public DbSet<KdsStation> KdsStations { get; set; }
     public DbSet<AddOn> AddOns { get; set; }
     public DbSet<Ingredient> Ingredients { get; set; }
     public DbSet<Recipe> Recipes { get; set; }
@@ -301,6 +302,39 @@ public class PosDbContext : DbContext
             .WithMany(c => c.MenuItems)
             .HasForeignKey(m => m.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // ── KDS station routing ────────────────────────────────────────────────
+        modelBuilder.Entity<KdsStation>()
+            .Property(s => s.Name)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<KdsStation>()
+            .Property(s => s.NameAr)
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<KdsStation>()
+            .Property(s => s.Color)
+            .HasMaxLength(20);
+
+        modelBuilder.Entity<KdsStation>()
+            .HasOne(s => s.Branch)
+            .WithMany()
+            .HasForeignKey(s => s.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<KdsStation>()
+            .HasIndex(s => new { s.BranchId, s.IsActive });
+
+        modelBuilder.Entity<MenuItem>()
+            .HasOne(m => m.KdsStation)
+            .WithMany(s => s.MenuItems)
+            .HasForeignKey(m => m.KdsStationId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<MenuItem>()
+            .HasIndex(m => m.KdsStationId);
 
         modelBuilder.Entity<MenuItem>()
             .HasMany(m => m.AddOns)
