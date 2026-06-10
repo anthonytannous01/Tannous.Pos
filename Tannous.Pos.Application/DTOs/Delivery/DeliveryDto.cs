@@ -23,5 +23,7 @@ public class DeliveryDto
     public DateTime? PickedUpAt      { get; set; }
     public DateTime? DeliveredAt     { get; set; }
     public Guid?    BranchId         { get; set; }
+    public string?  ExternalOrderId        { get; set; }
+    public string?  ExternalOrderReference { get; set; }
     public DateTime CreatedAt        { get; set; }
 }

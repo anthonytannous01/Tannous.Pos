@@ -745,6 +745,15 @@ public class PosDbContext : DbContext
             .Property(d => d.Notes).HasMaxLength(500);
 
         modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.ExternalOrderId).HasMaxLength(128);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .Property(d => d.ExternalOrderReference).HasMaxLength(160);
+
+        modelBuilder.Entity<DeliveryInfo>()
+            .HasIndex(d => new { d.Channel, d.ExternalOrderId });
+
+        modelBuilder.Entity<DeliveryInfo>()
             .HasOne(d => d.Order)
             .WithOne()
             .HasForeignKey<DeliveryInfo>(d => d.OrderId)

@@ -20,6 +20,13 @@ public class DeliveryInfo : BaseEntity, IAggregateRoot
     public string?        CustomerPhone     { get; set; }
     public DeliveryChannel Channel          { get; set; } = DeliveryChannel.Own;
     public DeliveryStatus Status            { get; set; } = DeliveryStatus.Pending;
+
+    /// <summary>Platform's own order identifier (e.g. Toters order ID). Used for deduplication.</summary>
+    public string?        ExternalOrderId        { get; set; }
+
+    /// <summary>Human-readable platform reference shown to staff (e.g. "Toters #4821").</summary>
+    public string?        ExternalOrderReference { get; set; }
+
     public decimal        DeliveryFee       { get; set; } = 0m;
     /// <summary>Estimated delivery time in minutes.</summary>
     public int?           EstimatedMinutes  { get; set; }

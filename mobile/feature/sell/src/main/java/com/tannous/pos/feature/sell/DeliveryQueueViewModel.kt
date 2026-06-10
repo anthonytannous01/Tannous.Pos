@@ -30,6 +30,10 @@ val deliveryChannelLabels = mapOf(
     0 to "Own", 1 to "Toters", 2 to "Talabat", 3 to "Wolt", 4 to "Other"
 )
 
+val deliveryChannelLabelsAr = mapOf(
+    0 to "خاص", 1 to "توترز", 2 to "طلبات", 3 to "وولت", 4 to "أخرى"
+)
+
 val deliveryStatusLabels = mapOf(
     DELIVERY_PENDING   to "Pending",
     DELIVERY_ASSIGNED  to "Assigned",
@@ -90,13 +94,17 @@ class DeliveryQueueViewModel @Inject constructor(
         }
     }
 
+    fun filterByChannel(channel: Int?) =
+        _uiState.update { it.copy(selectedChannel = channel) }
+
     fun clearError() = _uiState.update { it.copy(error = null) }
 
     override fun onCleared() { super.onCleared(); pollJob?.cancel() }
 }
 
 data class DeliveryQueueUiState(
-    val deliveries: List<DeliveryDto> = emptyList(),
-    val isLoading:  Boolean           = true,
-    val error:      String?           = null
+    val deliveries:      List<DeliveryDto> = emptyList(),
+    val isLoading:       Boolean           = true,
+    val error:           String?           = null,
+    val selectedChannel: Int?              = null
 )

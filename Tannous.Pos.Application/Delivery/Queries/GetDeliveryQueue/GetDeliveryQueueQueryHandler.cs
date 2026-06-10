@@ -43,6 +43,8 @@ public class GetDeliveryQueueQueryHandler
         PickedUpAt       = d.PickedUpAt,
         DeliveredAt      = d.DeliveredAt,
         BranchId         = d.BranchId,
+        ExternalOrderId        = d.ExternalOrderId,
+        ExternalOrderReference = d.ExternalOrderReference,
         CreatedAt        = d.CreatedAt
     };
 }
