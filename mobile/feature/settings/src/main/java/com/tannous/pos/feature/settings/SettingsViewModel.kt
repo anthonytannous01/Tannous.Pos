@@ -111,7 +111,9 @@ class SettingsViewModel @Inject constructor(
                         showLbpOnReceipt = settings.showLbpOnReceipt,
                         stampDutyEnabled = settings.stampDutyEnabled,
                         stampDutyAmountUsd = settings.stampDutyAmountUsd
-                            .stripTrailingZeros().toPlainString()
+                            .stripTrailingZeros().toPlainString(),
+                        notifyOnLoyaltyEarn = settings.notifyOnLoyaltyEarn,
+                        notifyOnReservationConfirm = settings.notifyOnReservationConfirm
                     )
                 }
             } catch (e: Exception) {
@@ -184,55 +186,10 @@ class SettingsViewModel @Inject constructor(
             _uiState.update { it.copy(error = "Store name is required") }
             return
         }
-        val taxRatePercent = try {
-            BigDecimal(state.taxRate.trim())
-        } catch (_: Exception) {
-            _uiState.update { it.copy(error = "Invalid tax rate") }
-            return
-        }
-        val exchangeRate = try {
-            BigDecimal(state.exchangeRateLbpPerUsd.trim().ifBlank { "0" })
-        } catch (_: Exception) {
-            _uiState.update { it.copy(error = "Invalid exchange rate") }
-            return
-        }
-        val stampDutyAmount = try {
-            BigDecimal(state.stampDutyAmountUsd.trim().ifBlank { "2.00" })
-        } catch (_: Exception) {
-            _uiState.update { it.copy(error = "Invalid stamp duty amount") }
-            return
-        }
-        val loyaltyPpd = state.loyaltyPointsPerDollar.trim().toIntOrNull() ?: 10
-        val loyaltyPv  = try { BigDecimal(state.loyaltyPointValueUsd.trim().ifBlank { "0.01" }) }
-                         catch (_: Exception) { BigDecimal("0.01") }
-        val loyaltyMin = state.loyaltyMinRedeemPoints.trim().toIntOrNull() ?: 100
+        val request = buildUpdateRequest(state) ?: return
 
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, error = null, saveSuccess = false) }
-            val request = UpdateSettingsRequest(
-                storeName = state.storeName.trim(),
-                address = state.address.takeIf { it.isNotBlank() },
-                phone = state.phone.takeIf { it.isNotBlank() },
-                email = state.email.takeIf { it.isNotBlank() },
-                website = state.website.takeIf { it.isNotBlank() },
-                taxNumber = state.taxNumber.takeIf { it.isNotBlank() },
-                taxRate = taxRatePercent,
-                currency = state.currency.trim().uppercase(),
-                taxEnabled = state.taxEnabled,
-                receiptHeader = state.receiptHeader.takeIf { it.isNotBlank() },
-                receiptFooter = state.receiptFooter.takeIf { it.isNotBlank() },
-                requireCustomerInfo = state.requireCustomerInfo,
-                enableInventoryTracking = state.enableInventoryTracking,
-                enableRecipeManagement = state.enableRecipeManagement,
-                loyaltyEnabled = state.loyaltyEnabled,
-                loyaltyPointsPerDollar = loyaltyPpd,
-                loyaltyPointValueUsd = loyaltyPv,
-                loyaltyMinRedeemPoints = loyaltyMin,
-                exchangeRateLbpPerUsd = exchangeRate,
-                showLbpOnReceipt = state.showLbpOnReceipt,
-                stampDutyEnabled = state.stampDutyEnabled,
-                stampDutyAmountUsd = stampDutyAmount
-            )
             val result = settingsRepository.updateSettings(request)
             _uiState.update {
                 it.copy(
@@ -242,6 +199,81 @@ class SettingsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun saveNotifyOnLoyaltyEarn(enabled: Boolean) {
+        _uiState.update { it.copy(notifyOnLoyaltyEarn = enabled) }
+        persistNotificationToggle()
+    }
+
+    fun saveNotifyOnReservationConfirm(enabled: Boolean) {
+        _uiState.update { it.copy(notifyOnReservationConfirm = enabled) }
+        persistNotificationToggle()
+    }
+
+    private fun persistNotificationToggle() {
+        val state = _uiState.value
+        if (state.storeName.isBlank()) return
+        val request = buildUpdateRequest(state) ?: return
+
+        viewModelScope.launch {
+            val result = settingsRepository.updateSettings(request)
+            if (result.isFailure) {
+                _uiState.update { it.copy(error = result.exceptionOrNull()?.message) }
+            }
+        }
+    }
+
+    private fun buildUpdateRequest(state: SettingsUiState): UpdateSettingsRequest? {
+        val taxRatePercent = try {
+            BigDecimal(state.taxRate.trim())
+        } catch (_: Exception) {
+            _uiState.update { it.copy(error = "Invalid tax rate") }
+            return null
+        }
+        val exchangeRate = try {
+            BigDecimal(state.exchangeRateLbpPerUsd.trim().ifBlank { "0" })
+        } catch (_: Exception) {
+            _uiState.update { it.copy(error = "Invalid exchange rate") }
+            return null
+        }
+        val stampDutyAmount = try {
+            BigDecimal(state.stampDutyAmountUsd.trim().ifBlank { "2.00" })
+        } catch (_: Exception) {
+            _uiState.update { it.copy(error = "Invalid stamp duty amount") }
+            return null
+        }
+        val loyaltyPpd = state.loyaltyPointsPerDollar.trim().toIntOrNull() ?: 10
+        val loyaltyPv  = try { BigDecimal(state.loyaltyPointValueUsd.trim().ifBlank { "0.01" }) }
+                         catch (_: Exception) { BigDecimal("0.01") }
+        val loyaltyMin = state.loyaltyMinRedeemPoints.trim().toIntOrNull() ?: 100
+
+        return UpdateSettingsRequest(
+            storeName = state.storeName.trim(),
+            address = state.address.takeIf { it.isNotBlank() },
+            phone = state.phone.takeIf { it.isNotBlank() },
+            email = state.email.takeIf { it.isNotBlank() },
+            website = state.website.takeIf { it.isNotBlank() },
+            taxNumber = state.taxNumber.takeIf { it.isNotBlank() },
+            taxRate = taxRatePercent,
+            currency = state.currency.trim().uppercase(),
+            taxEnabled = state.taxEnabled,
+            receiptHeader = state.receiptHeader.takeIf { it.isNotBlank() },
+            receiptFooter = state.receiptFooter.takeIf { it.isNotBlank() },
+            requireCustomerInfo = state.requireCustomerInfo,
+            enableInventoryTracking = state.enableInventoryTracking,
+            enableRecipeManagement = state.enableRecipeManagement,
+            loyaltyEnabled = state.loyaltyEnabled,
+            loyaltyPointsPerDollar = loyaltyPpd,
+            loyaltyPointValueUsd = loyaltyPv,
+            loyaltyMinRedeemPoints = loyaltyMin,
+            exchangeRateLbpPerUsd = exchangeRate,
+            showLbpOnReceipt = state.showLbpOnReceipt,
+            stampDutyEnabled = state.stampDutyEnabled,
+            stampDutyAmountUsd = stampDutyAmount,
+            notifyOnLoyaltyEarn = state.notifyOnLoyaltyEarn,
+            notifyOnReservationConfirm = state.notifyOnReservationConfirm
+        )
     }
 
     fun clearError() {
@@ -278,6 +310,8 @@ data class SettingsUiState(
     val showLbpOnReceipt: Boolean = false,
     val stampDutyEnabled: Boolean = false,
     val stampDutyAmountUsd: String = "2.00",
+    val notifyOnLoyaltyEarn: Boolean = false,
+    val notifyOnReservationConfirm: Boolean = false,
     val failedSyncCount: Int = 0,
     val language: String = SettingsRepository.LANG_EN,
     val kioskPin: String = SettingsRepository.DEFAULT_KIOSK_PIN

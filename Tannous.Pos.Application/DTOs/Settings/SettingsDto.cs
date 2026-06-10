@@ -34,6 +34,9 @@ public class SettingsDto
     public bool StampDutyEnabled { get; set; }
     public decimal StampDutyAmountUsd { get; set; }
 
+    public bool NotifyOnLoyaltyEarn { get; set; }
+    public bool NotifyOnReservationConfirm { get; set; }
+
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

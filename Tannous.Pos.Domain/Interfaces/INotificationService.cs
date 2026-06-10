@@ -30,4 +30,28 @@ public interface INotificationService
         string   message,
         string   businessName,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Notify a customer that they earned loyalty points.
+    /// Returns true on success, false on failure (never throws).
+    /// </summary>
+    Task<bool> SendPointsEarnedNotificationAsync(
+        string   toPhone,
+        int      pointsEarned,
+        int      newBalance,
+        string   businessName,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Send a reservation confirmation to a customer.
+    /// Returns true on success, false on failure (never throws).
+    /// </summary>
+    Task<bool> SendReservationConfirmationAsync(
+        string   toPhone,
+        string   customerName,
+        DateTime reservationDateTime,
+        int      partySize,
+        string?  tableName,
+        string   businessName,
+        CancellationToken cancellationToken = default);
 }

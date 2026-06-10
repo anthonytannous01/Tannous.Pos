@@ -151,6 +151,158 @@ public sealed class TwilioNotificationService : INotificationService
         }
     }
 
+    public async Task<bool> SendPointsEarnedNotificationAsync(
+        string toPhone, int pointsEarned, int newBalance, string businessName,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_settings.Enabled) return false;
+
+        if (string.IsNullOrWhiteSpace(toPhone))
+            return false;
+
+        var twilio = _settings.Twilio;
+        if (string.IsNullOrWhiteSpace(twilio.AccountSid) ||
+            string.IsNullOrWhiteSpace(twilio.AuthToken)  ||
+            string.IsNullOrWhiteSpace(twilio.FromNumber))
+        {
+            _logger.LogWarning("Twilio credentials incomplete — points-earned notification skipped");
+            return false;
+        }
+
+        try
+        {
+            var isWhatsApp  = _settings.Provider.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase);
+            var fromAddress = isWhatsApp ? $"whatsapp:{twilio.FromNumber}" : twilio.FromNumber;
+            var toAddress   = isWhatsApp ? $"whatsapp:{NormalizePhone(toPhone)}" : NormalizePhone(toPhone);
+
+            var body = BuildPointsEarnedMessage(pointsEarned, newBalance, businessName);
+
+            var formContent = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("From", fromAddress),
+                new KeyValuePair<string, string>("To",   toAddress),
+                new KeyValuePair<string, string>("Body", body)
+            });
+
+            var client = _httpFactory.CreateClient("Twilio");
+            var credentials = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes($"{twilio.AccountSid}:{twilio.AuthToken}"));
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", credentials);
+
+            var url = $"https://api.twilio.com/2010-04-01/Accounts/{twilio.AccountSid}/Messages.json";
+            var response = await client.PostAsync(url, formContent, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "Points-earned {Provider} notification sent to {Phone}",
+                    _settings.Provider, MaskPhone(toPhone));
+                return true;
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning(
+                "Twilio returned {StatusCode} for points-earned notification to {Phone}: {Error}",
+                (int)response.StatusCode, MaskPhone(toPhone), errorBody);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send points-earned notification to {Phone}", MaskPhone(toPhone));
+            return false;
+        }
+    }
+
+    public async Task<bool> SendReservationConfirmationAsync(
+        string toPhone, string customerName, DateTime reservationDateTime,
+        int partySize, string? tableName, string businessName,
+        CancellationToken cancellationToken = default)
+    {
+        if (!_settings.Enabled) return false;
+
+        if (string.IsNullOrWhiteSpace(toPhone))
+            return false;
+
+        var twilio = _settings.Twilio;
+        if (string.IsNullOrWhiteSpace(twilio.AccountSid) ||
+            string.IsNullOrWhiteSpace(twilio.AuthToken)  ||
+            string.IsNullOrWhiteSpace(twilio.FromNumber))
+        {
+            _logger.LogWarning("Twilio credentials incomplete — reservation confirmation skipped");
+            return false;
+        }
+
+        try
+        {
+            var isWhatsApp  = _settings.Provider.Equals("WhatsApp", StringComparison.OrdinalIgnoreCase);
+            var fromAddress = isWhatsApp ? $"whatsapp:{twilio.FromNumber}" : twilio.FromNumber;
+            var toAddress   = isWhatsApp ? $"whatsapp:{NormalizePhone(toPhone)}" : NormalizePhone(toPhone);
+
+            var body = BuildReservationConfirmationMessage(
+                customerName, reservationDateTime, partySize, tableName, businessName);
+
+            var formContent = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("From", fromAddress),
+                new KeyValuePair<string, string>("To",   toAddress),
+                new KeyValuePair<string, string>("Body", body)
+            });
+
+            var client = _httpFactory.CreateClient("Twilio");
+            var credentials = Convert.ToBase64String(
+                Encoding.ASCII.GetBytes($"{twilio.AccountSid}:{twilio.AuthToken}"));
+            client.DefaultRequestHeaders.Authorization =
+                new AuthenticationHeaderValue("Basic", credentials);
+
+            var url = $"https://api.twilio.com/2010-04-01/Accounts/{twilio.AccountSid}/Messages.json";
+            var response = await client.PostAsync(url, formContent, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation(
+                    "Reservation confirmation {Provider} sent to {Phone}",
+                    _settings.Provider, MaskPhone(toPhone));
+                return true;
+            }
+
+            var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogWarning(
+                "Twilio returned {StatusCode} for reservation confirmation to {Phone}: {Error}",
+                (int)response.StatusCode, MaskPhone(toPhone), errorBody);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send reservation confirmation to {Phone}", MaskPhone(toPhone));
+            return false;
+        }
+    }
+
+    private static string BuildPointsEarnedMessage(int pointsEarned, int newBalance, string businessName)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"🎉 You earned {pointsEarned} loyalty points at {businessName}!");
+        sb.AppendLine($"Your new balance: {newBalance} points.");
+        sb.Append("Thank you for your visit!");
+        return sb.ToString();
+    }
+
+    private static string BuildReservationConfirmationMessage(
+        string customerName, DateTime reservationDateTime,
+        int partySize, string? tableName, string businessName)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"✅ Reservation confirmed at {businessName}!");
+        sb.AppendLine($"Name: {customerName}");
+        sb.AppendLine($"Date: {reservationDateTime:dddd, MMMM d 'at' h:mm tt}");
+        sb.AppendLine($"Party size: {partySize}");
+        if (!string.IsNullOrWhiteSpace(tableName))
+            sb.AppendLine($"Table: {tableName}");
+        sb.Append("See you soon!");
+        return sb.ToString();
+    }
+
     private static string BuildMessage(
         string orderNumber, string? receiptNumber,
         decimal totalAmount, string currency, string businessName)

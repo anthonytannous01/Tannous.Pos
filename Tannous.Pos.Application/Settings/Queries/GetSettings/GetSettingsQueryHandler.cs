@@ -59,6 +59,8 @@ public class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, Setting
         ShowLbpOnReceipt         = settings.ShowLbpOnReceipt,
         StampDutyEnabled         = settings.StampDutyEnabled,
         StampDutyAmountUsd       = settings.StampDutyAmountUsd,
+        NotifyOnLoyaltyEarn      = settings.NotifyOnLoyaltyEarn,
+        NotifyOnReservationConfirm = settings.NotifyOnReservationConfirm,
         CreatedAt                = settings.CreatedAt,
         UpdatedAt                = settings.UpdatedAt ?? DateTime.UtcNow
     };

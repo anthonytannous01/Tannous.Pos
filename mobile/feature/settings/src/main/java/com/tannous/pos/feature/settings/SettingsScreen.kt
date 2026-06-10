@@ -694,6 +694,24 @@ fun SettingsScreen(
                         )
                     }
 
+                    // ── Notifications ────────────────────────────────────────
+                    val isArabic = uiState.language == "ar"
+                    SettingsSectionHeader(if (isArabic) "الإشعارات" else "Notifications")
+                    SettingsToggleRowWithDescription(
+                        label = if (isArabic) "إشعارات نقاط الولاء" else "Loyalty Points Notifications",
+                        description = if (isArabic) "أرسل إشعاراً عند كسب نقاط"
+                                        else "Notify customers via WhatsApp when they earn points",
+                        checked = uiState.notifyOnLoyaltyEarn,
+                        onCheckedChange = { viewModel.saveNotifyOnLoyaltyEarn(it) }
+                    )
+                    SettingsToggleRowWithDescription(
+                        label = if (isArabic) "تأكيد الحجوزات" else "Reservation Confirmations",
+                        description = if (isArabic) "أرسل تأكيداً عند إنشاء حجز"
+                                        else "Send a WhatsApp confirmation when a reservation is created",
+                        checked = uiState.notifyOnReservationConfirm,
+                        onCheckedChange = { viewModel.saveNotifyOnReservationConfirm(it) }
+                    )
+
                     // ── Lebanese Market ──────────────────────────────────────
                     SettingsSectionHeader("Lebanese Market")
 
@@ -798,6 +816,30 @@ private fun SettingsSectionHeader(title: String) {
         color = MaterialTheme.colorScheme.secondary,
         modifier = Modifier.padding(top = 8.dp)
     )
+}
+
+@Composable
+private fun SettingsToggleRowWithDescription(
+    label: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
 }
 
 @Composable

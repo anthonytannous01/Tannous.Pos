@@ -65,4 +65,10 @@ public class BusinessSettings : BaseEntity, IAggregateRoot
     /// Null until branches are configured.
     /// </summary>
     public Guid? DefaultBranchId { get; set; }
+
+    /// <summary>Send a WhatsApp/SMS to the customer each time they earn loyalty points.</summary>
+    public bool NotifyOnLoyaltyEarn { get; set; } = false;
+
+    /// <summary>Send a WhatsApp/SMS reservation confirmation when a reservation is created.</summary>
+    public bool NotifyOnReservationConfirm { get; set; } = false;
 }
