@@ -22,6 +22,8 @@ public class AllowAnonymousGovernanceTests
         "FeedbackController",  // POST /feedback — public submission (no PII required)
         "KioskController",     // self-ordering kiosk — customer-facing, unauthenticated
         "DeliveryWebhookController" // inbound delivery platform webhooks — authenticated by HMAC signature
+        ,
+        "AccountingController"     // GET quickbooks/callback — OAuth2 redirect (no Bearer token)
     };
 
     [Fact]

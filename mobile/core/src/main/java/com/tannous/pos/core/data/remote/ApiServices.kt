@@ -233,6 +233,27 @@ interface KdsService {
     ): KdsTicketDto
 }
 
+interface AccountingService {
+
+    @GET("v1/accounting/quickbooks/connect")
+    suspend fun getQuickBooksConnectUrl(@Query("branchId") branchId: String? = null): QuickBooksConnectResponse
+
+    @GET("v1/accounting/status")
+    suspend fun getStatus(@Query("branchId") branchId: String? = null): List<AccountingConnectionStatusDto>
+
+    @POST("v1/accounting/sync")
+    suspend fun triggerSync(
+        @Query("date") date: String? = null,
+        @Query("branchId") branchId: String? = null
+    ): SyncTriggerResponse
+
+    @DELETE("v1/accounting/{provider}")
+    suspend fun disconnect(
+        @Path("provider") provider: String,
+        @Query("branchId") branchId: String? = null
+    )
+}
+
 interface InventoryService {
 
     @GET("inventory")
