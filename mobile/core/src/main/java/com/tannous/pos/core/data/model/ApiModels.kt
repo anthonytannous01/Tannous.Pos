@@ -413,6 +413,18 @@ data class OrderLineDto(
 
 // KDS
 @Serializable
+data class KdsStationDto(
+    val id: String,
+    val name: String,
+    val nameAr: String? = null,
+    val color: String? = null,
+    val displayOrder: Int = 0,
+    val isActive: Boolean = true,
+    val branchId: String? = null,
+    val menuItemCount: Int = 0
+)
+
+@Serializable
 data class KdsTicketDto(
     val orderLineId: String,
     val orderId: String,
@@ -428,7 +440,11 @@ data class KdsTicketDto(
     val orderCreatedAt: String,
     val kdsAcknowledgedAt: String? = null,
     val kdsDoneAt: String? = null,
-    val elapsedMinutes: Int = 0
+    val elapsedMinutes: Int = 0,
+    val stationId: String? = null,
+    val stationName: String? = null,
+    val stationNameAr: String? = null,
+    val stationColor: String? = null
 )
 
 @Serializable

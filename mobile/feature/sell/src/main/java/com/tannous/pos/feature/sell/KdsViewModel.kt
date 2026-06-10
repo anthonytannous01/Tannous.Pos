@@ -2,6 +2,7 @@ package com.tannous.pos.feature.sell
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tannous.pos.core.data.model.KdsStationDto
 import com.tannous.pos.core.data.model.KdsTicketDto
 import com.tannous.pos.core.data.model.UpdateKdsStatusRequest
 import com.tannous.pos.core.data.remote.KdsService
@@ -28,6 +29,23 @@ class KdsViewModel @Inject constructor(
     private var pollJob: Job? = null
 
     init {
+        loadStations()
+        startPolling()
+    }
+
+    fun loadStations() {
+        viewModelScope.launch {
+            try {
+                val stations = kdsService.getStations()
+                _uiState.update { it.copy(stations = stations) }
+            } catch (e: Exception) {
+                Timber.w(e, "KDS stations load failed")
+            }
+        }
+    }
+
+    fun selectStation(station: KdsStationDto?) {
+        _uiState.update { it.copy(selectedStation = station) }
         startPolling()
     }
 
@@ -48,7 +66,8 @@ class KdsViewModel @Inject constructor(
 
     private suspend fun loadTickets() {
         try {
-            val tickets = kdsService.getTickets()
+            val stationId = _uiState.value.selectedStation?.id
+            val tickets = kdsService.getTickets(stationId = stationId)
             _uiState.update { it.copy(tickets = tickets, error = null) }
         } catch (e: Exception) {
             Timber.w(e, "KDS poll failed")
@@ -112,5 +131,7 @@ class KdsViewModel @Inject constructor(
 
 data class KdsUiState(
     val tickets: List<KdsTicketDto> = emptyList(),
+    val stations: List<KdsStationDto> = emptyList(),
+    val selectedStation: KdsStationDto? = null,
     val error: String? = null
 )
