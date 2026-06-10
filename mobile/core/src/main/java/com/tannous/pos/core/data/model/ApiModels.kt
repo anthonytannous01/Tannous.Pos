@@ -784,6 +784,53 @@ data class HourlySalesDto(
     val orders: Int = 0
 )
 
+// Demand forecast (Smart Suggestions)
+@Serializable
+data class DemandForecastDto(
+    val targetDate: String = "",
+    val dayOfWeekName: String = "",
+    val weeksOfDataUsed: Int = 0,
+    val confidence: String = "Low",
+    val estimatedOrders: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val estimatedRevenue: BigDecimal = BigDecimal.ZERO,
+    val timeBlocks: List<TimeBlockForecastDto> = emptyList(),
+    val topItems: List<ItemForecastDto> = emptyList(),
+    val ingredientDemands: List<IngredientDemandDto> = emptyList(),
+    val insufficientDataMessage: String? = null
+)
+
+@Serializable
+data class TimeBlockForecastDto(
+    val startHour: Int = 0,
+    val label: String = "",
+    val estimatedOrders: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val estimatedSales: BigDecimal = BigDecimal.ZERO,
+    val isPeakBlock: Boolean = false
+)
+
+@Serializable
+data class ItemForecastDto(
+    val menuItemId: String = "",
+    val name: String = "",
+    val nameAr: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val avgQty: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val estimatedQty: BigDecimal = BigDecimal.ZERO
+)
+
+@Serializable
+data class IngredientDemandDto(
+    val ingredientId: String = "",
+    val name: String = "",
+    val nameAr: String? = null,
+    val unit: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val estimatedQty: BigDecimal = BigDecimal.ZERO
+)
+
 // Kiosk / public menu
 @Serializable
 data class PublicMenuDto(

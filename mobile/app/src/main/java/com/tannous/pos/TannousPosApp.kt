@@ -42,6 +42,8 @@ import com.tannous.pos.feature.sell.SellViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.DashboardScreen
+import com.tannous.pos.feature.reports.DashboardViewModel
+import com.tannous.pos.feature.reports.ForecastDetailScreen
 import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.core.ui.LanguageViewModel
@@ -249,7 +251,20 @@ fun TannousPosApp(
             }
 
             composable("dashboard") {
-                DashboardScreen(onNavigateBack = { navController.popBackStack() })
+                DashboardScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToForecast = { navController.navigate("forecast") }
+                )
+            }
+
+            // Full demand forecast — shares the DashboardViewModel scoped to the dashboard route.
+            composable("forecast") {
+                val dashboardEntry = navController.getBackStackEntry("dashboard")
+                val dashboardViewModel: DashboardViewModel = hiltViewModel(dashboardEntry)
+                ForecastDetailScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    viewModel = dashboardViewModel
+                )
             }
 
             composable("menu-engineering") {

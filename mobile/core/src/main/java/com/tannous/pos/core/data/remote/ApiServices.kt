@@ -288,6 +288,13 @@ interface ReportsService {
         @Query("from") from: String,
         @Query("to") to: String
     ): MenuEngineeringReportDto
+
+    /** Rule-based demand forecast (Smart Suggestions). Defaults to tomorrow when targetDate omitted. */
+    @GET("reports/forecast")
+    suspend fun getForecast(
+        @Query("targetDate") targetDate: String? = null,
+        @Query("branchId") branchId: String? = null
+    ): DemandForecastDto
 }
 
 interface KioskService {

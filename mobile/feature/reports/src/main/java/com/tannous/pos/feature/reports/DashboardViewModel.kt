@@ -3,6 +3,7 @@ package com.tannous.pos.feature.reports
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.BranchDto
+import com.tannous.pos.core.data.model.DemandForecastDto
 import com.tannous.pos.core.data.model.SalesSummaryDto
 import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.BranchRepository
@@ -45,17 +46,18 @@ class DashboardViewModel @Inject constructor(
         pollJob = viewModelScope.launch {
             while (isActive) {
                 load()
+                loadForecast()
                 delay(REFRESH_INTERVAL_MS)
             }
         }
     }
 
-    fun refresh() { viewModelScope.launch { load() } }
+    fun refresh() { viewModelScope.launch { load(); loadForecast() } }
 
     /** Switch the dashboard to a different branch. Triggers an immediate refresh. */
     fun selectBranch(branch: BranchDto?) {
         _uiState.update { it.copy(selectedBranch = branch) }
-        viewModelScope.launch { load() }
+        viewModelScope.launch { load(); loadForecast() }
     }
 
     private suspend fun load() {
@@ -75,6 +77,19 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
+    /** Forecasts change slowly — refreshed on the same 30s cycle as the summary. Failures are non-fatal. */
+    private suspend fun loadForecast() {
+        _uiState.update { it.copy(isForecastLoading = it.forecast == null) }
+        try {
+            val branchId = _uiState.value.selectedBranch?.id
+            val forecast = reportsService.getForecast(branchId = branchId)
+            _uiState.update { it.copy(forecast = forecast, isForecastLoading = false) }
+        } catch (e: Exception) {
+            Timber.w(e, "Forecast load failed")
+            _uiState.update { it.copy(isForecastLoading = false) }
+        }
+    }
+
     fun clearError() = _uiState.update { it.copy(error = null) }
 
     override fun onCleared() { super.onCleared(); pollJob?.cancel() }
@@ -89,5 +104,7 @@ data class DashboardUiState(
     val summary: SalesSummaryDto? = null,
     val branches: List<BranchDto> = emptyList(),
     val selectedBranch: BranchDto? = null,
-    val error: String? = null
+    val error: String? = null,
+    val forecast: DemandForecastDto? = null,
+    val isForecastLoading: Boolean = false
 )
