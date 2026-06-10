@@ -483,6 +483,55 @@ data class PaymentDto(
     val notes: String? = null
 )
 
+// Employee scheduling & time tracking (distinct from cash register shifts)
+@Serializable
+data class EmployeeScheduleDto(
+    val id: String = "",
+    val userId: String = "",
+    val userFullName: String = "",
+    val userRole: String = "",
+    val branchId: String = "",
+    val scheduledStart: String = "",   // ISO-8601 UTC
+    val scheduledEnd: String = "",
+    val position: String? = null,
+    val notes: String? = null,
+    val status: String = "",
+    val durationMinutes: Int = 0
+)
+
+@Serializable
+data class WeeklyScheduleDto(
+    val weekStart: String = "",
+    val weekEnd: String = "",
+    val schedules: List<EmployeeScheduleDto> = emptyList()
+)
+
+@Serializable
+data class TimeEntryDto(
+    val id: String = "",
+    val userId: String = "",
+    val userFullName: String = "",
+    val branchId: String = "",
+    val clockIn: String = "",
+    val clockOut: String? = null,
+    val breakMinutes: Int? = null,
+    val workedMinutes: Int? = null,
+    val notes: String? = null,
+    val status: String = ""
+)
+
+@Serializable
+data class ClockInRequest(
+    val branchId: String
+)
+
+@Serializable
+data class ClockOutRequest(
+    val branchId: String,
+    val breakMinutes: Int? = null,
+    val notes: String? = null
+)
+
 // Shifts
 @Serializable
 data class ShiftDto(

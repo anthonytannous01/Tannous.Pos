@@ -73,6 +73,7 @@ fun SettingsScreen(
     onNavigateToDelivery: () -> Unit = {},
     onNavigateToKiosk: () -> Unit = {},
     onNavigateToLoyaltyCrm: () -> Unit = {},
+    onNavigateToSchedule: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -464,6 +465,23 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Loyalty CRM")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToSchedule
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("Staff Schedule & Time Clock")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }

@@ -37,6 +37,8 @@ public class PosDbContext : DbContext
     public DbSet<PaymentRefund> PaymentRefunds { get; set; }
     public DbSet<Shift> Shifts { get; set; }
     public DbSet<CashDrawerEvent> CashDrawerEvents { get; set; }
+    public DbSet<EmployeeSchedule> EmployeeSchedules { get; set; }
+    public DbSet<TimeEntry> TimeEntries { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<Customer> Customers { get; set; }
     public DbSet<LoyaltyAccount> LoyaltyAccounts { get; set; }
@@ -774,6 +776,71 @@ public class PosDbContext : DbContext
             .HasForeignKey(d => d.BranchId)
             .OnDelete(DeleteBehavior.SetNull)
             .IsRequired(false);
+
+        // ── Employee scheduling & time tracking ──────────────────────────────
+        modelBuilder.Entity<EmployeeSchedule>()
+            .Property(es => es.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(ScheduleStatus.Draft);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .Property(es => es.Position)
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .Property(es => es.Notes)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .HasOne(es => es.User)
+            .WithMany()
+            .HasForeignKey(es => es.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .HasOne(es => es.Branch)
+            .WithMany()
+            .HasForeignKey(es => es.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .HasIndex(es => es.ScheduledStart);
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .HasIndex(es => new { es.UserId, es.ScheduledStart });
+
+        modelBuilder.Entity<EmployeeSchedule>()
+            .HasIndex(es => es.BranchId);
+
+        modelBuilder.Entity<TimeEntry>()
+            .Property(te => te.Status)
+            .HasConversion<int>()
+            .HasDefaultValue(TimeEntryStatus.Active);
+
+        modelBuilder.Entity<TimeEntry>()
+            .Property(te => te.Notes)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<TimeEntry>()
+            .HasOne(te => te.User)
+            .WithMany()
+            .HasForeignKey(te => te.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TimeEntry>()
+            .HasOne(te => te.Branch)
+            .WithMany()
+            .HasForeignKey(te => te.BranchId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<TimeEntry>()
+            .HasIndex(te => new { te.UserId, te.Status });
+
+        modelBuilder.Entity<TimeEntry>()
+            .HasIndex(te => te.ClockIn);
+
+        modelBuilder.Entity<TimeEntry>()
+            .HasIndex(te => te.BranchId);
 
         // ── FeedbackSubmission ────────────────────────────────────────────────
         modelBuilder.Entity<FeedbackSubmission>()

@@ -56,6 +56,7 @@ import com.tannous.pos.feature.sell.KioskScreen
 import com.tannous.pos.feature.sell.KdsScreen
 import com.tannous.pos.feature.sell.LoyaltyScreen
 import com.tannous.pos.feature.sell.TableMapScreen
+import com.tannous.pos.feature.shifts.ScheduleScreen
 import com.tannous.pos.feature.shifts.ShiftsScreen
 
 @Composable
@@ -198,6 +199,12 @@ fun TannousPosApp(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+            composable("schedule") {
+                ScheduleScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             
             composable("customers") {
                 val sellBackStackEntry = navController.getBackStackEntry("sell")
@@ -226,7 +233,8 @@ fun TannousPosApp(
                     onNavigateToReservations = { navController.navigate("reservations") },
                     onNavigateToDelivery = { navController.navigate("delivery-queue") },
                     onNavigateToKiosk    = { navController.navigate("kiosk") },
-                    onNavigateToLoyaltyCrm = { navController.navigate("loyalty-crm") }
+                    onNavigateToLoyaltyCrm = { navController.navigate("loyalty-crm") },
+                    onNavigateToSchedule = { navController.navigate("schedule") }
                 )
             }
 
