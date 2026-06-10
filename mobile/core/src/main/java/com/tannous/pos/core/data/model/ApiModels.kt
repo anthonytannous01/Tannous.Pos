@@ -880,6 +880,42 @@ data class IngredientDemandDto(
     val estimatedQty: BigDecimal = BigDecimal.ZERO
 )
 
+// Kitchen performance analytics
+@Serializable
+data class KdsPerformanceDto(
+    val from: String = "",
+    val to: String = "",
+    val totalTickets: Int = 0,
+    val avgAcknowledgeSeconds: Double = 0.0,
+    val p90AcknowledgeSeconds: Double = 0.0,
+    val avgPrepSeconds: Double = 0.0,
+    val p90PrepSeconds: Double = 0.0,
+    val avgTotalTicketSeconds: Double = 0.0,
+    val p90TotalTicketSeconds: Double = 0.0,
+    val avgThroughputPerHour: Double = 0.0,
+    val peakThroughputHour: Int? = null,
+    val peakThroughputCount: Int? = null,
+    val hourlyBreakdown: List<KdsHourlyDto> = emptyList(),
+    val itemBreakdown: List<KdsItemPerformanceDto> = emptyList()
+)
+
+@Serializable
+data class KdsHourlyDto(
+    val hour: Int = 0,
+    val ticketsCompleted: Int = 0,
+    val avgTotalTicketSeconds: Double = 0.0
+)
+
+@Serializable
+data class KdsItemPerformanceDto(
+    val menuItemId: String = "",
+    val name: String = "",
+    val nameAr: String? = null,
+    val ticketCount: Int = 0,
+    val avgPrepSeconds: Double = 0.0,
+    val p90PrepSeconds: Double = 0.0
+)
+
 // Kiosk / public menu
 @Serializable
 data class PublicMenuDto(

@@ -1,8 +1,12 @@
 package com.tannous.pos.feature.reports
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -13,16 +17,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tannous.pos.core.data.model.KdsHourlyDto
+import com.tannous.pos.core.data.model.KdsItemPerformanceDto
+import com.tannous.pos.core.data.model.KdsPerformanceDto
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+
+private const val KITCHEN_TAB = 2
+private const val EXPORT_TAB = 3
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +46,7 @@ fun ReportsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     val currencyFormatter = remember(uiState.currencyCode) {
@@ -42,6 +57,22 @@ fun ReportsScreen(
         uiState.exportError?.let { error ->
             snackbarHostState.showSnackbar(error)
             viewModel.clearExportError()
+        }
+    }
+
+    LaunchedEffect(uiState.kdsPerformance.error) {
+        uiState.kdsPerformance.error?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearKdsError()
+        }
+    }
+
+    LaunchedEffect(uiState.selectedTab) {
+        if (uiState.selectedTab == KITCHEN_TAB &&
+            uiState.kdsPerformance.data == null &&
+            !uiState.kdsPerformance.isLoading
+        ) {
+            viewModel.loadKdsPerformance()
         }
     }
 
@@ -74,7 +105,9 @@ fun ReportsScreen(
                     text = { Text("End of Day") })
                 Tab(selected = uiState.selectedTab == 1, onClick = { viewModel.selectTab(1) },
                     text = { Text("COGS") })
-                Tab(selected = uiState.selectedTab == 2, onClick = { viewModel.selectTab(2) },
+                Tab(selected = uiState.selectedTab == KITCHEN_TAB, onClick = { viewModel.selectTab(KITCHEN_TAB) },
+                    text = { Text(if (isArabic) "المطبخ" else "Kitchen") })
+                Tab(selected = uiState.selectedTab == EXPORT_TAB, onClick = { viewModel.selectTab(EXPORT_TAB) },
                     text = { Text("Export") })
             }
 
@@ -359,8 +392,18 @@ fun ReportsScreen(
                     }
                 }
 
+                // ── Kitchen tab ───────────────────────────────────────────────
+                if (uiState.selectedTab == KITCHEN_TAB) {
+                    KitchenTabContent(
+                        state = uiState.kdsPerformance,
+                        isArabic = isArabic,
+                        onSelectPreset = { viewModel.selectKdsPreset(it) },
+                        onRetry = { viewModel.loadKdsPerformance() }
+                    )
+                }
+
                 // ── Export tab ────────────────────────────────────────────────
-                if (uiState.selectedTab == 2) {
+                if (uiState.selectedTab == EXPORT_TAB) {
                     val context = androidx.compose.ui.platform.LocalContext.current
                     var exportFrom by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
                     var exportTo   by remember { mutableStateOf(LocalDate.now()) }
@@ -497,5 +540,213 @@ private fun SummaryCard(
                 style = MaterialTheme.typography.titleMedium
             )
         }
+    }
+}
+
+/** Formats seconds as "Xm Ys" (e.g. 4m 32s). */
+internal fun formatSeconds(seconds: Double): String {
+    val total = seconds.toLong().coerceAtLeast(0)
+    val m = total / 60
+    val s = total % 60
+    return if (m > 0) "${m}m ${s}s" else "${s}s"
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun KitchenTabContent(
+    state: KdsPerformanceState,
+    isArabic: Boolean,
+    onSelectPreset: (String) -> Unit,
+    onRetry: () -> Unit
+) {
+    val presets = listOf(
+        Triple("today", if (isArabic) "اليوم" else "Today", "today"),
+        Triple("7d", if (isArabic) "آخر 7 أيام" else "Last 7 days", "7d"),
+        Triple("30d", if (isArabic) "آخر 30 يوماً" else "Last 30 days", "30d")
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        presets.forEach { (_, label, id) ->
+            FilterChip(
+                selected = state.rangePreset == id,
+                onClick = { onSelectPreset(id) },
+                label = { Text(label) }
+            )
+        }
+    }
+
+    when {
+        state.isLoading && state.data == null -> {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
+        }
+
+        state.error != null && state.data == null -> {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                Button(onClick = onRetry) {
+                    Text(if (isArabic) "إعادة المحاولة" else "Retry")
+                }
+            }
+        }
+
+        state.data != null && state.data.totalTickets == 0 -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Text(
+                    if (isArabic)
+                        "📊 لا توجد تذاكر KDS مكتملة في هذه الفترة. ستظهر بيانات الأداء عندما يبدأ المطبخ بمعالجة الطلبات."
+                    else
+                        "📊 No completed KDS tickets in this period. Performance data will appear once your kitchen starts processing orders.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        state.data != null -> {
+            val data = state.data
+            KdsKpiRow(data = data, isArabic = isArabic)
+
+            Text(
+                if (isArabic) "الإنتاجية بالساعة" else "Hourly throughput",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            KdsHourlyChart(hourly = data.hourlyBreakdown)
+
+            Text(
+                if (isArabic) "أبطأ الأصناف (وقت التحضير)" else "Slowest Items (by Prep Time)",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            if (data.itemBreakdown.isEmpty()) {
+                Text(
+                    if (isArabic) "لا توجد بيانات تحضير للأصناف." else "No item prep data available.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                data.itemBreakdown.forEach { item ->
+                    KdsItemRow(item = item, isArabic = isArabic)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KdsKpiRow(data: KdsPerformanceDto, isArabic: Boolean) {
+    val peakLabel = data.peakThroughputHour?.let { hour ->
+        val count = data.peakThroughputCount ?: 0
+        String.format("%02d:00 (%d %s)", hour, count, if (isArabic) "تذكرة" else "tkts")
+    } ?: "—"
+
+    val cards = listOf(
+        Triple(if (isArabic) "متوسط وقت التذكرة" else "Avg Ticket Time",
+               formatSeconds(data.avgTotalTicketSeconds),
+               if (isArabic) "طلب → انتهاء" else "order → done"),
+        Triple(if (isArabic) "P90 وقت التذكرة" else "P90 Ticket Time",
+               formatSeconds(data.p90TotalTicketSeconds),
+               if (isArabic) "المئين 90" else "90th percentile"),
+        Triple(if (isArabic) "متوسط التحضير" else "Avg Prep Time",
+               formatSeconds(data.avgPrepSeconds),
+               if (isArabic) "استلام → انتهاء" else "ack → done"),
+        Triple(if (isArabic) "متوسط الإنتاجية" else "Avg Throughput",
+               String.format("%.1f / hr", data.avgThroughputPerHour),
+               ""),
+        Triple(if (isArabic) "ساعة الذروة" else "Peak Hour", peakLabel, "")
+    )
+
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(vertical = 4.dp)
+    ) {
+        items(cards) { (label, value, subtitle) ->
+            Card(modifier = Modifier.width(140.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(label, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(value, style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold)
+                    if (subtitle.isNotBlank()) {
+                        Text(subtitle, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KdsHourlyChart(hourly: List<KdsHourlyDto>) {
+    val maxCount = hourly.maxOfOrNull { it.ticketsCompleted }?.coerceAtLeast(1) ?: 1
+    val barColor = MaterialTheme.colorScheme.primary
+    val labelHours = listOf(0, 3, 6, 9, 12, 15, 18, 21)
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp)) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(160.dp)) {
+                val barWidth = size.width / 24f
+                val chartHeight = size.height - 24f
+
+                hourly.forEach { h ->
+                    val fraction = h.ticketsCompleted.toFloat() / maxCount.toFloat()
+                    val barHeight = (chartHeight * fraction).coerceAtLeast(2f)
+                    drawRect(
+                        color = barColor,
+                        topLeft = Offset(h.hour * barWidth + barWidth * 0.15f, chartHeight - barHeight),
+                        size = Size(barWidth * 0.7f, barHeight)
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                labelHours.forEach { hour ->
+                    Text(
+                        "${hour}h",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KdsItemRow(item: KdsItemPerformanceDto, isArabic: Boolean) {
+    val name = if (isArabic) item.nameAr?.takeIf { it.isNotBlank() } ?: item.name else item.name
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Text(
+            text = "$name  •  ${item.ticketCount} " +
+                (if (isArabic) "تذاكر" else "tickets") +
+                "  •  avg ${formatSeconds(item.avgPrepSeconds)}" +
+                "  •  P90 ${formatSeconds(item.p90PrepSeconds)}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(12.dp)
+        )
     }
 }
