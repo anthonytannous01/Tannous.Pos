@@ -12,15 +12,18 @@ public class EarnPointsCommandHandler : IRequestHandler<EarnPointsCommand, Loyal
 {
     private readonly DbContext _dbContext;
     private readonly INotificationService _notificationService;
+    private readonly IWebhookDispatcher _webhookDispatcher;
     private readonly ILogger<EarnPointsCommandHandler> _logger;
 
     public EarnPointsCommandHandler(
         DbContext dbContext,
         INotificationService notificationService,
+        IWebhookDispatcher webhookDispatcher,
         ILogger<EarnPointsCommandHandler> logger)
     {
         _dbContext = dbContext;
         _notificationService = notificationService;
+        _webhookDispatcher = webhookDispatcher;
         _logger = logger;
     }
 
@@ -86,6 +89,17 @@ public class EarnPointsCommandHandler : IRequestHandler<EarnPointsCommand, Loyal
                 businessName:      settings.BusinessName,
                 cancellationToken: cancellationToken);
         }
+
+        _ = _webhookDispatcher.DispatchAsync(
+            WebhookEventType.LoyaltyPointsEarned,
+            new
+            {
+                customerId   = request.CustomerId,
+                pointsEarned = request.Points,
+                newBalance   = account.PointBalance,
+                orderId      = request.OrderId
+            },
+            cancellationToken: cancellationToken);
 
         return MapToDto(account);
     }

@@ -15,7 +15,9 @@ using Tannous.Pos.Infrastructure.Services;
 using Tannous.Pos.Infrastructure.Services.Printing;
 using Tannous.Pos.Infrastructure.Services.Notifications;
 using Tannous.Pos.Infrastructure.Services.Accounting;
+using Tannous.Pos.Infrastructure.Services.Webhooks;
 using Tannous.Pos.WebApi.Services.Accounting;
+using Tannous.Pos.WebApi.Services.Webhooks;
 using Tannous.Pos.Infrastructure.Persistence.Seed;
 using Tannous.Pos.WebApi.HealthChecks;
 using Tannous.Pos.WebApi.Filters;
@@ -280,6 +282,11 @@ builder.Services.AddScoped<IAccountingSync, QuickBooksAccountingSync>();
 builder.Services.AddScoped<IAccountingSync, XeroAccountingSync>();
 builder.Services.AddScoped<IAccountingSyncCoordinator, AccountingSyncCoordinator>();
 builder.Services.AddHostedService<DailySalesSyncBackgroundService>();
+
+// Webhook connector layer (Step 110)
+builder.Services.AddHttpClient("Webhooks");
+builder.Services.AddScoped<IWebhookDispatcher, WebhookDispatcherService>();
+builder.Services.AddHostedService<WebhookLogPruningService>();
 
 builder.Services.AddScoped<Tannous.Pos.Application.Interfaces.IAdminDatabaseStatsRepository, AdminDatabaseStatsRepository>();
 builder.Services.AddScoped<IAdminOrderOperationsRepository, AdminOrderOperationsRepository>();

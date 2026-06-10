@@ -14,17 +14,20 @@ public class IngestChannelOrderCommandHandler
     private readonly IReceiptNumberService _receiptNumberService;
     private readonly IBranchRepository _branchRepository;
     private readonly ILogger<IngestChannelOrderCommandHandler> _logger;
+    private readonly IWebhookDispatcher _webhookDispatcher;
 
     public IngestChannelOrderCommandHandler(
         DbContext dbContext,
         IReceiptNumberService receiptNumberService,
         IBranchRepository branchRepository,
-        ILogger<IngestChannelOrderCommandHandler> logger)
+        ILogger<IngestChannelOrderCommandHandler> logger,
+        IWebhookDispatcher webhookDispatcher)
     {
         _dbContext = dbContext;
         _receiptNumberService = receiptNumberService;
         _branchRepository = branchRepository;
         _logger = logger;
+        _webhookDispatcher = webhookDispatcher;
     }
 
     public async Task<IngestChannelOrderResult> Handle(
@@ -130,6 +133,20 @@ public class IngestChannelOrderCommandHandler
         _logger.LogInformation(
             "Channel order ingested. Channel={Channel}, ExternalOrderId={ExternalOrderId}, OrderId={OrderId}, OrderNumber={OrderNumber}",
             request.Channel, payload.ExternalOrderId, order.Id, orderNumber);
+
+        _ = _webhookDispatcher.DispatchAsync(
+            WebhookEventType.DeliveryOrderReceived,
+            new
+            {
+                orderId         = order.Id,
+                orderNumber     = order.OrderNumber,
+                channel         = request.Channel.ToString(),
+                externalOrderId = payload.ExternalOrderId,
+                customerName    = payload.CustomerName,
+                deliveryAddress = payload.DeliveryAddress
+            },
+            branchId: branchId,
+            cancellationToken: cancellationToken);
 
         return new IngestChannelOrderResult
         {

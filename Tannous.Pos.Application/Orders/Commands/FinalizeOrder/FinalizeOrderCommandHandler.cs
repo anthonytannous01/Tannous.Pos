@@ -32,6 +32,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
     private readonly IOperationalAuditRecorder _operationalAuditRecorder;
     private readonly ILogger<FinalizeOrderCommandHandler> _logger;
     private readonly INotificationService _notificationService;
+    private readonly IWebhookDispatcher _webhookDispatcher;
 
     public FinalizeOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -43,7 +44,8 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         ISyncConflictRecorder syncConflictRecorder,
         IOperationalAuditRecorder operationalAuditRecorder,
         ILogger<FinalizeOrderCommandHandler> logger,
-        INotificationService notificationService)
+        INotificationService notificationService,
+        IWebhookDispatcher webhookDispatcher)
     {
         _orderRepository = orderRepository;
         _receiptNumberService = receiptNumberService;
@@ -55,6 +57,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
         _operationalAuditRecorder = operationalAuditRecorder;
         _logger = logger;
         _notificationService = notificationService;
+        _webhookDispatcher = webhookDispatcher;
     }
 
     public async Task<OrderDto> Handle(FinalizeOrderCommand request, CancellationToken cancellationToken)
@@ -583,6 +586,20 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                         order.Id);
                 }
             }
+
+            _ = _webhookDispatcher.DispatchAsync(
+                WebhookEventType.OrderFinalized,
+                new
+                {
+                    orderId     = order.Id,
+                    orderNumber = order.OrderNumber,
+                    total       = order.TotalAmount,
+                    currency    = businessSettings?.Currency ?? "USD",
+                    customerId  = order.CustomerId,
+                    orderType   = order.OrderType.ToString()
+                },
+                branchId: order.BranchId,
+                cancellationToken: cancellationToken);
 
             // Return updated order DTO
             return MapToOrderDto(order);

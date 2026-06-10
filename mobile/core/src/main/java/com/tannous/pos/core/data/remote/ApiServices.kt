@@ -254,6 +254,24 @@ interface AccountingService {
     )
 }
 
+interface WebhooksService {
+
+    @GET("v1/webhooks")
+    suspend fun getSubscriptions(): List<WebhookSubscriptionDto>
+
+    @DELETE("v1/webhooks/{id}")
+    suspend fun deleteSubscription(@Path("id") id: String)
+
+    @POST("v1/webhooks/{id}/test")
+    suspend fun testSubscription(@Path("id") id: String)
+
+    @GET("v1/apikeys")
+    suspend fun getApiKeys(): List<ApiKeyDto>
+
+    @DELETE("v1/apikeys/{id}")
+    suspend fun revokeApiKey(@Path("id") id: String)
+}
+
 interface InventoryService {
 
     @GET("inventory")

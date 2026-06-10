@@ -14,17 +14,20 @@ public class CreateReservationCommandHandler : IRequestHandler<CreateReservation
     private readonly IBranchRepository      _branchRepo;
     private readonly DbContext              _dbContext;
     private readonly INotificationService   _notificationService;
+    private readonly IWebhookDispatcher   _webhookDispatcher;
 
     public CreateReservationCommandHandler(
         IReservationRepository repo,
         IBranchRepository      branchRepo,
         DbContext              dbContext,
-        INotificationService   notificationService)
+        INotificationService   notificationService,
+        IWebhookDispatcher     webhookDispatcher)
     {
         _repo                = repo;
         _branchRepo          = branchRepo;
         _dbContext           = dbContext;
         _notificationService = notificationService;
+        _webhookDispatcher   = webhookDispatcher;
     }
 
     public async Task<ReservationDto> Handle(
@@ -73,6 +76,20 @@ public class CreateReservationCommandHandler : IRequestHandler<CreateReservation
                 businessName:        settings.BusinessName,
                 cancellationToken:   cancellationToken);
         }
+
+        _ = _webhookDispatcher.DispatchAsync(
+            WebhookEventType.ReservationCreated,
+            new
+            {
+                reservationId       = reservation.Id,
+                customerName        = reservation.CustomerName,
+                customerPhone       = reservation.CustomerPhone,
+                partySize           = reservation.PartySize,
+                reservationDateTime = reservation.ReservationDateTime,
+                branchId            = reservation.BranchId
+            },
+            branchId: reservation.BranchId,
+            cancellationToken: cancellationToken);
 
         return GetReservationsQueryHandler.Map(reservation);
     }

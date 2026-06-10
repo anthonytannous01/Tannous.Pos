@@ -247,4 +247,10 @@ object NetworkModule {
     fun provideAccountingService(retrofit: Retrofit): AccountingService {
         return retrofit.create(AccountingService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideWebhooksService(retrofit: Retrofit): WebhooksService {
+        return retrofit.create(WebhooksService::class.java)
+    }
 }
