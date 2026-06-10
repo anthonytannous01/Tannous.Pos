@@ -53,6 +53,9 @@ public class PosDbContext : DbContext
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
     public DbSet<AccountingConnection> AccountingConnections { get; set; }
     public DbSet<AccountingSyncRecord> AccountingSyncRecords { get; set; }
+    public DbSet<WebhookSubscription> WebhookSubscriptions { get; set; }
+    public DbSet<WebhookDeliveryLog> WebhookDeliveryLogs { get; set; }
+    public DbSet<ApiKey> ApiKeys { get; set; }
     public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
     public DbSet<PriceChangeLog> PriceChangeLogs { get; set; }
     public DbSet<IdempotentRequest> IdempotentRequests { get; set; }
@@ -940,6 +943,64 @@ public class PosDbContext : DbContext
         modelBuilder.Entity<AccountingSyncRecord>()
             .HasIndex(r => new { r.Provider, r.BranchId, r.SyncDate })
             .IsUnique();
+
+        // ── Webhook connector layer ────────────────────────────────────────────
+        modelBuilder.Entity<WebhookSubscription>()
+            .Property(s => s.Name)
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<WebhookSubscription>()
+            .Property(s => s.EndpointUrl)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<WebhookSubscription>()
+            .Property(s => s.Secret)
+            .HasMaxLength(256);
+
+        modelBuilder.Entity<WebhookSubscription>()
+            .HasOne(s => s.Branch)
+            .WithMany()
+            .HasForeignKey(s => s.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<WebhookSubscription>()
+            .HasIndex(s => new { s.BranchId, s.IsActive });
+
+        modelBuilder.Entity<WebhookDeliveryLog>()
+            .Property(l => l.EventId)
+            .HasMaxLength(36);
+
+        modelBuilder.Entity<WebhookDeliveryLog>()
+            .HasOne(l => l.Subscription)
+            .WithMany(s => s.DeliveryLogs)
+            .HasForeignKey(l => l.SubscriptionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<WebhookDeliveryLog>()
+            .HasIndex(l => new { l.SubscriptionId, l.CreatedAt });
+
+        modelBuilder.Entity<ApiKey>()
+            .Property(k => k.KeyHash)
+            .HasMaxLength(64);
+
+        modelBuilder.Entity<ApiKey>()
+            .Property(k => k.KeyPrefix)
+            .HasMaxLength(16);
+
+        modelBuilder.Entity<ApiKey>()
+            .HasOne(k => k.Branch)
+            .WithMany()
+            .HasForeignKey(k => k.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<ApiKey>()
+            .HasIndex(k => k.KeyHash)
+            .IsUnique();
+
+        modelBuilder.Entity<ApiKey>()
+            .HasIndex(k => new { k.BranchId, k.IsActive });
     }
 
     private static void ConfigureByteaRowVersion(

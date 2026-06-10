@@ -1206,3 +1206,28 @@ data class SyncTriggerResponse(
     val synced: Int = 0,
     val errors: List<String> = emptyList()
 )
+
+// Open API / webhook integrations (Step 110)
+@Serializable
+data class WebhookSubscriptionDto(
+    val id: String,
+    val name: String,
+    val endpointUrl: String,
+    val isActive: Boolean,
+    val branchId: String? = null,
+    val events: List<String> = emptyList(),
+    val createdAt: String,
+    val lastDeliveryAt: String? = null,
+    val lastDeliverySucceeded: Boolean? = null
+)
+
+@Serializable
+data class ApiKeyDto(
+    val id: String,
+    val name: String,
+    val keyPrefix: String,
+    val isActive: Boolean,
+    val expiresAt: String? = null,
+    val lastUsedAt: String? = null,
+    val createdAt: String
+)

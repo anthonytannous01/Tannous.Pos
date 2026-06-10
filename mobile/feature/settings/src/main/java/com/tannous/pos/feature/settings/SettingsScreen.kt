@@ -75,6 +75,7 @@ fun SettingsScreen(
     onNavigateToLoyaltyCrm: () -> Unit = {},
     onNavigateToSchedule: () -> Unit = {},
     onNavigateToAccounting: () -> Unit = {},
+    onNavigateToIntegrations: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -500,6 +501,23 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Text("Accounting & Integrations")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToIntegrations
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Info, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("API & Integrations")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
