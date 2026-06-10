@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Tannous.Pos.Application.DTOs.Reports;
 using Tannous.Pos.Application.Reports.Queries.GetCogsReport;
+using Tannous.Pos.Application.Reports.Queries.GetDemandForecast;
 using Tannous.Pos.Application.Reports.Queries.GetEodReport;
 using Tannous.Pos.Application.Reports.Queries.GetMenuEngineering;
 using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
@@ -51,6 +52,20 @@ public class ReportsController : ControllerBase
         [FromQuery] Guid?     branchId = null)
     {
         var result = await _mediator.Send(new GetSalesSummaryQuery { From = from, To = to, BranchId = branchId });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Rule-based demand forecast for a target date (default: tomorrow).
+    /// Uses same-day-of-week rolling average over the past 4 weeks.
+    /// Returns estimated order count, revenue, time block breakdown, top items, and ingredient demand.
+    /// </summary>
+    [HttpGet("forecast")]
+    public async Task<ActionResult<DemandForecastDto>> GetDemandForecast(
+        [FromQuery] DateTime? targetDate = null,
+        [FromQuery] Guid?     branchId   = null)
+    {
+        var result = await _mediator.Send(new GetDemandForecastQuery { TargetDate = targetDate, BranchId = branchId });
         return Ok(result);
     }
 

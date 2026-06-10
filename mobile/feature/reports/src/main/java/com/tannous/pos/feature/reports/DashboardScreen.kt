@@ -18,14 +18,17 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.BranchDto
+import com.tannous.pos.core.data.model.DemandForecastDto
 import com.tannous.pos.core.data.model.HourlySalesDto
 import com.tannous.pos.core.data.model.SalesSummaryDto
+import com.tannous.pos.core.ui.LocalIsArabic
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToForecast: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,6 +91,9 @@ fun DashboardScreen(
 
                 else -> DashboardContent(
                     summary = uiState.summary!!,
+                    forecast = uiState.forecast,
+                    isForecastLoading = uiState.isForecastLoading,
+                    onSeeFullForecast = onNavigateToForecast,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -127,7 +133,13 @@ private fun BranchSelectorRow(
 }
 
 @Composable
-private fun DashboardContent(summary: SalesSummaryDto, modifier: Modifier = Modifier) {
+private fun DashboardContent(
+    summary: SalesSummaryDto,
+    forecast: DemandForecastDto?,
+    isForecastLoading: Boolean,
+    onSeeFullForecast: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -202,6 +214,17 @@ private fun DashboardContent(summary: SalesSummaryDto, modifier: Modifier = Modi
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item { HourlyChart(summary.hourlySales) }
+        }
+
+        // ── Smart Suggestions (demand forecast) ──────────────────────────────
+        if (forecast != null || isForecastLoading) {
+            item {
+                SmartSuggestionsCard(
+                    forecast = forecast,
+                    isLoading = isForecastLoading,
+                    onSeeFullForecast = onSeeFullForecast
+                )
+            }
         }
 
         // ── Payment methods ──────────────────────────────────────────────────
@@ -279,6 +302,161 @@ private fun KpiCard(label: String, value: String, color: Color, modifier: Modifi
                 fontWeight = FontWeight.Bold)
         }
     }
+}
+
+@Composable
+private fun SmartSuggestionsCard(
+    forecast: DemandForecastDto?,
+    isLoading: Boolean,
+    onSeeFullForecast: () -> Unit
+) {
+    val isArabic = LocalIsArabic.current
+
+    // Loading placeholder — same height as the populated card.
+    if (forecast == null) {
+        if (isLoading) {
+            Card(Modifier.fillMaxWidth()) {
+                Box(
+                    Modifier.fillMaxWidth().height(220.dp),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+            }
+        }
+        return
+    }
+
+    // Not enough history — small informational card, no numbers.
+    if (forecast.insufficientDataMessage != null) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        ) {
+            Row(
+                Modifier.padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("\uD83D\uDCA1", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    forecast.insufficientDataMessage!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        return
+    }
+
+    val peak = forecast.timeBlocks.firstOrNull { it.isPeakBlock }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "\uD83D\uDD2E " + (if (isArabic) "اقتراحات ذكية" else "Smart Suggestions") +
+                    " — ${forecast.dayOfWeekName}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ConfidenceDots(forecast.confidence)
+                Text(
+                    "${forecast.confidence}  (${forecast.weeksOfDataUsed} " +
+                        (if (isArabic) "أسابيع من البيانات" else "weeks of data") + ")",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                "~${forecast.estimatedOrders} " +
+                    (if (isArabic) "طلبات" else "orders") +
+                    "  |  ~$${forecast.estimatedRevenue.toPlainString()} " +
+                    (if (isArabic) "متوقع" else "estimated"),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+
+            if (peak != null) {
+                Text(
+                    (if (isArabic) "وقت الذروة: " else "Peak time: ") +
+                        "${peak.label} (~${peak.estimatedOrders} " +
+                        (if (isArabic) "طلبات" else "orders") + ")",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            if (forecast.topItems.isNotEmpty()) {
+                Text(
+                    if (isArabic) "أصناف للتحضير:" else "Top items to prep:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                forecast.topItems.take(3).forEach { item ->
+                    val name = if (isArabic)
+                        item.nameAr?.takeIf { it.isNotBlank() } ?: item.name
+                    else item.name
+                    Text(
+                        "• $name ×${item.estimatedQty.stripTrailingZeros().toPlainString()}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            if (forecast.ingredientDemands.isNotEmpty()) {
+                Text(
+                    if (isArabic) "مكونات للتخزين:" else "Ingredients to stock:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                forecast.ingredientDemands.take(3).forEach { ing ->
+                    val name = if (isArabic)
+                        ing.nameAr?.takeIf { it.isNotBlank() } ?: ing.name
+                    else ing.name
+                    Text(
+                        "• $name  ${ing.estimatedQty.stripTrailingZeros().toPlainString()} ${ing.unit}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            TextButton(
+                onClick = onSeeFullForecast,
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(if (isArabic) "عرض التوقعات الكاملة ›" else "See full forecast ›")
+            }
+        }
+    }
+}
+
+/** 3-level confidence indicator: Low = 1 filled dot, Medium = 2, High = 3 (out of 3). */
+@Composable
+private fun ConfidenceDots(confidence: String) {
+    val filled = when (confidence) {
+        "High"   -> 3
+        "Medium" -> 2
+        else     -> 1
+    }
+    Text(
+        buildString {
+            repeat(filled) { append('●') }
+            repeat(3 - filled) { append('○') }
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.primary
+    )
 }
 
 @Composable
