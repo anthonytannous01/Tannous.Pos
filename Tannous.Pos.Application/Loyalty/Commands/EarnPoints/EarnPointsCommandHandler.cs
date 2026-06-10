@@ -4,17 +4,23 @@ using Microsoft.Extensions.Logging;
 using Tannous.Pos.Application.DTOs.Loyalty;
 using Tannous.Pos.Domain.Entities;
 using Tannous.Pos.Domain.Enums;
+using Tannous.Pos.Domain.Interfaces;
 
 namespace Tannous.Pos.Application.Loyalty.Commands.EarnPoints;
 
 public class EarnPointsCommandHandler : IRequestHandler<EarnPointsCommand, LoyaltyAccountDto>
 {
     private readonly DbContext _dbContext;
+    private readonly INotificationService _notificationService;
     private readonly ILogger<EarnPointsCommandHandler> _logger;
 
-    public EarnPointsCommandHandler(DbContext dbContext, ILogger<EarnPointsCommandHandler> logger)
+    public EarnPointsCommandHandler(
+        DbContext dbContext,
+        INotificationService notificationService,
+        ILogger<EarnPointsCommandHandler> logger)
     {
         _dbContext = dbContext;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -62,6 +68,24 @@ public class EarnPointsCommandHandler : IRequestHandler<EarnPointsCommand, Loyal
         _logger.LogInformation(
             "Loyalty points earned. CustomerId={CustomerId}, Points={Points}, NewBalance={Balance}, OrderId={OrderId}",
             request.CustomerId, request.Points, account.PointBalance, request.OrderId);
+
+        var settings = await _dbContext.Set<BusinessSettings>()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (settings?.NotifyOnLoyaltyEarn == true &&
+            !string.IsNullOrWhiteSpace(account.Customer?.Phone))
+        {
+            _logger.LogDebug(
+                "Sending points-earned notification. CustomerId={CustomerId}, Points={Points}",
+                request.CustomerId, request.Points);
+
+            _ = _notificationService.SendPointsEarnedNotificationAsync(
+                toPhone:           account.Customer.Phone,
+                pointsEarned:      request.Points,
+                newBalance:        account.PointBalance,
+                businessName:      settings.BusinessName,
+                cancellationToken: cancellationToken);
+        }
 
         return MapToDto(account);
     }

@@ -17,4 +17,15 @@ public sealed class NullNotificationService : INotificationService
         string toPhone, string message, string businessName,
         CancellationToken cancellationToken = default)
         => Task.FromResult(false);
+
+    public Task<bool> SendPointsEarnedNotificationAsync(
+        string toPhone, int pointsEarned, int newBalance, string businessName,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
+
+    public Task<bool> SendReservationConfirmationAsync(
+        string toPhone, string customerName, DateTime reservationDateTime,
+        int partySize, string? tableName, string businessName,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(false);
 }

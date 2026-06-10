@@ -44,6 +44,8 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         settings.ShowLbpOnReceipt         = dto.ShowLbpOnReceipt;
         settings.StampDutyEnabled         = dto.StampDutyEnabled;
         settings.StampDutyAmountUsd       = dto.StampDutyAmountUsd > 0 ? dto.StampDutyAmountUsd : 2.00m;
+        settings.NotifyOnLoyaltyEarn      = dto.NotifyOnLoyaltyEarn;
+        settings.NotifyOnReservationConfirm = dto.NotifyOnReservationConfirm;
         settings.UpdatedAt                = DateTime.UtcNow;
 
         if (isNew)
@@ -79,6 +81,8 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         ShowLbpOnReceipt         = settings.ShowLbpOnReceipt,
         StampDutyEnabled         = settings.StampDutyEnabled,
         StampDutyAmountUsd       = settings.StampDutyAmountUsd,
+        NotifyOnLoyaltyEarn      = settings.NotifyOnLoyaltyEarn,
+        NotifyOnReservationConfirm = settings.NotifyOnReservationConfirm,
         CreatedAt                = settings.CreatedAt,
         UpdatedAt                = settings.UpdatedAt ?? DateTime.UtcNow
     };

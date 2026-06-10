@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Tannous.Pos.Application.DTOs.Reservations;
 using Tannous.Pos.Application.Reservations.Queries.GetReservations;
 using Tannous.Pos.Domain.Entities;
@@ -11,21 +12,27 @@ public class CreateReservationCommandHandler : IRequestHandler<CreateReservation
 {
     private readonly IReservationRepository _repo;
     private readonly IBranchRepository      _branchRepo;
+    private readonly DbContext              _dbContext;
+    private readonly INotificationService   _notificationService;
 
     public CreateReservationCommandHandler(
         IReservationRepository repo,
-        IBranchRepository      branchRepo)
+        IBranchRepository      branchRepo,
+        DbContext              dbContext,
+        INotificationService   notificationService)
     {
-        _repo       = repo;
-        _branchRepo = branchRepo;
+        _repo                = repo;
+        _branchRepo          = branchRepo;
+        _dbContext           = dbContext;
+        _notificationService = notificationService;
     }
 
     public async Task<ReservationDto> Handle(
-        CreateReservationCommand request, CancellationToken ct)
+        CreateReservationCommand request, CancellationToken cancellationToken)
     {
         // Resolve branch — explicit → default
         var branchId = request.BranchId
-            ?? (await _branchRepo.GetDefaultAsync(ct))?.Id;
+            ?? (await _branchRepo.GetDefaultAsync(cancellationToken))?.Id;
 
         // Mark the table as Reserved if one was assigned
         var reservation = new Reservation
@@ -40,8 +47,32 @@ public class CreateReservationCommandHandler : IRequestHandler<CreateReservation
             BranchId            = branchId
         };
 
-        await _repo.AddAsync(reservation, ct);
-        await _repo.CommitAsync(ct);
+        await _repo.AddAsync(reservation, cancellationToken);
+        await _repo.CommitAsync(cancellationToken);
+
+        var settings = await _dbContext.Set<BusinessSettings>()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (settings?.NotifyOnReservationConfirm == true &&
+            !string.IsNullOrWhiteSpace(reservation.CustomerPhone))
+        {
+            string? tableName = null;
+            if (reservation.TableId.HasValue)
+            {
+                var table = await _dbContext.Set<Table>()
+                    .FindAsync(new object[] { reservation.TableId.Value }, cancellationToken);
+                tableName = table?.Label ?? table?.TableNumber;
+            }
+
+            _ = _notificationService.SendReservationConfirmationAsync(
+                toPhone:             reservation.CustomerPhone,
+                customerName:        reservation.CustomerName,
+                reservationDateTime: reservation.ReservationDateTime,
+                partySize:           reservation.PartySize,
+                tableName:           tableName,
+                businessName:        settings.BusinessName,
+                cancellationToken:   cancellationToken);
+        }
 
         return GetReservationsQueryHandler.Map(reservation);
     }

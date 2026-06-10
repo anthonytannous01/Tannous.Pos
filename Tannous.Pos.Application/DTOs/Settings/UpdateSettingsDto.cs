@@ -28,4 +28,7 @@ public class UpdateSettingsDto
     public bool ShowLbpOnReceipt { get; set; }
     public bool StampDutyEnabled { get; set; }
     public decimal StampDutyAmountUsd { get; set; } = 2.00m;
+
+    public bool NotifyOnLoyaltyEarn { get; set; }
+    public bool NotifyOnReservationConfirm { get; set; }
 }

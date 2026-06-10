@@ -86,6 +86,9 @@ data class BusinessSettingsDto(
     val stampDutyEnabled: Boolean = false,
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00"),
+    // Notifications
+    val notifyOnLoyaltyEarn: Boolean = false,
+    val notifyOnReservationConfirm: Boolean = false,
     // Arabic
     val businessNameAr: String? = null
 )
@@ -119,7 +122,9 @@ data class UpdateSettingsRequest(
     val showLbpOnReceipt: Boolean = false,
     val stampDutyEnabled: Boolean = false,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00")
+    val stampDutyAmountUsd: BigDecimal = BigDecimal("2.00"),
+    val notifyOnLoyaltyEarn: Boolean = false,
+    val notifyOnReservationConfirm: Boolean = false
 )
 
 // Reports
