@@ -154,6 +154,12 @@ object NetworkModule {
     
     @Provides
     @Singleton
+    fun provideScheduleService(retrofit: Retrofit): ScheduleService {
+        return retrofit.create(ScheduleService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideSyncService(retrofit: Retrofit): SyncService {
         return retrofit.create(SyncService::class.java)
     }

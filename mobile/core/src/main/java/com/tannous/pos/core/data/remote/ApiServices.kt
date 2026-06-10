@@ -100,6 +100,42 @@ interface ShiftService {
     ): ShiftDto
 }
 
+/** Employee scheduling + time tracking (distinct from cash register shifts). */
+interface ScheduleService {
+
+    @GET("schedule/week")
+    suspend fun getWeeklySchedule(
+        @Query("weekStart") weekStart: String,
+        @Query("branchId") branchId: String? = null
+    ): WeeklyScheduleDto
+
+    @POST("schedule/clock-in")
+    suspend fun clockIn(@Body body: ClockInRequest): TimeEntryDto
+
+    @POST("schedule/clock-out")
+    suspend fun clockOut(@Body body: ClockOutRequest): TimeEntryDto
+
+    /** 200 with body when clocked in; 204 → null when not. */
+    @GET("schedule/my-clock-status")
+    suspend fun myClockStatus(): TimeEntryDto?
+
+    /** Current user's own entries — staff self-service, no manager policy needed. */
+    @GET("schedule/my-time-entries")
+    suspend fun getMyTimeEntries(
+        @Query("from") from: String,
+        @Query("to") to: String
+    ): List<TimeEntryDto>
+
+    /** Manager view across users. */
+    @GET("schedule/time-entries")
+    suspend fun getTimeEntries(
+        @Query("from") from: String,
+        @Query("to") to: String,
+        @Query("userId") userId: String? = null,
+        @Query("branchId") branchId: String? = null
+    ): List<TimeEntryDto>
+}
+
 interface SyncService {
     
     @GET("sync/pull")
