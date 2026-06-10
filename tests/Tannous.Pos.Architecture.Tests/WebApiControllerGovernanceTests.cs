@@ -61,6 +61,11 @@ public class WebApiControllerGovernanceTests
             if (!hasApiController)
                 continue;
 
+            // Controllers that are intentionally [AllowAnonymous] cannot also require [Authorize];
+            // their public surface is governed by AllowAnonymousGovernanceTests' allowlist instead.
+            if (type.GetCustomAttribute<AllowAnonymousAttribute>() != null)
+                continue;
+
             var hasAuthorize = type.GetCustomAttribute<AuthorizeAttribute>() != null;
             if (!hasAuthorize)
                 violations.Add($"{type.FullName} missing [Authorize] on controller class (AuthController exempt).");

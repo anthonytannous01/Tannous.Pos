@@ -11,6 +11,7 @@ namespace Tannous.Pos.WebApi.Controllers;
 [ApiController]
 [Route("api/v{version:apiVersion}/feedback")]
 [ApiVersion("1.0")]
+[Authorize] // default-deny; Submit opts out via [AllowAnonymous], GetSummary requires CanViewReports
 public class FeedbackController : ControllerBase
 {
     private readonly IMediator _mediator;

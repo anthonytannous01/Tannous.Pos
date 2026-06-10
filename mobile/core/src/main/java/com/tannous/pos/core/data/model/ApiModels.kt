@@ -871,6 +871,8 @@ data class DeliveryDto(
     val pickedUpAt: String? = null,
     val deliveredAt: String? = null,
     val branchId: String? = null,
+    val externalOrderId: String? = null,
+    val externalOrderReference: String? = null,
     val createdAt: String = ""
 )
 

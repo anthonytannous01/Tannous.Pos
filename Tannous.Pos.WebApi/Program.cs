@@ -4,7 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Tannous.Pos.Application.Behaviors;
+using Tannous.Pos.Application.Delivery.Channels;
 using Tannous.Pos.Application.Sync;
+using Tannous.Pos.Infrastructure.Delivery.Adapters;
 using Tannous.Pos.Domain.Interfaces;
 using Tannous.Pos.Infrastructure;
 using Tannous.Pos.Infrastructure.Data;
@@ -251,6 +253,12 @@ builder.Services.AddScoped<IReservationRepository, ReservationRepository>();
 builder.Services.AddScoped<ITableRepository, TableRepository>();
 builder.Services.AddScoped<IDeliveryRepository, DeliveryRepository>();
 
+// Delivery channel integration (inbound webhooks: Toters / Talabat / Wolt)
+builder.Services.Configure<DeliveryWebhookSettings>(
+    builder.Configuration.GetSection(DeliveryWebhookSettings.Section));
+builder.Services.AddScoped<IDeliveryChannelAdapter, TotersDeliveryAdapter>();
+builder.Services.AddScoped<IDeliveryChannelAdapter, TalabatDeliveryAdapter>();
+
 // Notifications (SMS / WhatsApp via Twilio)
 builder.Services.Configure<NotificationSettings>(
     builder.Configuration.GetSection(NotificationSettings.Section));
@@ -420,6 +428,18 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 
 app.UseHttpsRedirection();
+
+// Enable request body buffering for delivery channel webhooks so the controller can read the
+// raw body for HMAC signature validation (model binding would otherwise consume the stream).
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.StartsWithSegments("/api", out var rest)
+        && rest.Value?.Contains("/delivery/channels", StringComparison.OrdinalIgnoreCase) == true)
+    {
+        ctx.Request.EnableBuffering();
+    }
+    await next();
+});
 
 // Keep permissive CORS only for development/testing; restrict non-dev to configured origins.
 app.UseCors(app.Environment.IsDevelopment() ? "MobileApp" : "TannousPOS");
