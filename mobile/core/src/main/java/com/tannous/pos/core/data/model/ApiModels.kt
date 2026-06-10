@@ -1184,3 +1184,25 @@ data class MenuEngineeringItemDto(
     val isHighMargin: Boolean = false,
     val category: Int = 3
 )
+
+// Accounting integrations
+@Serializable
+data class AccountingConnectionStatusDto(
+    val provider: String,
+    val isConnected: Boolean = false,
+    val companyName: String? = null,
+    val lastSyncAt: String? = null,
+    val lastSyncError: String? = null,
+    val syncRecordCount: Int = 0
+)
+
+@Serializable
+data class QuickBooksConnectResponse(
+    val authorizationUrl: String = ""
+)
+
+@Serializable
+data class SyncTriggerResponse(
+    val synced: Int = 0,
+    val errors: List<String> = emptyList()
+)

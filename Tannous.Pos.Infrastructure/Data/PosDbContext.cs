@@ -51,6 +51,8 @@ public class PosDbContext : DbContext
     public DbSet<Device> Devices { get; set; }
     public DbSet<Printer> Printers { get; set; }
     public DbSet<BusinessSettings> BusinessSettings { get; set; }
+    public DbSet<AccountingConnection> AccountingConnections { get; set; }
+    public DbSet<AccountingSyncRecord> AccountingSyncRecords { get; set; }
     public DbSet<ReceiptSequence> ReceiptSequences { get; set; }
     public DbSet<PriceChangeLog> PriceChangeLogs { get; set; }
     public DbSet<IdempotentRequest> IdempotentRequests { get; set; }
@@ -915,6 +917,29 @@ public class PosDbContext : DbContext
 
         modelBuilder.Entity<FeedbackSubmission>()
             .HasIndex(f => f.BranchId);
+
+        // ── Accounting sync ────────────────────────────────────────────────────
+        modelBuilder.Entity<AccountingConnection>()
+            .HasOne(c => c.Branch)
+            .WithMany()
+            .HasForeignKey(c => c.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<AccountingConnection>()
+            .HasIndex(c => new { c.Provider, c.BranchId })
+            .IsUnique();
+
+        modelBuilder.Entity<AccountingSyncRecord>()
+            .HasOne(r => r.Branch)
+            .WithMany()
+            .HasForeignKey(r => r.BranchId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        modelBuilder.Entity<AccountingSyncRecord>()
+            .HasIndex(r => new { r.Provider, r.BranchId, r.SyncDate })
+            .IsUnique();
     }
 
     private static void ConfigureByteaRowVersion(

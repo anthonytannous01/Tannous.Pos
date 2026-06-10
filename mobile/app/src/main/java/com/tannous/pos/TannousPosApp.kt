@@ -50,6 +50,7 @@ import com.tannous.pos.core.ui.LanguageViewModel
 import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.feature.settings.QrMenuScreen
 import com.tannous.pos.feature.settings.ReservationsScreen
+import com.tannous.pos.feature.settings.AccountingScreen
 import com.tannous.pos.feature.settings.SettingsScreen
 import com.tannous.pos.feature.sell.DeliveryQueueScreen
 import com.tannous.pos.feature.sell.KioskScreen
@@ -234,8 +235,13 @@ fun TannousPosApp(
                     onNavigateToDelivery = { navController.navigate("delivery-queue") },
                     onNavigateToKiosk    = { navController.navigate("kiosk") },
                     onNavigateToLoyaltyCrm = { navController.navigate("loyalty-crm") },
-                    onNavigateToSchedule = { navController.navigate("schedule") }
+                    onNavigateToSchedule = { navController.navigate("schedule") },
+                    onNavigateToAccounting = { navController.navigate("accounting") }
                 )
+            }
+
+            composable("accounting") {
+                AccountingScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("loyalty-crm") {

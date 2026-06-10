@@ -14,6 +14,8 @@ using Tannous.Pos.Infrastructure.Repositories;
 using Tannous.Pos.Infrastructure.Services;
 using Tannous.Pos.Infrastructure.Services.Printing;
 using Tannous.Pos.Infrastructure.Services.Notifications;
+using Tannous.Pos.Infrastructure.Services.Accounting;
+using Tannous.Pos.WebApi.Services.Accounting;
 using Tannous.Pos.Infrastructure.Persistence.Seed;
 using Tannous.Pos.WebApi.HealthChecks;
 using Tannous.Pos.WebApi.Filters;
@@ -269,6 +271,16 @@ if (notifEnabled && !string.IsNullOrWhiteSpace(twilioSid))
     builder.Services.AddScoped<INotificationService, TwilioNotificationService>();
 else
     builder.Services.AddScoped<INotificationService, NullNotificationService>();
+
+// Accounting sync (QuickBooks Online + Xero stub)
+builder.Services.Configure<AccountingSettings>(
+    builder.Configuration.GetSection(AccountingSettings.Section));
+builder.Services.AddHttpClient("QuickBooks");
+builder.Services.AddScoped<IAccountingSync, QuickBooksAccountingSync>();
+builder.Services.AddScoped<IAccountingSync, XeroAccountingSync>();
+builder.Services.AddScoped<IAccountingSyncCoordinator, AccountingSyncCoordinator>();
+builder.Services.AddHostedService<DailySalesSyncBackgroundService>();
+
 builder.Services.AddScoped<Tannous.Pos.Application.Interfaces.IAdminDatabaseStatsRepository, AdminDatabaseStatsRepository>();
 builder.Services.AddScoped<IAdminOrderOperationsRepository, AdminOrderOperationsRepository>();
 builder.Services.AddScoped<IAdminPurgeRepository, AdminPurgeRepository>();
