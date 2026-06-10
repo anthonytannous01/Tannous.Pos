@@ -4,6 +4,7 @@ using Tannous.Pos.Application.DTOs.Reports;
 using Tannous.Pos.Application.Reports.Queries.GetCogsReport;
 using Tannous.Pos.Application.Reports.Queries.GetDemandForecast;
 using Tannous.Pos.Application.Reports.Queries.GetEodReport;
+using Tannous.Pos.Application.Kds.Queries.GetKdsPerformance;
 using Tannous.Pos.Application.Reports.Queries.GetMenuEngineering;
 using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
 using Tannous.Pos.Application.Reports.Queries.GetSalesExport;
@@ -66,6 +67,20 @@ public class ReportsController : ControllerBase
         [FromQuery] Guid?     branchId   = null)
     {
         var result = await _mediator.Send(new GetDemandForecastQuery { TargetDate = targetDate, BranchId = branchId });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Kitchen performance analytics: ticket times, throughput, per-item breakdown.
+    /// Only counts OrderLines with KdsDoneAt set (completed tickets).
+    /// </summary>
+    [HttpGet("kds-performance")]
+    public async Task<ActionResult<KdsPerformanceDto>> GetKdsPerformance(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] Guid? branchId = null)
+    {
+        var result = await _mediator.Send(new GetKdsPerformanceQuery { From = from, To = to, BranchId = branchId });
         return Ok(result);
     }
 

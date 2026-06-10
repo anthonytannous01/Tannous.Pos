@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.CogsReportDto
 import com.tannous.pos.core.data.model.EodReportDto
+import com.tannous.pos.core.data.model.KdsPerformanceDto
 import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -135,6 +136,57 @@ class ReportsViewModel @Inject constructor(
         if (from != _uiState.value.cogsFromDate || to != _uiState.value.cogsToDate) {
             loadCogsReport(from, to)
         }
+    }
+
+    fun loadKdsPerformance(preset: String = _uiState.value.kdsPerformance.rangePreset) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(kdsPerformance = it.kdsPerformance.copy(isLoading = true, error = null, rangePreset = preset))
+            }
+            try {
+                val today = LocalDate.now()
+                val (from, to) = when (preset) {
+                    "today" -> today to today.plusDays(1)
+                    "30d"   -> today.minusDays(30) to today.plusDays(1)
+                    else    -> today.minusDays(7) to today.plusDays(1)  // "7d" default
+                }
+                val report = reportsService.getKdsPerformance(
+                    from = from.toString() + "T00:00:00Z",
+                    to   = to.toString()   + "T00:00:00Z"
+                )
+                _uiState.update {
+                    it.copy(kdsPerformance = it.kdsPerformance.copy(isLoading = false, data = report, error = null))
+                }
+            } catch (e: HttpException) {
+                val msg = if (e.code() == 403) "Reports require owner access"
+                          else "Server error: ${e.code()}"
+                _uiState.update {
+                    it.copy(kdsPerformance = it.kdsPerformance.copy(isLoading = false, error = msg))
+                }
+            } catch (e: IOException) {
+                _uiState.update {
+                    it.copy(kdsPerformance = it.kdsPerformance.copy(
+                        isLoading = false, error = "No connection. Connect to load reports."))
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(kdsPerformance = it.kdsPerformance.copy(
+                        isLoading = false, error = e.message ?: "Failed to load kitchen report"))
+                }
+            }
+        }
+    }
+
+    fun selectKdsPreset(preset: String) {
+        if (preset != _uiState.value.kdsPerformance.rangePreset ||
+            _uiState.value.kdsPerformance.data == null
+        ) {
+            loadKdsPerformance(preset)
+        }
+    }
+
+    fun clearKdsError() {
+        _uiState.update { it.copy(kdsPerformance = it.kdsPerformance.copy(error = null)) }
     }
 
     fun clearError() {
@@ -283,5 +335,13 @@ data class ReportsUiState(
     val isCogsLoading: Boolean = false,
     val cogsError: String? = null,
     val isExporting: Boolean = false,
-    val exportError: String? = null
+    val exportError: String? = null,
+    val kdsPerformance: KdsPerformanceState = KdsPerformanceState()
+)
+
+data class KdsPerformanceState(
+    val isLoading: Boolean = false,
+    val data: KdsPerformanceDto? = null,
+    val error: String? = null,
+    val rangePreset: String = "7d"   // "today" | "7d" | "30d"
 )

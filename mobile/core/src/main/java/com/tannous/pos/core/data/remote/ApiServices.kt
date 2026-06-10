@@ -331,6 +331,14 @@ interface ReportsService {
         @Query("targetDate") targetDate: String? = null,
         @Query("branchId") branchId: String? = null
     ): DemandForecastDto
+
+    /** Kitchen performance analytics over completed KDS tickets. */
+    @GET("reports/kds-performance")
+    suspend fun getKdsPerformance(
+        @Query("from") from: String,
+        @Query("to") to: String,
+        @Query("branchId") branchId: String? = null
+    ): KdsPerformanceDto
 }
 
 interface KioskService {
