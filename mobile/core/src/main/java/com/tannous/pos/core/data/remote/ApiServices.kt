@@ -384,6 +384,20 @@ interface ReportsService {
     ): KdsPerformanceDto
 }
 
+interface SupplierIntelligenceService {
+
+    @GET("suppliers/intelligence")
+    suspend fun getIntelligence(
+        @Query("forecastDays") forecastDays: Int = 7,
+        @Query("branchId") branchId: String? = null
+    ): SupplierIntelligenceDto
+
+    @POST("suppliers/intelligence/create-orders")
+    suspend fun createSuggestedOrders(
+        @Body request: CreateSuggestedOrdersRequest
+    ): CreateSuggestedOrdersResult
+}
+
 interface KioskService {
 
     @GET("v1/kiosk/menu")

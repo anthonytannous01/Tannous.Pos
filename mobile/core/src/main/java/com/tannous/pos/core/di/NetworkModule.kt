@@ -184,6 +184,12 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideSupplierIntelligenceService(retrofit: Retrofit): SupplierIntelligenceService {
+        return retrofit.create(SupplierIntelligenceService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideInventoryService(retrofit: Retrofit): InventoryService {
         return retrofit.create(InventoryService::class.java)
     }

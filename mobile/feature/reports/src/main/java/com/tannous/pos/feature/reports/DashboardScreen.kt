@@ -29,6 +29,7 @@ import java.math.BigDecimal
 fun DashboardScreen(
     onNavigateBack: () -> Unit,
     onNavigateToForecast: () -> Unit = {},
+    onNavigateToSupplierIntelligence: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,7 @@ fun DashboardScreen(
                     forecast = uiState.forecast,
                     isForecastLoading = uiState.isForecastLoading,
                     onSeeFullForecast = onNavigateToForecast,
+                    onNavigateToSupplierIntelligence = onNavigateToSupplierIntelligence,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -138,6 +140,7 @@ private fun DashboardContent(
     forecast: DemandForecastDto?,
     isForecastLoading: Boolean,
     onSeeFullForecast: () -> Unit,
+    onNavigateToSupplierIntelligence: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -225,6 +228,11 @@ private fun DashboardContent(
                     onSeeFullForecast = onSeeFullForecast
                 )
             }
+        }
+
+        // ── Smart Ordering (supplier intelligence) ───────────────────────────
+        item {
+            SmartOrderingCard(onNavigate = onNavigateToSupplierIntelligence)
         }
 
         // ── Payment methods ──────────────────────────────────────────────────
@@ -437,6 +445,40 @@ private fun SmartSuggestionsCard(
             ) {
                 Text(if (isArabic) "عرض التوقعات الكاملة ›" else "See full forecast ›")
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SmartOrderingCard(onNavigate: () -> Unit) {
+    val isArabic = LocalIsArabic.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onNavigate,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "\uD83D\uDCE6 " + (if (isArabic) "طلب ذكي" else "Smart Ordering"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    if (isArabic) "اقتراحات شراء مبنية على الطلب المتوقع"
+                    else "Demand-driven purchase order suggestions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text("\u2192", style = MaterialTheme.typography.titleLarge)
         }
     }
 }

@@ -9,4 +9,6 @@ public class IngredientDto
     public string Unit { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public Guid? PreferredSupplierId { get; set; }
+    public string? PreferredSupplierName { get; set; }
 }

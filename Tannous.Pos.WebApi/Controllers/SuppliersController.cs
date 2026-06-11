@@ -2,10 +2,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using Tannous.Pos.Application.DTOs.Suppliers;
+using Tannous.Pos.Application.DTOs.Inventory;
+using Tannous.Pos.Application.DTOs.Purchasing;
 using Tannous.Pos.Application.GoodsReceipts.Commands.CreateGoodsReceipt;
 using Tannous.Pos.Application.PurchaseOrders.Commands.CreatePurchaseOrder;
 using Tannous.Pos.Application.PurchaseOrders.Commands.SubmitPurchaseOrder;
 using Tannous.Pos.Application.PurchaseOrders.Queries.GetPurchaseOrders;
+using Tannous.Pos.Application.Purchasing.Commands.AssignIngredientToSupplier;
+using Tannous.Pos.Application.Purchasing.Commands.CreateSuggestedOrders;
+using Tannous.Pos.Application.Purchasing.Commands.UnassignIngredientFromSupplier;
+using Tannous.Pos.Application.Purchasing.Queries.GetSupplierIntelligence;
 using Tannous.Pos.Application.Suppliers.Commands.CreateSupplier;
 using Tannous.Pos.Application.Suppliers.Commands.DeleteSupplier;
 using Tannous.Pos.Application.Suppliers.Commands.UpdateSupplier;
@@ -268,5 +274,65 @@ public class SuppliersController : ControllerBase
         await _idempotencyStore.StoreResponseAsync(idempotencyKey, endpoint, responseJson);
 
         return CreatedAtAction(nameof(GetPurchaseOrders), new { }, result);
+    }
+
+    [HttpGet("intelligence")]
+    public async Task<ActionResult<SupplierIntelligenceDto>> GetIntelligence(
+        [FromQuery] int forecastDays = 7,
+        [FromQuery] Guid? branchId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetSupplierIntelligenceQuery
+        {
+            ForecastDays = forecastDays,
+            BranchId     = branchId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPost("intelligence/create-orders")]
+    public async Task<ActionResult<CreateSuggestedOrdersResult>> CreateSuggestedOrders(
+        [FromBody] CreateSuggestedOrdersDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new CreateSuggestedOrdersCommand
+        {
+            ForecastDays = request.ForecastDays,
+            BranchId     = request.BranchId,
+            SupplierIds  = request.SupplierIds
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpPatch("{supplierId:guid}/ingredients/{ingredientId:guid}")]
+    public async Task<ActionResult<IngredientDto>> AssignIngredient(
+        Guid supplierId,
+        Guid ingredientId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new AssignIngredientToSupplierCommand
+        {
+            SupplierId   = supplierId,
+            IngredientId = ingredientId
+        }, cancellationToken);
+
+        return Ok(result);
+    }
+
+    [HttpDelete("{supplierId:guid}/ingredients/{ingredientId:guid}")]
+    public async Task<IActionResult> UnassignIngredient(
+        Guid supplierId,
+        Guid ingredientId,
+        CancellationToken cancellationToken = default)
+    {
+        await _mediator.Send(new UnassignIngredientFromSupplierCommand
+        {
+            SupplierId   = supplierId,
+            IngredientId = ingredientId
+        }, cancellationToken);
+
+        return NoContent();
     }
 }

@@ -44,6 +44,7 @@ import com.tannous.pos.feature.inventory.InventoryScreen
 import com.tannous.pos.feature.reports.DashboardScreen
 import com.tannous.pos.feature.reports.DashboardViewModel
 import com.tannous.pos.feature.reports.ForecastDetailScreen
+import com.tannous.pos.feature.reports.SupplierIntelligenceScreen
 import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.core.ui.LanguageViewModel
@@ -273,8 +274,13 @@ fun TannousPosApp(
             composable("dashboard") {
                 DashboardScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToForecast = { navController.navigate("forecast") }
+                    onNavigateToForecast = { navController.navigate("forecast") },
+                    onNavigateToSupplierIntelligence = { navController.navigate("supplier-intelligence") }
                 )
+            }
+
+            composable("supplier-intelligence") {
+                SupplierIntelligenceScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             // Full demand forecast — shares the DashboardViewModel scoped to the dashboard route.

@@ -13,4 +13,5 @@ public class Supplier : BaseEntity, IAggregateRoot
     
     // Navigation properties
     public virtual ICollection<PurchaseOrder> PurchaseOrders { get; set; } = new List<PurchaseOrder>();
+    public virtual ICollection<Ingredient> PreferredIngredients { get; set; } = new List<Ingredient>();
 }
