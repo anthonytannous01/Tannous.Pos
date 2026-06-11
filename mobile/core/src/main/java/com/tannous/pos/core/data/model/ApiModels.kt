@@ -1231,3 +1231,66 @@ data class ApiKeyDto(
     val lastUsedAt: String? = null,
     val createdAt: String
 )
+
+// Supplier intelligence (Step 111)
+@Serializable
+data class SupplierIntelligenceDto(
+    val generatedAt: String,
+    val forecastDays: Int,
+    val confidence: String,
+    val lowStockAlerts: List<LowStockAlertDto> = emptyList(),
+    val orderSuggestions: List<SupplierOrderSuggestionDto> = emptyList(),
+    val totalIngredientsAnalysed: Int = 0,
+    val totalSuggestedLines: Int = 0,
+    val totalEstimatedCost: Double = 0.0
+)
+
+@Serializable
+data class LowStockAlertDto(
+    val ingredientId: String,
+    val name: String,
+    val unit: String,
+    val currentStock: Double,
+    val minimumStock: Double,
+    val deficit: Double,
+    val supplierName: String? = null
+)
+
+@Serializable
+data class SupplierOrderSuggestionDto(
+    val supplierId: String? = null,
+    val supplierName: String,
+    val supplierPhone: String? = null,
+    val supplierEmail: String? = null,
+    val lines: List<OrderLineSuggestionDto> = emptyList(),
+    val totalEstimatedCost: Double = 0.0
+)
+
+@Serializable
+data class OrderLineSuggestionDto(
+    val ingredientId: String,
+    val name: String,
+    val unit: String,
+    val currentStock: Double,
+    val minimumStock: Double,
+    val projectedUsage: Double,
+    val suggestedQty: Double,
+    val unitCost: Double,
+    val estimatedCost: Double,
+    val isLowStock: Boolean = false
+)
+
+@Serializable
+data class CreateSuggestedOrdersRequest(
+    val forecastDays: Int = 7,
+    val branchId: String? = null,
+    val supplierIds: List<String>? = null
+)
+
+@Serializable
+data class CreateSuggestedOrdersResult(
+    val ordersCreated: Int = 0,
+    val orderIds: List<String> = emptyList(),
+    val orderNumbers: List<String> = emptyList(),
+    val skippedReason: String? = null
+)

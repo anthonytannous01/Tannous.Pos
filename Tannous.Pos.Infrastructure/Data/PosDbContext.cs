@@ -83,6 +83,15 @@ public class PosDbContext : DbContext
             .Property(i => i.CostPerUnit)
             .HasColumnType("decimal(18,2)");
 
+        modelBuilder.Entity<Ingredient>()
+            .HasOne(i => i.PreferredSupplier)
+            .WithMany(s => s.PreferredIngredients)
+            .HasForeignKey(i => i.PreferredSupplierId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Ingredient>()
+            .HasIndex(i => i.PreferredSupplierId);
+
         modelBuilder.Entity<Order>()
             .Property(o => o.SubTotal)
             .HasColumnType("decimal(18,2)");
