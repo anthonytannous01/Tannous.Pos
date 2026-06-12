@@ -1,10 +1,15 @@
 package com.tannous.pos.core.data.repository
 
+import android.content.Context
 import com.tannous.pos.core.data.local.dao.KeyValueDao
 import com.tannous.pos.core.data.local.entity.KeyValueEntity
 import com.tannous.pos.core.data.model.BusinessSettingsDto
+import com.tannous.pos.core.data.model.PrinterConfig
 import com.tannous.pos.core.data.model.UpdateSettingsRequest
 import com.tannous.pos.core.data.remote.SettingsService
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import timber.log.Timber
 import java.io.IOException
@@ -25,8 +30,18 @@ import javax.inject.Singleton
 @Singleton
 class SettingsRepository @Inject constructor(
     private val settingsService: SettingsService,
-    private val keyValueDao: KeyValueDao
+    private val keyValueDao: KeyValueDao,
+    @ApplicationContext private val context: Context
 ) {
+
+    private val printerPrefs by lazy {
+        context.getSharedPreferences(PRINTER_PREFS_NAME, Context.MODE_PRIVATE)
+    }
+
+    private val printerJson = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     /**
      * Fetches settings from the server and caches tax rate + currency. On network failure,
@@ -121,6 +136,24 @@ class SettingsRepository @Inject constructor(
 
     fun isArabic(lang: String) = lang == LANG_AR
 
+    suspend fun isArabic(): Boolean = isArabic(getLanguage())
+
+    fun getPrinterConfig(): PrinterConfig {
+        return try {
+            val raw = printerPrefs.getString(KEY_PRINTER_CONFIG, null) ?: return PrinterConfig()
+            printerJson.decodeFromString<PrinterConfig>(raw)
+        } catch (e: Exception) {
+            Timber.w(e, "Invalid printer config; using defaults")
+            PrinterConfig()
+        }
+    }
+
+    fun setPrinterConfig(config: PrinterConfig) {
+        printerPrefs.edit()
+            .putString(KEY_PRINTER_CONFIG, printerJson.encodeToString(config))
+            .apply()
+    }
+
     private suspend fun syntheticFromCache(): BusinessSettingsDto {
         val percent = percentFromCachedFraction(getTaxRate())
         return BusinessSettingsDto(
@@ -137,6 +170,8 @@ class SettingsRepository @Inject constructor(
         const val KEY_EXCHANGE_RATE = "settings_exchange_rate"
         const val KEY_LANGUAGE    = "settings_language"
         const val KEY_KIOSK_PIN   = "kiosk_exit_pin"
+        const val KEY_PRINTER_CONFIG = "printer_config"
+        const val PRINTER_PREFS_NAME = "tannous_printer_prefs"
         const val LANG_EN         = "en"
         const val LANG_AR         = "ar"
         const val DEFAULT_KIOSK_PIN = "1234"

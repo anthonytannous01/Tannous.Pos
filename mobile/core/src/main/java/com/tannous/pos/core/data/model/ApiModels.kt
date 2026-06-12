@@ -1294,3 +1294,99 @@ data class CreateSuggestedOrdersResult(
     val orderNumbers: List<String> = emptyList(),
     val skippedReason: String? = null
 )
+
+// Section sales reporting (Step 112)
+@Serializable
+data class SectionSalesReportDto(
+    val from: String,
+    val to: String,
+    val totalOrders: Int,
+    val totalNetSales: Double,
+    val sections: List<SectionSalesDto> = emptyList()
+)
+
+@Serializable
+data class SectionSalesDto(
+    val sectionName: String,
+    val isUnassigned: Boolean = false,
+    val orderCount: Int,
+    val netSales: Double,
+    val taxCollected: Double,
+    val avgTicket: Double,
+    val sharePercent: Double,
+    val topItems: List<SectionTopItemDto> = emptyList(),
+    val hourlySales: List<SectionHourlyDto> = emptyList()
+)
+
+@Serializable
+data class SectionTopItemDto(
+    val menuItemId: String,
+    val name: String,
+    val nameAr: String? = null,
+    val qty: Int,
+    val sales: Double
+)
+
+@Serializable
+data class SectionHourlyDto(
+    val hour: Int,
+    val orders: Int,
+    val sales: Double
+)
+
+// Receipt printing (GET /receipts/{orderId})
+@Serializable
+data class ReceiptDto(
+    val orderId: String,
+    val orderNumber: String = "",
+    val orderType: String = "",
+    val printedAt: String = "",
+    val isReprint: Boolean = false,
+    val businessName: String = "",
+    val businessNameAr: String? = null,
+    val businessPhone: String? = null,
+    val businessAddress: String? = null,
+    val taxId: String? = null,
+    val customerName: String? = null,
+    val tableLabel: String? = null,
+    val lines: List<ReceiptLineDto> = emptyList(),
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val subTotal: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val discountAmount: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val taxAmount: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val stampDuty: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalUsd: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val totalLbp: BigDecimal = BigDecimal.ZERO,
+    val stampDutyEnabled: Boolean = false,
+    val payments: List<ReceiptPaymentDto> = emptyList(),
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amountTendered: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val changeDue: BigDecimal = BigDecimal.ZERO,
+    val footerMessage: String = "Thank you for visiting!",
+    val footerMessageAr: String = "شكراً لزيارتكم!"
+)
+
+@Serializable
+data class ReceiptLineDto(
+    val name: String = "",
+    val nameAr: String? = null,
+    val qty: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val unitPrice: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val lineTotal: BigDecimal = BigDecimal.ZERO,
+    val notes: String? = null
+)
+
+@Serializable
+data class ReceiptPaymentDto(
+    val method: String = "",
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal = BigDecimal.ZERO
+)

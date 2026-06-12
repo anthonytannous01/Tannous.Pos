@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.CogsReportDto
 import com.tannous.pos.core.data.model.EodReportDto
 import com.tannous.pos.core.data.model.KdsPerformanceDto
+import com.tannous.pos.core.data.model.SectionSalesReportDto
 import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -185,6 +186,57 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
+    fun loadSectionSales(preset: String = _uiState.value.sectionSales.rangePreset) {
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(sectionSales = it.sectionSales.copy(isLoading = true, error = null, rangePreset = preset))
+            }
+            try {
+                val today = LocalDate.now()
+                val (from, to) = when (preset) {
+                    "today" -> today to today.plusDays(1)
+                    "30d"   -> today.minusDays(30) to today.plusDays(1)
+                    else    -> today.minusDays(7) to today.plusDays(1)
+                }
+                val report = reportsService.getSectionSales(
+                    from = from.toString() + "T00:00:00Z",
+                    to   = to.toString()   + "T00:00:00Z"
+                )
+                _uiState.update {
+                    it.copy(sectionSales = it.sectionSales.copy(isLoading = false, data = report, error = null))
+                }
+            } catch (e: HttpException) {
+                val msg = if (e.code() == 403) "Reports require owner access"
+                          else "Server error: ${e.code()}"
+                _uiState.update {
+                    it.copy(sectionSales = it.sectionSales.copy(isLoading = false, error = msg))
+                }
+            } catch (e: IOException) {
+                _uiState.update {
+                    it.copy(sectionSales = it.sectionSales.copy(
+                        isLoading = false, error = "No connection. Connect to load reports."))
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(sectionSales = it.sectionSales.copy(
+                        isLoading = false, error = e.message ?: "Failed to load section sales"))
+                }
+            }
+        }
+    }
+
+    fun selectSectionPreset(preset: String) {
+        if (preset != _uiState.value.sectionSales.rangePreset ||
+            _uiState.value.sectionSales.data == null
+        ) {
+            loadSectionSales(preset)
+        }
+    }
+
+    fun clearSectionSalesError() {
+        _uiState.update { it.copy(sectionSales = it.sectionSales.copy(error = null)) }
+    }
+
     fun clearKdsError() {
         _uiState.update { it.copy(kdsPerformance = it.kdsPerformance.copy(error = null)) }
     }
@@ -336,12 +388,20 @@ data class ReportsUiState(
     val cogsError: String? = null,
     val isExporting: Boolean = false,
     val exportError: String? = null,
-    val kdsPerformance: KdsPerformanceState = KdsPerformanceState()
+    val kdsPerformance: KdsPerformanceState = KdsPerformanceState(),
+    val sectionSales: SectionSalesState = SectionSalesState()
 )
 
 data class KdsPerformanceState(
     val isLoading: Boolean = false,
     val data: KdsPerformanceDto? = null,
     val error: String? = null,
-    val rangePreset: String = "7d"   // "today" | "7d" | "30d"
+    val rangePreset: String = "7d"
+)
+
+data class SectionSalesState(
+    val isLoading: Boolean = false,
+    val data: SectionSalesReportDto? = null,
+    val error: String? = null,
+    val rangePreset: String = "7d"
 )

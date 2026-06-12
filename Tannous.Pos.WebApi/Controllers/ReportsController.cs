@@ -8,6 +8,7 @@ using Tannous.Pos.Application.Kds.Queries.GetKdsPerformance;
 using Tannous.Pos.Application.Reports.Queries.GetMenuEngineering;
 using Tannous.Pos.Application.Reports.Queries.GetSalesSummary;
 using Tannous.Pos.Application.Reports.Queries.GetSalesExport;
+using Tannous.Pos.Application.Reports.Queries.GetSectionSales;
 using Tannous.Pos.Application.Reports.Queries.GetPurchasesExport;
 using MediatR;
 using Tannous.Pos.WebApi.Constants;
@@ -94,6 +95,25 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime to)
     {
         var result = await _mediator.Send(new GetMenuEngineeringQuery { From = from, To = to });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Revenue breakdown by floor plan section (Indoor, Terrace, Bar, etc.).
+    /// Orders without an assigned table are grouped as "No Section".
+    /// </summary>
+    [HttpGet("section-sales")]
+    public async Task<ActionResult<SectionSalesReportDto>> GetSectionSales(
+        [FromQuery] DateTime from,
+        [FromQuery] DateTime to,
+        [FromQuery] Guid?    branchId = null)
+    {
+        var result = await _mediator.Send(new GetSectionSalesQuery
+        {
+            From     = from,
+            To       = to,
+            BranchId = branchId
+        });
         return Ok(result);
     }
 

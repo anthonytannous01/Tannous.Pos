@@ -382,6 +382,16 @@ interface ReportsService {
         @Query("to") to: String,
         @Query("branchId") branchId: String? = null
     ): KdsPerformanceDto
+
+    @GET("reports/section-sales")
+    suspend fun getSectionSales(
+        @Query("from") from: String,
+        @Query("to") to: String,
+        @Query("branchId") branchId: String? = null
+    ): SectionSalesReportDto
+
+    @GET("receipts/{orderId}")
+    suspend fun getReceipt(@Path("orderId") orderId: String): ReceiptDto
 }
 
 interface SupplierIntelligenceService {

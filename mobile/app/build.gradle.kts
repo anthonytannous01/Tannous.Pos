@@ -164,6 +164,8 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
+    implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
+
     // Hilt WorkManager integration (needed in app module for HiltWorkerFactory)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
