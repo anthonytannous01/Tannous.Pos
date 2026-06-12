@@ -24,7 +24,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.ui.LanguageViewModel
+import com.tannous.pos.feature.settings.printer.PrinterSettingsSection
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -102,6 +104,20 @@ fun SettingsScreen(
         if (uiState.saveSuccess) {
             snackbarHostState.showSnackbar("Settings saved")
             viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(uiState.printerPrintState) {
+        when (val state = uiState.printerPrintState) {
+            is PrinterPrintState.Success -> {
+                snackbarHostState.showSnackbar(state.message)
+                viewModel.clearPrinterPrintState()
+            }
+            is PrinterPrintState.Error -> {
+                snackbarHostState.showSnackbar(state.message, duration = SnackbarDuration.Long)
+                viewModel.clearPrinterPrintState()
+            }
+            else -> Unit
         }
     }
 
@@ -504,6 +520,33 @@ fun SettingsScreen(
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
+                    }
+
+                    run {
+                        val isArabic = uiState.language == SettingsRepository.LANG_AR
+                        PrinterSettingsSection(
+                            viewModel = viewModel,
+                            isArabic = isArabic,
+                            connectionType = uiState.printerConnectionType,
+                            bluetoothDeviceName = uiState.printerBluetoothDeviceName,
+                            bluetoothAddress = uiState.printerBluetoothAddress,
+                            networkHost = uiState.printerNetworkHost,
+                            networkPort = uiState.printerNetworkPort,
+                            paperWidthMm = uiState.printerPaperWidthMm,
+                            bondedDevices = uiState.bondedBluetoothDevices,
+                            showDeviceSheet = uiState.showBluetoothDeviceSheet,
+                            printerPrintState = uiState.printerPrintState,
+                            onDismissDeviceSheet = viewModel::dismissBluetoothDeviceSheet,
+                            onShowDeviceSheet = viewModel::showBluetoothDeviceSheet,
+                            onClearBluetoothDevice = viewModel::clearBluetoothPrinter,
+                            onSelectDevice = viewModel::setBluetoothPrinter,
+                            onConnectionTypeChange = viewModel::setPrinterConnectionType,
+                            onNetworkHostChange = viewModel::setPrinterNetworkHost,
+                            onNetworkPortChange = viewModel::setPrinterNetworkPort,
+                            onPaperWidthChange = viewModel::setPrinterPaperWidth,
+                            onPrintTest = viewModel::printTestReceipt,
+                            onClearPrintState = viewModel::clearPrinterPrintState
+                        )
                     }
 
                     Card(

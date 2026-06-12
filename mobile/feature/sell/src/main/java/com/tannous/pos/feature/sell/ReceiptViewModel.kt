@@ -6,15 +6,17 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.OrderDto
 import com.tannous.pos.core.data.remote.OrderService
+import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.CatalogRepository
 import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
-import com.tannous.pos.core.printing.Printer
 import com.tannous.pos.core.printing.ReceiptFormatter
 import com.tannous.pos.core.printing.ReceiptItem
 import com.tannous.pos.core.printing.ReceiptPayment
 import com.tannous.pos.core.printing.ReceiptToPrint
 import com.tannous.pos.core.util.currencyFormatterFor
+import com.tannous.pos.feature.settings.printer.PrintResult
+import com.tannous.pos.feature.settings.printer.PrinterService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,15 +30,16 @@ import javax.inject.Inject
 @HiltViewModel
 class ReceiptViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val printer: Printer,
+    private val reportsService: ReportsService,
+    private val printerService: PrinterService,
     private val orderService: OrderService,
     private val orderRepository: OrderRepository,
     private val catalogRepository: CatalogRepository,
     private val settingsRepository: SettingsRepository
 ) : ViewModel() {
     
-    private val _printState = kotlinx.coroutines.flow.MutableStateFlow<PrintState>(PrintState.Idle)
-    val printState = kotlinx.coroutines.flow.MutableStateFlow(_printState.value)
+    private val _printState = MutableStateFlow<PrintState>(PrintState.Idle)
+    val printState: StateFlow<PrintState> = _printState.asStateFlow()
 
     private val _orderLines = MutableStateFlow<List<ReceiptLine>>(emptyList())
     val orderLines: StateFlow<List<ReceiptLine>> = _orderLines.asStateFlow()
@@ -107,40 +110,15 @@ class ReceiptViewModel @Inject constructor(
         }
     }
     
-    fun printReceipt(order: OrderDto) {
+    fun printReceipt(orderId: String) {
         viewModelScope.launch {
             try {
                 _printState.value = PrintState.Printing
-                
-                // Create receipt payments from order
-                // Note: We don't have payment details in OrderDto, so we create a generic payment entry
-                // In a real scenario, you might want to store payment info separately or include it in OrderDto
-                val payments = listOf(
-                    ReceiptPayment(
-                        method = "PAID", // Generic since we don't have payment method in OrderDto
-                        amount = formatCurrency(order.total)
-                    )
-                )
-                
-                // Format receipt with resolved line items when available (null degrades gracefully)
-                val receipt = ReceiptFormatter.formatReceipt(
-                    order = order,
-                    items = currentReceiptItems(),
-                    payments = payments
-                )
-                
-                // Print receipt
-                val result = printer.printReceipt(receipt)
-                
-                when (result) {
-                    is com.tannous.pos.core.printing.PrintResult.Success -> {
-                        _printState.value = PrintState.Success
-                        Timber.d("Receipt printed successfully")
-                    }
-                    is com.tannous.pos.core.printing.PrintResult.Failed -> {
-                        _printState.value = PrintState.Error(result.message)
-                        Timber.e("Failed to print receipt: ${result.message}")
-                    }
+                val receipt = reportsService.getReceipt(orderId)
+                val result = printerService.printReceipt(receipt, settingsRepository.isArabic())
+                _printState.value = when (result) {
+                    is PrintResult.Success -> PrintState.Success
+                    is PrintResult.Failure -> PrintState.Error(result.message)
                 }
             } catch (e: Exception) {
                 _printState.value = PrintState.Error(e.message ?: "Unknown error")

@@ -3,6 +3,7 @@ package com.tannous.pos.feature.sell
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -342,24 +343,23 @@ fun ReceiptScreen(
                 }
                 
                 // Print button
-                Button(
-                    onClick = { viewModel.printReceipt(order) },
+                OutlinedButton(
+                    onClick = { viewModel.printReceipt(order.id) },
                     modifier = Modifier.weight(1f),
                     enabled = printState !is PrintState.Printing
                 ) {
                     if (printState is PrintState.Printing) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            modifier = Modifier.size(18.dp)
                         )
                     } else {
                         Icon(
-                            imageVector = Icons.Filled.Share,
+                            imageVector = Icons.Default.Print,
                             contentDescription = "Print",
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Print")
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (isArabic) "طباعة الفاتورة" else "Print Receipt")
                     }
                 }
             }

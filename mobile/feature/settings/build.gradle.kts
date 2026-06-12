@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.hilt.navigation.compose)
@@ -53,6 +54,7 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.zxing.core)
+    implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
 
     // Testing
     testImplementation(libs.androidx.test.ext.junit)

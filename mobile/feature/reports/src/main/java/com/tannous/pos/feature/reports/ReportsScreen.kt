@@ -28,8 +28,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.KdsHourlyDto
 import com.tannous.pos.core.data.model.KdsItemPerformanceDto
 import com.tannous.pos.core.data.model.KdsPerformanceDto
+import com.tannous.pos.core.data.model.SectionHourlyDto
+import com.tannous.pos.core.data.model.SectionSalesDto
+import com.tannous.pos.core.data.model.SectionSalesReportDto
+import com.tannous.pos.core.data.model.SectionTopItemDto
 import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
+import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -37,6 +42,7 @@ import java.util.Locale
 
 private const val KITCHEN_TAB = 2
 private const val EXPORT_TAB = 3
+private const val SECTIONS_TAB = 4
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,12 +73,25 @@ fun ReportsScreen(
         }
     }
 
+    LaunchedEffect(uiState.sectionSales.error) {
+        uiState.sectionSales.error?.let { error ->
+            snackbarHostState.showSnackbar(error)
+            viewModel.clearSectionSalesError()
+        }
+    }
+
     LaunchedEffect(uiState.selectedTab) {
         if (uiState.selectedTab == KITCHEN_TAB &&
             uiState.kdsPerformance.data == null &&
             !uiState.kdsPerformance.isLoading
         ) {
             viewModel.loadKdsPerformance()
+        }
+        if (uiState.selectedTab == SECTIONS_TAB &&
+            uiState.sectionSales.data == null &&
+            !uiState.sectionSales.isLoading
+        ) {
+            viewModel.loadSectionSales()
         }
     }
 
@@ -109,6 +128,8 @@ fun ReportsScreen(
                     text = { Text(if (isArabic) "المطبخ" else "Kitchen") })
                 Tab(selected = uiState.selectedTab == EXPORT_TAB, onClick = { viewModel.selectTab(EXPORT_TAB) },
                     text = { Text("Export") })
+                Tab(selected = uiState.selectedTab == SECTIONS_TAB, onClick = { viewModel.selectTab(SECTIONS_TAB) },
+                    text = { Text(if (isArabic) "الأقسام" else "Sections") })
             }
 
             Column(
@@ -404,7 +425,6 @@ fun ReportsScreen(
 
                 // ── Export tab ────────────────────────────────────────────────
                 if (uiState.selectedTab == EXPORT_TAB) {
-                    val context = androidx.compose.ui.platform.LocalContext.current
                     var exportFrom by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
                     var exportTo   by remember { mutableStateOf(LocalDate.now()) }
 
@@ -476,6 +496,17 @@ fun ReportsScreen(
                             }
                         }
                     }
+                }
+
+                // ── Sections tab ──────────────────────────────────────────────
+                if (uiState.selectedTab == SECTIONS_TAB) {
+                    SectionsTabContent(
+                        state = uiState.sectionSales,
+                        isArabic = isArabic,
+                        currencyFormatter = currencyFormatter,
+                        onSelectPreset = { viewModel.selectSectionPreset(it) },
+                        onRetry = { viewModel.loadSectionSales() }
+                    )
                 }
             }
         }
@@ -748,5 +779,245 @@ private fun KdsItemRow(item: KdsItemPerformanceDto, isArabic: Boolean) {
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(12.dp)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SectionsTabContent(
+    state: SectionSalesState,
+    isArabic: Boolean,
+    currencyFormatter: NumberFormat,
+    onSelectPreset: (String) -> Unit,
+    onRetry: () -> Unit
+) {
+    val presets = listOf(
+        Triple("today", if (isArabic) "اليوم" else "Today", "today"),
+        Triple("7d", if (isArabic) "آخر 7 أيام" else "Last 7 days", "7d"),
+        Triple("30d", if (isArabic) "آخر 30 يوماً" else "Last 30 days", "30d")
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        presets.forEach { (_, label, id) ->
+            FilterChip(
+                selected = state.rangePreset == id,
+                onClick = { onSelectPreset(id) },
+                label = { Text(label) }
+            )
+        }
+    }
+
+    when {
+        state.isLoading && state.data == null -> {
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(32.dp),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
+        }
+
+        state.error != null && state.data == null -> {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(state.error!!, color = MaterialTheme.colorScheme.error)
+                Button(onClick = onRetry) {
+                    Text(if (isArabic) "إعادة المحاولة" else "Retry")
+                }
+            }
+        }
+
+        state.data != null && (state.data.sections.isEmpty() || state.data.totalOrders == 0) -> {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Text(
+                    if (isArabic)
+                        "🪑 لا توجد بيانات أقسام لهذه الفترة. عيِّن الطاولات لمخططات الطابق لرؤية الإيرادات حسب القسم."
+                    else
+                        "🪑 No section data for this period. Assign tables to floor plans to see revenue by section.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        state.data != null -> {
+            val data = state.data
+            val namedSections = data.sections.filter { !it.isUnassigned }
+            val topSection = namedSections.firstOrNull()
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SummaryCard(
+                    label = if (isArabic) "إجمالي الأقسام" else "Total Sections",
+                    value = namedSections.size.toString(),
+                    modifier = Modifier.weight(1f)
+                )
+                SummaryCard(
+                    label = if (isArabic) "أعلى قسم" else "Top Section",
+                    value = topSection?.let {
+                        "${it.sectionName}\n${currencyFormatter.format(it.netSales)}"
+                    } ?: "—",
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            data.sections.forEachIndexed { index, section ->
+                SectionSalesCard(
+                    section = section,
+                    isArabic = isArabic,
+                    currencyFormatter = currencyFormatter,
+                    isTopSection = index == 0 && !section.isUnassigned
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SectionSalesCard(
+    section: SectionSalesDto,
+    isArabic: Boolean,
+    currencyFormatter: NumberFormat,
+    isTopSection: Boolean
+) {
+    var hourlyExpanded by remember { mutableStateOf(false) }
+    val icon = if (section.isUnassigned) "📦" else "🪑"
+    val barColor = if (isTopSection) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = if (section.isUnassigned) {
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        } else {
+            CardDefaults.cardColors()
+        }
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "$icon ${section.sectionName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "${"%.1f".format(section.sharePercent)}% " +
+                        (if (isArabic) "من المبيعات" else "of sales"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                "${section.orderCount} " + (if (isArabic) "طلبات" else "orders") +
+                    "  ·  " + (if (isArabic) "متوسط" else "Avg") +
+                    " ${currencyFormatter.format(section.avgTicket)}" +
+                    "  ·  " + (if (isArabic) "صافي" else "Net") +
+                    " ${currencyFormatter.format(section.netSales)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            LinearProgressIndicator(
+                progress = (section.sharePercent / 100.0).toFloat().coerceIn(0f, 1f),
+                modifier = Modifier.fillMaxWidth(),
+                color = barColor,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+
+            if (section.topItems.isNotEmpty()) {
+                Text(
+                    if (isArabic) "أفضل الأصناف:" else "Top items:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                section.topItems.forEach { item ->
+                    val name = if (isArabic) item.nameAr?.takeIf { it.isNotBlank() } ?: item.name else item.name
+                    Text(
+                        "• $name ×${item.qty}  ${currencyFormatter.format(item.sales)}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            if (section.hourlySales.isNotEmpty()) {
+                TextButton(onClick = { hourlyExpanded = !hourlyExpanded }) {
+                    Text(
+                        if (hourlyExpanded) {
+                            if (isArabic) "▾ إخفاء التوزيع بالساعة" else "▾ Hide hourly breakdown"
+                        } else {
+                            if (isArabic) "▸ عرض التوزيع بالساعة" else "▸ See hourly breakdown"
+                        }
+                    )
+                }
+                if (hourlyExpanded) {
+                    SectionHourlyChart(hourly = section.hourlySales, barColor = barColor)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHourlyChart(
+    hourly: List<SectionHourlyDto>,
+    barColor: androidx.compose.ui.graphics.Color
+) {
+    val maxSales = hourly.maxOfOrNull { it.sales }?.coerceAtLeast(1.0) ?: 1.0
+    val labelHours = listOf(0, 6, 12, 18)
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(8.dp)) {
+            Canvas(modifier = Modifier.fillMaxWidth().height(80.dp)) {
+                val barWidth = size.width / 24f
+                val chartHeight = size.height - 16f
+
+                hourly.forEach { h ->
+                    val fraction = (h.sales / maxSales).toFloat()
+                    val barHeight = (chartHeight * fraction).coerceAtLeast(2f)
+                    drawRect(
+                        color = barColor,
+                        topLeft = Offset(h.hour * barWidth + barWidth * 0.15f, chartHeight - barHeight),
+                        size = Size(barWidth * 0.7f, barHeight)
+                    )
+                }
+            }
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                labelHours.forEach { hour ->
+                    Text(
+                        "${hour}h",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }
