@@ -335,6 +335,51 @@ data class AddOnDto(
     val version: String? = null
 )
 
+// Catalog mutation requests
+@Serializable
+data class CreateCategoryRequest(
+    val name: String,
+    val description: String? = null,
+    val displayOrder: Int = 0,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class UpdateCategoryRequest(
+    val name: String,
+    val description: String? = null,
+    val displayOrder: Int = 0,
+    val isActive: Boolean = true
+)
+
+@Serializable
+data class CreateMenuItemRequest(
+    val name: String,
+    val nameAr: String? = null,
+    val description: String? = null,
+    val descriptionAr: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val price: BigDecimal,
+    val categoryId: String,
+    val isActive: Boolean = true,
+    val hasAddOns: Boolean = false,
+    val displayOrder: Int = 0
+)
+
+@Serializable
+data class UpdateMenuItemRequest(
+    val name: String,
+    val nameAr: String? = null,
+    val description: String? = null,
+    val descriptionAr: String? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val price: BigDecimal,
+    val categoryId: String,
+    val isActive: Boolean = true,
+    val hasAddOns: Boolean = false,
+    val displayOrder: Int = 0
+)
+
 // Customers
 @Serializable
 data class CustomerDto(
@@ -378,41 +423,49 @@ data class UpdateCustomerRequest(
 )
 
 // Orders
+// Backend property names (camelCase of C# PascalCase) differ from Android field names in some cases.
+// Use @SerialName where they diverge.
 @Serializable
 data class OrderDto(
-    val id: String,
-    val orderNumber: String?,
-    val orderType: String,
-    val status: String,
-    val customerId: String?,
-    val shiftId: String?,
+    val id: String = "",
+    val orderNumber: String? = null,
+    val orderType: String = "",
+    val status: String = "",
+    val customerId: String? = null,
+    val shiftId: String? = null,
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val subTotal: BigDecimal,
+    val subTotal: BigDecimal = BigDecimal.ZERO,
+    @SerialName("discountAmount")
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val discount: BigDecimal,
+    val discount: BigDecimal = BigDecimal.ZERO,
+    @SerialName("taxAmount")
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val tax: BigDecimal,
+    val tax: BigDecimal = BigDecimal.ZERO,
+    @SerialName("totalAmount")
     @Serializable(with = BigDecimalAsStringSerializer::class)
-    val total: BigDecimal,
-    val notes: String?,
+    val total: BigDecimal = BigDecimal.ZERO,
+    val notes: String? = null,
     val customerPhone: String? = null,
-    val createdAt: String,
-    val receiptNumber: String?,
-    val syncedAt: String?,
+    val createdAt: String = "",
+    val receiptNumber: String? = null,
+    val syncedAt: String? = null, // not in backend response — default null
     val orderLines: List<OrderLineDto>? = null
 )
 
 @Serializable
 data class OrderLineDto(
-    val id: String,
-    val orderId: String,
-    val menuItemId: String,
-    val quantity: Int,
-    @Serializable(with = BigDecimalAsStringSerializer::class)
-    val unitPrice: BigDecimal,
-    @Serializable(with = BigDecimalAsStringSerializer::class)
-    val totalPrice: BigDecimal,
-    val notes: String?,
+    val id: String = "",         // not sent by all backend endpoints — default ok
+    val orderId: String = "",    // not sent by all backend endpoints — default ok
+    val menuItemId: String = "",
+    val quantity: Int = 0,
+    // Backend sends unitPrice as a JSON number (decimal → double), not a string.
+    // BigDecimalAsStringSerializer expects strings → decoder.decodeString() fails on numbers → $0.00.
+    // Use Double here and convert to BigDecimal at the use site.
+    val unitPrice: Double = 0.0,
+    // totalPrice is NOT sent by any backend endpoint (neither GET nor finalize).
+    // Computed at the use site as unitPrice * quantity.
+    val totalPrice: Double = 0.0,
+    val notes: String? = null,
     val kdsStatus: Int = 0 // KdsStatus: 0=Pending,1=InProgress,2=Done,3=Cancelled
 )
 
@@ -468,10 +521,12 @@ data class OrderLineAddOnDto(
 
 @Serializable
 data class CreateOrderRequest(
-    val orderType: String,
+    // Backend OrderType enum: DineIn=1, Takeaway=2, Delivery=3, Online=4
+    // System.Text.Json deserializes enums as integers by default (no JsonStringEnumConverter).
+    val orderType: Int,
     val customerId: String?,
     val tableId: String? = null,
-    val lines: List<CreateOrderLineRequest>,
+    val orderLines: List<CreateOrderLineRequest>, // matches backend CreateOrderDto.OrderLines
     val notes: String?
 )
 
@@ -479,6 +534,7 @@ data class CreateOrderRequest(
 data class CreateOrderLineRequest(
     val menuItemId: String,
     val quantity: Int,
+    val unitPrice: Double, // Must be a JSON number — backend decimal field rejects strings
     val addOns: List<CreateOrderLineAddOnRequest>?
 )
 
@@ -498,8 +554,7 @@ data class VoidOrderRequest(val reason: String)
 @Serializable
 data class PaymentDto(
     val paymentMethod: String,
-    @Serializable(with = BigDecimalAsStringSerializer::class)
-    val amount: BigDecimal,
+    val amount: Double, // Must be a JSON number — backend decimal field rejects strings
     val transactionId: String? = null,
     val notes: String? = null
 )
@@ -551,6 +606,29 @@ data class ClockOutRequest(
     val branchId: String,
     val breakMinutes: Int? = null,
     val notes: String? = null
+)
+
+@Serializable
+data class CreateScheduleRequest(
+    val userId: String,
+    val branchId: String,
+    val scheduledStart: String,   // ISO-8601 UTC e.g. "2026-06-27T08:00:00Z"
+    val scheduledEnd: String,
+    val position: String? = null,
+    val notes: String? = null
+)
+
+@Serializable
+data class UpdateScheduleRequest(
+    val scheduledStart: String,
+    val scheduledEnd: String,
+    val position: String? = null,
+    val notes: String? = null
+)
+
+@Serializable
+data class PublishScheduleRequest(
+    val scheduleIds: List<String>
 )
 
 // Shifts
@@ -700,6 +778,22 @@ data class TableDto(
 
 @Serializable
 data class UpdateTableStatusRequest(val status: Int)
+
+@Serializable
+data class CreateFloorPlanRequest(
+    val name: String,
+    val description: String? = null,
+    val displayOrder: Int = 0
+)
+
+@Serializable
+data class CreateTableRequest(
+    val tableNumber: String,
+    val label: String? = null,
+    val capacity: Int = 2,
+    val floorPlanId: String,
+    val displayOrder: Int = 0
+)
 
 // Printing
 @Serializable
@@ -1389,4 +1483,38 @@ data class ReceiptPaymentDto(
     val method: String = "",
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val amount: BigDecimal = BigDecimal.ZERO
+)
+
+@Serializable
+data class SplitBillDto(
+    val orderId: String,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val orderTotal: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val alreadyPaid: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val remaining: BigDecimal = BigDecimal.ZERO,
+    val ways: Int = 2,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amountPerPerson: BigDecimal = BigDecimal.ZERO,
+    val peopleRemaining: Int = 0,
+    val isFullyPaid: Boolean = false,
+    val portions: List<SplitPortionDto> = emptyList()
+)
+
+@Serializable
+data class SplitPortionDto(
+    val personNumber: Int = 0,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal = BigDecimal.ZERO,
+    val isPaid: Boolean = false
+)
+
+@Serializable
+data class RecordSplitPaymentRequest(
+    val totalWays: Int,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val amount: BigDecimal,
+    val method: String,
+    val reference: String? = null
 )

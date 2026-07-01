@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tannous.pos.core.ui.LocalIsArabic
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +34,7 @@ fun PrintingPreviewScreen(
     viewModel: PrintingPreviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -80,10 +82,10 @@ fun PrintingPreviewScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Printing Preview") },
+                title = { Text(if (isArabic) "معاينة الطباعة" else "Printing Preview") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
@@ -188,7 +190,7 @@ fun PrintingPreviewScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Text("Print Receipt")
+                    Text(if (isArabic) "طباعة الفاتورة" else "Print Receipt")
                 }
 
                 OutlinedButton(
@@ -203,7 +205,7 @@ fun PrintingPreviewScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    Text("Test Print")
+                    Text(if (isArabic) "طباعة تجريبية" else "Test Print")
                 }
             }
         }

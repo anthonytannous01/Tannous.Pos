@@ -60,9 +60,9 @@ fun KdsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Kitchen Display")
+                        Text(if (isArabic) "شاشة المطبخ" else "Kitchen Display")
                         Text(
-                            text = "${uiState.tickets.size} active item(s)",
+                            text = if (isArabic) "${uiState.tickets.size} عنصر نشط" else "${uiState.tickets.size} active item(s)",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -70,12 +70,12 @@ fun KdsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -104,9 +104,9 @@ fun KdsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("No active tickets", style = MaterialTheme.typography.titleMedium)
+                        Text(if (isArabic) "لا توجد تذاكر نشطة" else "No active tickets", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "All orders are done or no orders placed yet.",
+                            if (isArabic) "تم إنجاز جميع الطلبات أو لم تُقدَّم أي طلبات بعد." else "All orders are done or no orders placed yet.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -125,12 +125,12 @@ fun KdsScreen(
                 ) {
                     // Pending column
                     Column(modifier = Modifier.weight(1f)) {
-                        KdsColumnHeader("PENDING", pending.size, MaterialTheme.colorScheme.errorContainer)
+                        KdsColumnHeader(if (isArabic) "معلق" else "PENDING", pending.size, MaterialTheme.colorScheme.errorContainer)
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(pending, key = { it.orderLineId }) { ticket ->
                                 KdsTicketCard(
                                     ticket = ticket,
-                                    actionLabel = "Start",
+                                    actionLabel = if (isArabic) "ابدأ" else "Start",
                                     actionColor = MaterialTheme.colorScheme.primary,
                                     onAction = { viewModel.advanceStatus(ticket) }
                                 )
@@ -140,12 +140,12 @@ fun KdsScreen(
 
                     // In Progress column
                     Column(modifier = Modifier.weight(1f)) {
-                        KdsColumnHeader("IN PROGRESS", inProgress.size, MaterialTheme.colorScheme.tertiaryContainer)
+                        KdsColumnHeader(if (isArabic) "قيد التنفيذ" else "IN PROGRESS", inProgress.size, MaterialTheme.colorScheme.tertiaryContainer)
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(inProgress, key = { it.orderLineId }) { ticket ->
                                 KdsTicketCard(
                                     ticket = ticket,
-                                    actionLabel = "Done ✓",
+                                    actionLabel = if (isArabic) "تم ✓" else "Done ✓",
                                     actionColor = Color(0xFF2E7D32),
                                     onAction = { viewModel.advanceStatus(ticket) }
                                 )
@@ -266,7 +266,7 @@ private fun KdsTicketCard(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${ticket.elapsedMinutes}m ago",
+                        text = if (isArabic) "منذ ${ticket.elapsedMinutes} د" else "${ticket.elapsedMinutes}m ago",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (ticket.elapsedMinutes >= 10)
                             MaterialTheme.colorScheme.error

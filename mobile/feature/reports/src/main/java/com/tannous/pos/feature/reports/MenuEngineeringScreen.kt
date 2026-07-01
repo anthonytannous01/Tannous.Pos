@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.MenuEngineeringItemDto
+import com.tannous.pos.core.ui.LocalIsArabic
 
 // Category constants matching backend MenuEngineeringCategory enum
 private const val STAR      = 0
@@ -31,6 +32,7 @@ fun MenuEngineeringScreen(
     viewModel: MenuEngineeringViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
@@ -46,10 +48,10 @@ fun MenuEngineeringScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Menu Engineering")
+                        Text(if (isArabic) "هندسة القائمة" else "Menu Engineering")
                         uiState.report?.let {
                             Text(
-                                "${it.items.size} items · ${it.totalOrders} orders",
+                                "${it.items.size} ${if (isArabic) "عناصر · ${it.totalOrders} طلبات" else "items · ${it.totalOrders} orders"}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -58,12 +60,12 @@ fun MenuEngineeringScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.load() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -79,9 +81,11 @@ fun MenuEngineeringScreen(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No sales data for this period.",
+                Text(
+                    if (isArabic) "لا توجد بيانات مبيعات لهذه الفترة." else "No sales data for this period.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             else -> {
@@ -94,30 +98,30 @@ fun MenuEngineeringScreen(
                     contentPadding = PaddingValues(vertical = 12.dp)
                 ) {
                     // Legend
-                    item { MatrixLegend() }
+                    item { MatrixLegend(isArabic = isArabic) }
 
                     // Stars
                     byCategory[STAR]?.let { stars ->
-                        item { CategoryHeader("⭐ Stars", stars.size, Color(0xFF1B5E20)) }
-                        items(stars) { ItemRow(it) }
+                        item { CategoryHeader(if (isArabic) "⭐ النجوم" else "⭐ Stars", stars.size, Color(0xFF1B5E20)) }
+                        items(stars) { ItemRow(it, isArabic = isArabic) }
                     }
 
                     // Plowhorses
                     byCategory[PLOWHORSE]?.let { ph ->
-                        item { CategoryHeader("🐴 Plowhorses", ph.size, Color(0xFF1565C0)) }
-                        items(ph) { ItemRow(it) }
+                        item { CategoryHeader(if (isArabic) "🐴 الخيول العاملة" else "🐴 Plowhorses", ph.size, Color(0xFF1565C0)) }
+                        items(ph) { ItemRow(it, isArabic = isArabic) }
                     }
 
                     // Puzzles
                     byCategory[PUZZLE]?.let { pz ->
-                        item { CategoryHeader("🧩 Puzzles", pz.size, Color(0xFFE65100)) }
-                        items(pz) { ItemRow(it) }
+                        item { CategoryHeader(if (isArabic) "🧩 الألغاز" else "🧩 Puzzles", pz.size, Color(0xFFE65100)) }
+                        items(pz) { ItemRow(it, isArabic = isArabic) }
                     }
 
                     // Dogs
                     byCategory[DOG]?.let { dogs ->
-                        item { CategoryHeader("🐶 Dogs", dogs.size, Color(0xFF757575)) }
-                        items(dogs) { ItemRow(it) }
+                        item { CategoryHeader(if (isArabic) "🐶 الكلاب" else "🐶 Dogs", dogs.size, Color(0xFF757575)) }
+                        items(dogs) { ItemRow(it, isArabic = isArabic) }
                     }
                 }
             }
@@ -126,19 +130,30 @@ fun MenuEngineeringScreen(
 }
 
 @Composable
-private fun MatrixLegend() {
+private fun MatrixLegend(isArabic: Boolean) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("Classification Guide", style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold)
-            Text("⭐ Stars — high popularity + high margin → protect",
-                style = MaterialTheme.typography.bodySmall)
-            Text("🐴 Plowhorses — popular but low margin → reduce cost or reprice",
-                style = MaterialTheme.typography.bodySmall)
-            Text("🧩 Puzzles — high margin but unpopular → reposition or bundle",
-                style = MaterialTheme.typography.bodySmall)
-            Text("🐶 Dogs — low popularity + low margin → remove or overhaul",
-                style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (isArabic) "دليل التصنيف" else "Classification Guide",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                if (isArabic) "⭐ النجوم — شعبية عالية + هامش عالٍ → حافظ عليها" else "⭐ Stars — high popularity + high margin → protect",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                if (isArabic) "🐴 الخيول العاملة — شعبية عالية لكن هامش منخفض → خفض التكلفة أو أعد التسعير" else "🐴 Plowhorses — popular but low margin → reduce cost or reprice",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                if (isArabic) "🧩 الألغاز — هامش عالٍ لكن غير شعبية → أعد التموضع أو ضمّها" else "🧩 Puzzles — high margin but unpopular → reposition or bundle",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                if (isArabic) "🐶 الكلاب — شعبية منخفضة + هامش منخفض → احذفها أو طوّرها" else "🐶 Dogs — low popularity + low margin → remove or overhaul",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
@@ -158,7 +173,7 @@ private fun CategoryHeader(label: String, count: Int, color: Color) {
 }
 
 @Composable
-private fun ItemRow(item: MenuEngineeringItemDto) {
+private fun ItemRow(item: MenuEngineeringItemDto, isArabic: Boolean) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
@@ -174,22 +189,29 @@ private fun ItemRow(item: MenuEngineeringItemDto) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("${item.unitsSold} sold",
+                    Text(
+                        "${item.unitsSold} ${if (isArabic) "مُباع" else "sold"}",
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold)
-                    Text("${item.popularityIndex}% of sales",
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "${item.popularityIndex}% ${if (isArabic) "من المبيعات" else "of sales"}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             Divider()
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                LabelValue("Revenue", "$${item.revenue.toPlainString()}")
-                LabelValue("CM/unit", "$${item.contributionMargin.toPlainString()}")
-                LabelValue("CM%", "${item.contributionMarginPct}%",
-                    color = if (item.isHighMargin) Color(0xFF2E7D32) else Color(0xFFC62828))
+                LabelValue(if (isArabic) "الإيراد" else "Revenue", "$${item.revenue.toPlainString()}")
+                LabelValue(if (isArabic) "هامش/وحدة" else "CM/unit", "$${item.contributionMargin.toPlainString()}")
+                LabelValue(
+                    if (isArabic) "هامش%" else "CM%",
+                    "${item.contributionMarginPct}%",
+                    color = if (item.isHighMargin) Color(0xFF2E7D32) else Color(0xFFC62828)
+                )
             }
         }
     }

@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.tannous.pos.core.ui.LocalIsArabic
 import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -19,7 +20,8 @@ fun OpenShiftDialog(
     var openingBalance by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
-    
+    val isArabic = LocalIsArabic.current
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -30,38 +32,38 @@ fun OpenShiftDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Open Shift",
+                    text = if (isArabic) "فتح وردية" else "Open Shift",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 OutlinedTextField(
                     value = openingBalance,
-                    onValueChange = { 
+                    onValueChange = {
                         openingBalance = it
                         hasError = false
                     },
-                    label = { Text("Opening Balance") },
+                    label = { Text(if (isArabic) "رصيد الافتتاح" else "Opening Balance") },
                     isError = hasError,
                     supportingText = if (hasError) {
-                        { Text("Please enter a valid amount") }
+                        { Text(if (isArabic) "يرجى إدخال مبلغ صحيح" else "Please enter a valid amount") }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = notes,
                     onValueChange = { notes = it },
-                    label = { Text("Notes (Optional)") },
+                    label = { Text(if (isArabic) "ملاحظات (اختياري)" else "Notes (Optional)") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -70,9 +72,9 @@ fun OpenShiftDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
-                    
+
                     Button(
                         onClick = {
                             try {
@@ -88,7 +90,7 @@ fun OpenShiftDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Open Shift")
+                        Text(if (isArabic) "فتح وردية" else "Open Shift")
                     }
                 }
             }
@@ -105,7 +107,8 @@ fun CashDropDialog(
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
-    
+    val isArabic = LocalIsArabic.current
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -116,37 +119,37 @@ fun CashDropDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Cash Drop",
+                    text = if (isArabic) "إيداع نقدي" else "Cash Drop",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 OutlinedTextField(
                     value = amount,
-                    onValueChange = { 
+                    onValueChange = {
                         amount = it
                         hasError = false
                     },
-                    label = { Text("Amount") },
+                    label = { Text(if (isArabic) "المبلغ" else "Amount") },
                     isError = hasError,
                     supportingText = if (hasError) {
-                        { Text("Please enter a valid amount") }
+                        { Text(if (isArabic) "يرجى إدخال مبلغ صحيح" else "Please enter a valid amount") }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Note (Optional)") },
+                    label = { Text(if (isArabic) "ملاحظة (اختياري)" else "Note (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -155,9 +158,9 @@ fun CashDropDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
-                    
+
                     Button(
                         onClick = {
                             try {
@@ -173,7 +176,7 @@ fun CashDropDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Record Drop")
+                        Text(if (isArabic) "تسجيل الإيداع" else "Record Drop")
                     }
                 }
             }
@@ -192,7 +195,8 @@ fun CloseShiftDialog(
     var actualCash by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
-    
+    val isArabic = LocalIsArabic.current
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -203,12 +207,12 @@ fun CloseShiftDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Close Shift",
+                    text = if (isArabic) "إغلاق الوردية" else "Close Shift",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
@@ -216,11 +220,11 @@ fun CloseShiftDialog(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Expected Cash: ${expectedCash}",
+                            text = if (isArabic) "النقد المتوقع: ${expectedCash}" else "Expected Cash: ${expectedCash}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
-                        
+
                         if (actualCash.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(8.dp))
                             val variance = try {
@@ -229,7 +233,7 @@ fun CloseShiftDialog(
                                 BigDecimal.ZERO
                             }
                             Text(
-                                text = "Variance: ${variance}",
+                                text = if (isArabic) "الفرق: ${variance}" else "Variance: ${variance}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (variance == BigDecimal.ZERO) {
                                     MaterialTheme.colorScheme.primary
@@ -240,34 +244,34 @@ fun CloseShiftDialog(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = actualCash,
-                    onValueChange = { 
+                    onValueChange = {
                         actualCash = it
                         hasError = false
                     },
-                    label = { Text("Actual Cash Count") },
+                    label = { Text(if (isArabic) "عدد النقد الفعلي" else "Actual Cash Count") },
                     isError = hasError,
                     supportingText = if (hasError) {
-                        { Text("Please enter a valid amount") }
+                        { Text(if (isArabic) "يرجى إدخال مبلغ صحيح" else "Please enter a valid amount") }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Note (Optional)") },
+                    label = { Text(if (isArabic) "ملاحظة (اختياري)" else "Note (Optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -276,9 +280,9 @@ fun CloseShiftDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
-                    
+
                     Button(
                         onClick = {
                             try {
@@ -294,7 +298,7 @@ fun CloseShiftDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Close Shift")
+                        Text(if (isArabic) "إغلاق الوردية" else "Close Shift")
                     }
                 }
             }

@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Production: HTTPS only, no cleartext permitted -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Production/release: HTTPS only. Debug build type sets @bool/cleartext_permitted via Gradle. -->
+    <base-config cleartextTrafficPermitted="@bool/cleartext_permitted">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
 
-    <!-- Debug builds only: allow cleartext to local dev/emulator addresses
-         and trust user-installed certificates (e.g. Charles, mitmproxy) -->
+    <!-- Debug builds only: trust user-installed certificates (e.g. Charles, mitmproxy) -->
     <debug-overrides>
         <trust-anchors>
             <certificates src="system" />

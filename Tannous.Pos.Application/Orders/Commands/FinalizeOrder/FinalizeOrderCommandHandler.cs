@@ -79,7 +79,38 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 request.IdempotencyKey);
         }
 
-        IDbContextTransaction? ownedTransaction = null;
+        // NpgsqlRetryingExecutionStrategy (registered via EnableRetryOnFailure) does not allow
+        // direct BeginTransactionAsync calls. When not joining an outer transaction, wrap the
+        // entire transactional unit in the execution strategy so the driver can retry on
+        // transient failures. When joining an outer transaction, we are already inside a
+        // strategy-managed execution context so no wrapper is needed.
+        if (!joinsOuterTransaction)
+        {
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
+            OrderDto? stratResult = null;
+            await strategy.ExecuteAsync(async () =>
+            {
+                stratResult = await ExecuteFinalizeWithTransactionAsync(request, cancellationToken);
+            });
+            return stratResult!;
+        }
+
+        // joinsOuterTransaction == true: run core logic directly (already in strategy context).
+        return await ExecuteFinalizeWithTransactionAsync(request, cancellationToken,
+            ownedTransaction: null, joinsOuterTransaction: true);
+    }
+
+    /// <summary>
+    /// Core finalize logic. When <paramref name="joinsOuterTransaction"/> is false (default),
+    /// opens a Serializable transaction that is committed on success and rolled back on failure.
+    /// When true, runs inside the caller's existing transaction (sync durable replay path).
+    /// </summary>
+    private async Task<OrderDto> ExecuteFinalizeWithTransactionAsync(
+        FinalizeOrderCommand request,
+        CancellationToken cancellationToken,
+        IDbContextTransaction? ownedTransaction = null,
+        bool joinsOuterTransaction = false)
+    {
         if (!joinsOuterTransaction)
         {
             // Serializable prevents cross-request finalize races from duplicating payments under parallel idempotency keys.
@@ -233,12 +264,20 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             // Fall back to LegacyOrderFlowTaxRate if settings are unavailable (e.g. first boot).
             var businessSettings = await _businessSettingsRepository.GetAsync(cancellationToken);
 
-            // Tax computation: use configured BusinessSettings.TaxRate when available (e.g. 11% Lebanon VAT).
-            // Fall back to OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal (10% fixed) when settings
-            // are unavailable (first boot) — preserves the legacy order flow tax anchor.
-            var taxAmount = businessSettings?.TaxRate > 0
-                ? decimal.Round(subTotal * (businessSettings.TaxRate / 100m), 28, MidpointRounding.AwayFromZero)
-                : OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal);
+            var existingPayments = await _dbContext.Set<Payment>()
+                .Where(p => p.OrderId == order.Id && p.IsSuccessful)
+                .ToListAsync(cancellationToken);
+
+            // Tax computation:
+            //   - Settings unavailable (null)  → legacy 10% fallback (first-boot safety net)
+            //   - Settings present, TaxRate > 0 → apply configured rate
+            //   - Settings present, TaxRate = 0 → no tax (zero TaxRate is an explicit "no tax" signal;
+            //     applying the 10% legacy fallback here would silently override the operator's intent)
+            var taxAmount = businessSettings == null
+                ? OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal)
+                : businessSettings.TaxRate > 0
+                    ? decimal.Round(subTotal * (businessSettings.TaxRate / 100m), 28, MidpointRounding.AwayFromZero)
+                    : 0m;
 
             // Stamp duty (Lebanon 2025 Budget Law): $2 USD on USD-denominated receipts.
             // Applied only when StampDutyEnabled = true in BusinessSettings.
@@ -248,7 +287,10 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 // Apply stamp duty when at least one payment is tendered in USD.
                 var hasUsdPayment = request.Payments.Any(p =>
                     string.IsNullOrEmpty(p.TenderedCurrency) ||
-                    p.TenderedCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase));
+                    p.TenderedCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase))
+                    || existingPayments.Any(p =>
+                        string.IsNullOrEmpty(p.TenderedCurrency) ||
+                        p.TenderedCurrency.Equals("USD", StringComparison.OrdinalIgnoreCase));
                 if (hasUsdPayment)
                     stampDuty = businessSettings.StampDutyAmountUsd;
             }
@@ -271,7 +313,9 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             }
 
             // Validate payments and settlement (amount owed vs tendered vs change due vs net captured).
-            var totalPayments = request.Payments.Sum(p => p.Amount);
+            var existingPaid = existingPayments.Sum(p => p.AmountInUsd > 0 ? p.AmountInUsd : p.Amount);
+            var requestPaid  = request.Payments.Sum(p => p.Amount);
+            var totalPayments = existingPaid + requestPaid;
 
             if (totalPayments < totalAmount)
             {
@@ -375,59 +419,58 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                     netCaptured);
             }
 
-            if (await _dbContext.Set<Payment>().AnyAsync(p => p.OrderId == order.Id, cancellationToken))
+            if (existingPayments.Count > 0 && request.Payments.Count > 0)
             {
-                await _dbContext.Entry(order).ReloadAsync(cancellationToken);
-                if (order.Status == OrderStatus.Paid)
-                {
-                    _logger.LogInformation(
-                        "Finalize governance: payment rows already exist; returning Paid order without duplicate payment insert. OrderId={OrderId}, IdempotencyKey={IdempotencyKey}",
-                        order.Id,
-                        request.IdempotencyKey);
-                    return MapToOrderDto(order);
-                }
-
                 throw new InvalidOperationException(
                     "Order already has payment rows recorded. Refresh the order and retry finalize.");
             }
 
-            // Generate receipt number (within transaction to ensure uniqueness)
-            var receiptNumber = await _receiptNumberService.GenerateReceiptNumberAsync();
-
-            // Create payments (all within the same transaction)
-            var exchangeRate = businessSettings?.ExchangeRateLbpPerUsd ?? 0m;
-            foreach (var paymentDto in request.Payments)
+            if (existingPayments.Count == 0)
             {
-                var tenderedCurrency = string.IsNullOrWhiteSpace(paymentDto.TenderedCurrency)
-                    ? "USD"
-                    : paymentDto.TenderedCurrency.ToUpperInvariant();
+                // Generate receipt number (within transaction to ensure uniqueness)
+                var receiptNumber = await _receiptNumberService.GenerateReceiptNumberAsync();
 
-                // Normalise amount to USD for reporting
-                decimal amountInUsd;
-                decimal? exchangeRateUsed = null;
-                if (tenderedCurrency == "LBP" && exchangeRate > 0)
+                // Create payments (all within the same transaction)
+                var exchangeRate = businessSettings?.ExchangeRateLbpPerUsd ?? 0m;
+                foreach (var paymentDto in request.Payments)
                 {
-                    amountInUsd = decimal.Round(paymentDto.Amount / exchangeRate, 4, MidpointRounding.AwayFromZero);
-                    exchangeRateUsed = exchangeRate;
-                }
-                else
-                {
-                    amountInUsd = paymentDto.Amount; // already USD
+                    var tenderedCurrency = string.IsNullOrWhiteSpace(paymentDto.TenderedCurrency)
+                        ? "USD"
+                        : paymentDto.TenderedCurrency.ToUpperInvariant();
+
+                    // Normalise amount to USD for reporting
+                    decimal amountInUsd;
+                    decimal? exchangeRateUsed = null;
+                    if (tenderedCurrency == "LBP" && exchangeRate > 0)
+                    {
+                        amountInUsd = decimal.Round(paymentDto.Amount / exchangeRate, 4, MidpointRounding.AwayFromZero);
+                        exchangeRateUsed = exchangeRate;
+                    }
+                    else
+                    {
+                        amountInUsd = paymentDto.Amount; // already USD
+                    }
+
+                    var payment = new Payment
+                    {
+                        OrderId          = order.Id,
+                        Amount           = paymentDto.Amount,
+                        PaymentMethod    = paymentDto.PaymentMethod,
+                        TransactionId    = paymentDto.TransactionId,
+                        Notes            = paymentDto.Notes,
+                        PaymentDate      = DateTime.UtcNow,
+                        TenderedCurrency = tenderedCurrency,
+                        ExchangeRateUsed = exchangeRateUsed,
+                        AmountInUsd      = amountInUsd
+                    };
+                    await _dbContext.Set<Payment>().AddAsync(payment, cancellationToken);
                 }
 
-                var payment = new Payment
-                {
-                    OrderId          = order.Id,
-                    Amount           = paymentDto.Amount,
-                    PaymentMethod    = paymentDto.PaymentMethod,
-                    TransactionId    = paymentDto.TransactionId,
-                    Notes            = paymentDto.Notes,
-                    PaymentDate      = DateTime.UtcNow,
-                    TenderedCurrency = tenderedCurrency,
-                    ExchangeRateUsed = exchangeRateUsed,
-                    AmountInUsd      = amountInUsd
-                };
-                await _dbContext.Set<Payment>().AddAsync(payment, cancellationToken);
+                order.ReceiptNumber = receiptNumber;
+            }
+            else if (order.ReceiptNumber == null)
+            {
+                order.ReceiptNumber = await _receiptNumberService.GenerateReceiptNumberAsync();
             }
 
             // Update order status and totals (within transaction)
@@ -439,7 +482,6 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             order.AmountTendered = totalPayments;
             order.ChangeDue = changeDue;
             order.NetCapturedAmount = netCaptured;
-            order.ReceiptNumber = receiptNumber;
             order.ClosedAt = DateTime.UtcNow;
             order.UpdatedAt = DateTime.UtcNow;
 
@@ -468,7 +510,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             _logger.LogInformation(
                 "Order finalization completed successfully. OrderId: {OrderId}, ReceiptNumber: {ReceiptNumber}, TotalAmount: {TotalAmount}",
                 order.Id,
-                receiptNumber,
+                order.ReceiptNumber,
                 totalAmount);
 
             await _operationalAuditRecorder.RecordAsync(
@@ -485,7 +527,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                     Summary = "Order finalized successfully",
                     Metadata = new Dictionary<string, object?>
                     {
-                        ["receiptNumber"] = receiptNumber,
+                        ["receiptNumber"] = order.ReceiptNumber,
                         ["totalAmount"] = totalAmount,
                         ["netCaptured"] = netCaptured
                     }
@@ -780,14 +822,20 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             idempotencyKey,
             ingredientQuantities.Count);
 
-        // Batch load all inventory items for the ingredients (avoid N+1 queries)
+        // Batch load all inventory items for the ingredients (avoid N+1 queries).
+        // An ingredient can have multiple InventoryItem rows (one per branch).
+        // We prefer the branch-specific item for this order; fall back to any available row.
         var ingredientIds = ingredientQuantities.Keys.ToList();
         var inventoryItems = await _dbContext.Set<InventoryItem>()
             .Include(ii => ii.Ingredient)
             .Where(ii => ingredientIds.Contains(ii.IngredientId))
             .ToListAsync(cancellationToken);
 
-        var inventoryItemMap = inventoryItems.ToDictionary(ii => ii.IngredientId);
+        var inventoryItemMap = inventoryItems
+            .GroupBy(ii => ii.IngredientId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.FirstOrDefault(ii => ii.BranchId == order.BranchId) ?? g.First());
 
         // Create inventory movements and update stock for each ingredient
         var movementsCreated = 0;

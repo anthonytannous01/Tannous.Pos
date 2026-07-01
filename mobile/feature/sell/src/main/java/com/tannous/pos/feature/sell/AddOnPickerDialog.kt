@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.tannous.pos.core.data.local.entity.AddOnEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
+import com.tannous.pos.core.ui.LocalIsArabic
 import java.text.NumberFormat
 
 @Composable
@@ -23,6 +24,7 @@ fun AddOnPickerDialog(
     onDismiss: () -> Unit
 ) {
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
+    val isArabic = LocalIsArabic.current
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -36,12 +38,12 @@ fun AddOnPickerDialog(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = menuItem.name,
+                    text = if (isArabic) menuItem.nameAr?.takeIf { it.isNotBlank() } ?: menuItem.name else menuItem.name,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Select add-ons (optional)",
+                    text = if (isArabic) "اختر الإضافات (اختياري)" else "Select add-ons (optional)",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -49,7 +51,7 @@ fun AddOnPickerDialog(
 
                 if (availableAddOns.isEmpty()) {
                     Text(
-                        text = "No add-ons available",
+                        text = if (isArabic) "لا توجد إضافات متاحة" else "No add-ons available",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -101,7 +103,7 @@ fun AddOnPickerDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
                     Button(
                         onClick = {
@@ -119,7 +121,7 @@ fun AddOnPickerDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Add to Cart")
+                        Text(if (isArabic) "أضف إلى السلة" else "Add to Cart")
                     }
                 }
             }

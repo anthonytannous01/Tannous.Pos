@@ -47,12 +47,12 @@ fun SupplierIntelligenceScreen(
                 title = { Text(if (isArabic) "طلب ذكي" else "Smart Ordering") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.load() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -67,7 +67,7 @@ fun SupplierIntelligenceScreen(
             uiState.data == null -> Box(
                 Modifier.fillMaxSize().padding(padding),
                 contentAlignment = Alignment.Center
-            ) { Text(uiState.error ?: "No data") }
+            ) { Text(uiState.error ?: if (isArabic) "لا توجد بيانات" else "No data") }
 
             else -> SupplierIntelligenceContent(
                 data = uiState.data!!,

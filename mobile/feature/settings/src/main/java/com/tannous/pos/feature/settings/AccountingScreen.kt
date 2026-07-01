@@ -62,7 +62,7 @@ fun AccountingScreen(
                 title = { Text(if (isArabic) "المحاسبة" else "Accounting") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -140,13 +140,16 @@ private fun ProviderCard(
             if (connected) {
                 val company = status?.companyName?.takeIf { it.isNotBlank() }
                 Text(
-                    text = if (company != null) "● Connected — $company" else "● Connected",
+                    text = if (company != null)
+                        (if (isArabic) "● متصل — $company" else "● Connected — $company")
+                    else
+                        (if (isArabic) "● متصل" else "● Connected"),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 status?.lastSyncAt?.let {
                     Text(
-                        text = "Last sync: $it",
+                        text = if (isArabic) "آخر مزامنة: $it" else "Last sync: $it",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -160,7 +163,7 @@ private fun ProviderCard(
                 }
             } else {
                 Text(
-                    text = "○ Not connected",
+                    text = if (isArabic) "○ غير متصل" else "○ Not connected",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -169,18 +172,18 @@ private fun ProviderCard(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (connected) {
                     OutlinedButton(onClick = onSync, enabled = !isLoading) {
-                        Text("Sync Now")
+                        Text(if (isArabic) "مزامنة الآن" else "Sync Now")
                     }
                     OutlinedButton(onClick = onDisconnect, enabled = !isLoading) {
-                        Text("Disconnect")
+                        Text(if (isArabic) "قطع الاتصال" else "Disconnect")
                     }
                 } else if (provider.connectEnabled) {
                     Button(onClick = onConnect, enabled = !isLoading) {
-                        Text("Connect")
+                        Text(if (isArabic) "ربط" else "Connect")
                     }
                 } else {
                     Text(
-                        text = "Coming soon",
+                        text = if (isArabic) "قريباً" else "Coming soon",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

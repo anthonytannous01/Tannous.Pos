@@ -22,21 +22,23 @@ import androidx.compose.ui.unit.dp
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
 import com.tannous.pos.core.BuildConfig
+import com.tannous.pos.core.ui.LocalIsArabic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrMenuScreen(onNavigateBack: () -> Unit) {
     val context = LocalContext.current
+    val isArabic = LocalIsArabic.current
     val menuUrl = remember { buildMenuUrl() }
     val qrBitmap = remember(menuUrl) { generateQrBitmap(menuUrl) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Digital Menu QR") },
+                title = { Text(if (isArabic) "QR القائمة الرقمية" else "Digital Menu QR") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
@@ -47,7 +49,7 @@ fun QrMenuScreen(onNavigateBack: () -> Unit) {
                         }
                         context.startActivity(Intent.createChooser(intent, "Share menu link"))
                     }) {
-                        Icon(Icons.Default.Share, contentDescription = "Share")
+                        Icon(Icons.Default.Share, contentDescription = if (isArabic) "مشاركة" else "Share")
                     }
                 }
             )
@@ -62,7 +64,7 @@ fun QrMenuScreen(onNavigateBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Text(
-                text = "Scan to view the menu",
+                text = if (isArabic) "امسح للاطلاع على القائمة" else "Scan to view the menu",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -80,7 +82,7 @@ fun QrMenuScreen(onNavigateBack: () -> Unit) {
                     if (qrBitmap != null) {
                         Image(
                             bitmap = qrBitmap.asImageBitmap(),
-                            contentDescription = "QR code for digital menu",
+                            contentDescription = if (isArabic) "رمز QR للقائمة الرقمية" else "QR code for digital menu",
                             modifier = Modifier.size(240.dp)
                         )
                     } else {
@@ -100,7 +102,7 @@ fun QrMenuScreen(onNavigateBack: () -> Unit) {
             )
 
             Text(
-                text = "Print or display this QR code on tables so customers can browse the menu on their phone.",
+                text = if (isArabic) "اطبع أو اعرض رمز QR هذا على الطاولات لتمكين العملاء من تصفح القائمة على هواتفهم." else "Print or display this QR code on tables so customers can browse the menu on their phone.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center

@@ -32,12 +32,16 @@ class OrderRepository @Inject constructor(
     private val settingsRepository: SettingsRepository
 ) {
     
-    suspend fun startOrder(shiftId: String, customerId: String? = null): String {
+    suspend fun startOrder(
+        shiftId: String,
+        customerId: String? = null,
+        orderType: String = "DINE_IN"
+    ): String {
         val orderId = UUID.randomUUID().toString()
         val order = OrderEntity(
             id = orderId,
             orderNumber = null,
-            orderType = "DINE_IN",
+            orderType = orderType,
             status = "PENDING",
             subTotal = BigDecimal.ZERO,
             discount = BigDecimal.ZERO,
@@ -181,16 +185,24 @@ class OrderRepository @Inject constructor(
     /**
      * Creates an order from cart items and returns the order ID.
      * If order already exists on server, returns existing order ID.
+     *
+     * @param orderType Backend OrderType int: 1=DineIn, 2=Takeaway, 3=Delivery
      */
     suspend fun createOrderFromCart(
         shiftId: String,
         cartItems: List<CartItem>,
         customerId: String? = null,
-        notes: String? = null
+        notes: String? = null,
+        orderType: Int = 1
     ): Result<String> {
+        val orderTypeStr = when (orderType) {
+            2 -> "TAKEAWAY"
+            3 -> "DELIVERY"
+            else -> "DINE_IN"
+        }
         return try {
             // Create order locally first
-            val orderId = startOrder(shiftId, customerId)
+            val orderId = startOrder(shiftId, customerId, orderTypeStr)
             
             // Add all cart items as order lines
             for (cartItem in cartItems) {
@@ -208,12 +220,13 @@ class OrderRepository @Inject constructor(
             // Try to sync to server
             try {
                 val createRequest = com.tannous.pos.core.data.model.CreateOrderRequest(
-                    orderType = "DINE_IN",
+                    orderType = orderType,
                     customerId = customerId,
-                    lines = cartItems.map { item: CartItem ->
+                    orderLines = cartItems.map { item: CartItem ->
                         com.tannous.pos.core.data.model.CreateOrderLineRequest(
                             menuItemId = item.menuItem.id,
                             quantity = item.quantity,
+                            unitPrice = item.menuItem.price.toDouble(),
                             addOns = item.addOns.map { addOn: CartAddOn ->
                                 com.tannous.pos.core.data.model.CreateOrderLineAddOnRequest(
                                     addOnId = addOn.id

@@ -12,6 +12,7 @@ using Tannous.Pos.Application.Scheduling.Commands.UpdateSchedule;
 using Tannous.Pos.Application.Scheduling.Queries.GetMyClockStatus;
 using Tannous.Pos.Application.Scheduling.Queries.GetTimeEntries;
 using Tannous.Pos.Application.Scheduling.Queries.GetWeeklySchedule;
+using Tannous.Pos.Application.Scheduling.Queries.ListScheduleStaff;
 using Tannous.Pos.WebApi.Constants;
 
 namespace Tannous.Pos.WebApi.Controllers;
@@ -36,6 +37,18 @@ public class ScheduleController : ControllerBase
     public ScheduleController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    /// <summary>
+    /// Lightweight staff list for the shift-picker (manager + owner only).
+    /// Intentionally separate from UsersController — CanManageShifts, not CanManageUsers.
+    /// </summary>
+    [HttpGet("staff")]
+    [Authorize(Policy = PolicyConstants.CanManageShifts)]
+    public async Task<ActionResult<List<StaffMemberDto>>> ListStaff([FromQuery] string? search = null)
+    {
+        var result = await _mediator.Send(new ListScheduleStaffQuery { Search = search });
+        return Ok(result);
     }
 
     /// <summary>Weekly schedule (Monday–Sunday) with all non-cancelled entries.</summary>

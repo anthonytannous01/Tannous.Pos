@@ -105,6 +105,17 @@ class CustomerRepository @Inject constructor(
         }
     }
 
+    /**
+     * Increments [CustomerEntity.totalOrders] by 1 in the local Room database.
+     * Called optimistically after a successful order finalize so the UI reflects
+     * the new count immediately without waiting for the next PullWorker sync.
+     */
+    suspend fun incrementLocalOrderCount(id: String) {
+        val customer = customerDao.getById(id) ?: return
+        customerDao.update(customer.copy(totalOrders = customer.totalOrders + 1))
+        Timber.d("Incremented local totalOrders for customer $id → ${customer.totalOrders + 1}")
+    }
+
     private fun CustomerDto.toEntity() = CustomerEntity(
         id = id,
         firstName = firstName,

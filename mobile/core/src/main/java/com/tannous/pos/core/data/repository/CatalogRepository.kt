@@ -6,11 +6,16 @@ import com.tannous.pos.core.data.local.dao.AddOnDao
 import com.tannous.pos.core.data.local.entity.CategoryEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.local.entity.AddOnEntity
+import com.tannous.pos.core.data.model.CreateCategoryRequest
+import com.tannous.pos.core.data.model.CreateMenuItemRequest
+import com.tannous.pos.core.data.model.UpdateCategoryRequest
+import com.tannous.pos.core.data.model.UpdateMenuItemRequest
 import com.tannous.pos.core.data.remote.CatalogService
 import kotlinx.coroutines.flow.Flow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.math.BigDecimal
 import java.time.Instant
 
 @Singleton
@@ -48,6 +53,35 @@ class CatalogRepository @Inject constructor(
         }
     }
     
+    suspend fun createCategory(name: String, description: String? = null, displayOrder: Int = 0): CategoryEntity {
+        val dto = catalogService.createCategory(
+            CreateCategoryRequest(name = name, description = description, displayOrder = displayOrder)
+        )
+        val entity = CategoryEntity(
+            id = dto.id, name = dto.name, description = dto.description,
+            displayOrder = dto.displayOrder, isActive = dto.isActive,
+            updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(), isDeleted = false
+        )
+        categoryDao.insertAll(listOf(entity)) // insertAll uses REPLACE — safe for single-entity write
+        return entity
+    }
+
+    suspend fun updateCategory(id: String, name: String, description: String? = null, displayOrder: Int = 0): CategoryEntity {
+        val dto = catalogService.updateCategory(id, UpdateCategoryRequest(name = name, description = description, displayOrder = displayOrder))
+        val entity = CategoryEntity(
+            id = dto.id, name = dto.name, description = dto.description,
+            displayOrder = dto.displayOrder, isActive = dto.isActive,
+            updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(), isDeleted = false
+        )
+        categoryDao.insertAll(listOf(entity)) // insertAll uses REPLACE — safe for single-entity write
+        return entity
+    }
+
+    suspend fun deleteCategory(id: String) {
+        catalogService.deleteCategory(id)
+        refreshCategories() // re-sync so Room reflects server state
+    }
+
     // Menu Items
     fun getAllMenuItems(): Flow<List<MenuItemEntity>> {
         return menuItemDao.getAllActive()
@@ -87,6 +121,52 @@ class CatalogRepository @Inject constructor(
         }
     }
     
+    suspend fun createMenuItem(
+        name: String, nameAr: String? = null, price: BigDecimal,
+        categoryId: String, description: String? = null, displayOrder: Int = 0
+    ): MenuItemEntity {
+        val dto = catalogService.createMenuItem(
+            CreateMenuItemRequest(
+                name = name, nameAr = nameAr, price = price,
+                categoryId = categoryId, description = description, displayOrder = displayOrder
+            )
+        )
+        val entity = MenuItemEntity(
+            id = dto.id, name = dto.name, description = dto.description, price = dto.price,
+            categoryId = dto.categoryId, imageUrl = dto.imageUrl, isActive = dto.isActive,
+            hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
+            isDeleted = false, version = dto.version
+        )
+        menuItemDao.upsertAll(listOf(entity))
+        return entity
+    }
+
+    suspend fun updateMenuItem(
+        id: String, name: String, nameAr: String? = null, price: BigDecimal,
+        categoryId: String, description: String? = null, displayOrder: Int = 0
+    ): MenuItemEntity {
+        val dto = catalogService.updateMenuItem(
+            id,
+            UpdateMenuItemRequest(
+                name = name, nameAr = nameAr, price = price,
+                categoryId = categoryId, description = description, displayOrder = displayOrder
+            )
+        )
+        val entity = MenuItemEntity(
+            id = dto.id, name = dto.name, description = dto.description, price = dto.price,
+            categoryId = dto.categoryId, imageUrl = dto.imageUrl, isActive = dto.isActive,
+            hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
+            isDeleted = false, version = dto.version
+        )
+        menuItemDao.upsertAll(listOf(entity))
+        return entity
+    }
+
+    suspend fun deleteMenuItem(id: String) {
+        catalogService.deleteMenuItem(id)
+        refreshMenuItems() // re-sync so Room reflects server state
+    }
+
     // Add-ons
     fun getAllAddOns(): Flow<List<AddOnEntity>> {
         return addOnDao.getAllActive()

@@ -81,119 +81,131 @@ public class VoidOrderCommandHandler : IRequestHandler<VoidOrderCommand, OrderDt
             throw new InvalidOperationException($"Order {request.OrderId} cannot be voided in current status: {order.Status}");
         }
 
-        // Serializable coordinates parallel void/finalize contention with refund uniqueness and reversal idempotency.
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable,
-            cancellationToken);
+        // NpgsqlRetryingExecutionStrategy (registered via EnableRetryOnFailure) does not allow
+        // direct BeginTransactionAsync calls. Wrap in the execution strategy so the driver can
+        // retry the entire transactional unit on transient failures.
+        var strategy = _dbContext.Database.CreateExecutionStrategy();
+        OrderDto? result = null;
 
-        try
+        await strategy.ExecuteAsync(async () =>
         {
-            await _dbContext.Entry(order).ReloadAsync(cancellationToken);
-            if (order.Status == OrderStatus.Void)
-            {
-                await transaction.CommitAsync(cancellationToken);
-                return MapToOrderDto(order);
-            }
-
-            if (order.Status != OrderStatus.Open && order.Status != OrderStatus.Paid)
-            {
-                throw new InvalidOperationException(
-                    $"Order {request.OrderId} cannot be voided in current status: {order.Status}");
-            }
-
-            if (order.Status == OrderStatus.Paid)
-            {
-                // GOVERNANCE / RISK: Paid void restores inventory from finalize Sale movements only (no recipe recompute).
-                // GOVERNANCE / RISK: Refund rows are internal consistency records only — no external processor; tax row on order is not recomputed (see OrderFinancialTaxGovernance).
-                await PersistPaidVoidRefundsAsync(order, request.Reason, request.IdempotencyKey, cancellationToken);
-                await ReverseFinalizeInventoryDeductionsAsync(order, request.IdempotencyKey, cancellationToken);
-            }
-
-            order.Status = OrderStatus.Void;
-            order.Notes = $"VOIDED: {request.Reason}";
-            order.ClosedAt = DateTime.UtcNow;
-
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync(cancellationToken);
-
-            await _operationalAuditRecorder.RecordAsync(
-                new OperationalAuditRecordRequest
-                {
-                    Category = OperationalAuditCategories.Order,
-                    Action = OperationalAuditActions.VoidSuccess,
-                    EntityType = nameof(Order),
-                    EntityId = order.Id,
-                    OrderId = order.Id,
-                    OperationId = request.IdempotencyKey,
-                    CorrelationId = request.IdempotencyKey,
-                    Severity = OperationalAuditSeverity.Information,
-                    Summary = "Order voided successfully",
-                    Metadata = new Dictionary<string, object?> { ["reason"] = request.Reason }
-                },
+            // Serializable coordinates parallel void/finalize contention with refund uniqueness and reversal idempotency.
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
                 cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            var affectedTypes = ConcurrencyConflictObservability.FormatAffectedClrTypeNames(ex);
-            _logger.LogWarning(
-                ex,
-                "Refund consistency observability: concurrency conflict during refund. OrderId={OrderId}, IdempotencyKey={IdempotencyKey}, AffectedEntityTypes={AffectedEntityTypes}",
-                request.OrderId,
-                request.IdempotencyKey,
-                affectedTypes);
-            _logger.LogWarning(
-                ex,
-                "Inventory reversal observability: concurrency conflict during reversal. OrderId={OrderId}, IdempotencyKey={IdempotencyKey}, AffectedEntityTypes={AffectedEntityTypes}",
-                request.OrderId,
-                request.IdempotencyKey,
-                affectedTypes);
-            _logger.LogWarning(
-                ex,
-                "Money-path concurrency visibility: optimistic concurrency conflict during void (RowVersion). OrderId={OrderId}, AffectedEntityTypes={AffectedEntityTypes}",
-                request.OrderId,
-                affectedTypes);
 
             try
             {
-                await transaction.RollbackAsync(cancellationToken);
+                await _dbContext.Entry(order).ReloadAsync(cancellationToken);
+                if (order.Status == OrderStatus.Void)
+                {
+                    await transaction.CommitAsync(cancellationToken);
+                    result = MapToOrderDto(order);
+                    return;
+                }
+
+                if (order.Status != OrderStatus.Open && order.Status != OrderStatus.Paid)
+                {
+                    throw new InvalidOperationException(
+                        $"Order {request.OrderId} cannot be voided in current status: {order.Status}");
+                }
+
+                if (order.Status == OrderStatus.Paid)
+                {
+                    // GOVERNANCE / RISK: Paid void restores inventory from finalize Sale movements only (no recipe recompute).
+                    // GOVERNANCE / RISK: Refund rows are internal consistency records only — no external processor; tax row on order is not recomputed (see OrderFinancialTaxGovernance).
+                    await PersistPaidVoidRefundsAsync(order, request.Reason, request.IdempotencyKey, cancellationToken);
+                    await ReverseFinalizeInventoryDeductionsAsync(order, request.IdempotencyKey, cancellationToken);
+                }
+
+                order.Status = OrderStatus.Void;
+                order.Notes = $"VOIDED: {request.Reason}";
+                order.ClosedAt = DateTime.UtcNow;
+
+                await _unitOfWork.SaveChangesAsync();
+                await transaction.CommitAsync(cancellationToken);
+
+                await _operationalAuditRecorder.RecordAsync(
+                    new OperationalAuditRecordRequest
+                    {
+                        Category = OperationalAuditCategories.Order,
+                        Action = OperationalAuditActions.VoidSuccess,
+                        EntityType = nameof(Order),
+                        EntityId = order.Id,
+                        OrderId = order.Id,
+                        OperationId = request.IdempotencyKey,
+                        CorrelationId = request.IdempotencyKey,
+                        Severity = OperationalAuditSeverity.Information,
+                        Summary = "Order voided successfully",
+                        Metadata = new Dictionary<string, object?> { ["reason"] = request.Reason }
+                    },
+                    cancellationToken);
             }
-            catch (Exception rollbackEx)
+            catch (DbUpdateConcurrencyException ex)
             {
-                _logger.LogError(rollbackEx, "Error during void transaction rollback after concurrency conflict. OrderId={OrderId}", request.OrderId);
+                var affectedTypes = ConcurrencyConflictObservability.FormatAffectedClrTypeNames(ex);
+                _logger.LogWarning(
+                    ex,
+                    "Refund consistency observability: concurrency conflict during refund. OrderId={OrderId}, IdempotencyKey={IdempotencyKey}, AffectedEntityTypes={AffectedEntityTypes}",
+                    request.OrderId,
+                    request.IdempotencyKey,
+                    affectedTypes);
+                _logger.LogWarning(
+                    ex,
+                    "Inventory reversal observability: concurrency conflict during reversal. OrderId={OrderId}, IdempotencyKey={IdempotencyKey}, AffectedEntityTypes={AffectedEntityTypes}",
+                    request.OrderId,
+                    request.IdempotencyKey,
+                    affectedTypes);
+                _logger.LogWarning(
+                    ex,
+                    "Money-path concurrency visibility: optimistic concurrency conflict during void (RowVersion). OrderId={OrderId}, AffectedEntityTypes={AffectedEntityTypes}",
+                    request.OrderId,
+                    affectedTypes);
+
+                try
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                }
+                catch (Exception rollbackEx)
+                {
+                    _logger.LogError(rollbackEx, "Error during void transaction rollback after concurrency conflict. OrderId={OrderId}", request.OrderId);
+                }
+
+                await _syncConflictRecorder.RecordAsync(
+                    new SyncConflictRecordRequest
+                    {
+                        OperationId = request.IdempotencyKey,
+                        EntityType = nameof(Order),
+                        EntityId = request.OrderId,
+                        ConflictType = SyncConflictTypes.ConcurrencyConflict,
+                        Reason = $"DbUpdateConcurrencyException during void ({affectedTypes})",
+                        CorrelationId = request.IdempotencyKey
+                    },
+                    cancellationToken);
+
+                await _operationalAuditRecorder.RecordAsync(
+                    new OperationalAuditRecordRequest
+                    {
+                        Category = OperationalAuditCategories.Concurrency,
+                        Action = OperationalAuditActions.ConcurrencyConflict,
+                        EntityType = nameof(Order),
+                        EntityId = request.OrderId,
+                        OrderId = request.OrderId,
+                        OperationId = request.IdempotencyKey,
+                        CorrelationId = request.IdempotencyKey,
+                        Severity = OperationalAuditSeverity.Critical,
+                        Summary = $"Concurrency conflict during void ({affectedTypes})"
+                    },
+                    cancellationToken);
+
+                throw new InvalidOperationException(
+                    "Order was modified concurrently. Refresh the order and retry void.");
             }
 
-            await _syncConflictRecorder.RecordAsync(
-                new SyncConflictRecordRequest
-                {
-                    OperationId = request.IdempotencyKey,
-                    EntityType = nameof(Order),
-                    EntityId = request.OrderId,
-                    ConflictType = SyncConflictTypes.ConcurrencyConflict,
-                    Reason = $"DbUpdateConcurrencyException during void ({affectedTypes})",
-                    CorrelationId = request.IdempotencyKey
-                },
-                cancellationToken);
+            result = MapToOrderDto(order);
+        });
 
-            await _operationalAuditRecorder.RecordAsync(
-                new OperationalAuditRecordRequest
-                {
-                    Category = OperationalAuditCategories.Concurrency,
-                    Action = OperationalAuditActions.ConcurrencyConflict,
-                    EntityType = nameof(Order),
-                    EntityId = request.OrderId,
-                    OrderId = request.OrderId,
-                    OperationId = request.IdempotencyKey,
-                    CorrelationId = request.IdempotencyKey,
-                    Severity = OperationalAuditSeverity.Critical,
-                    Summary = $"Concurrency conflict during void ({affectedTypes})"
-                },
-                cancellationToken);
-
-            throw new InvalidOperationException(
-                "Order was modified concurrently. Refresh the order and retry void.");
-        }
-
-        return MapToOrderDto(order);
+        return result!;
     }
 
     private async Task PersistPaidVoidRefundsAsync(

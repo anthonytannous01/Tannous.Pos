@@ -10,6 +10,8 @@ using Tannous.Pos.Application.Orders.Commands.FinalizeOrder;
 using Tannous.Pos.Application.Orders.Commands.VoidOrder;
 using Tannous.Pos.Application.Orders.Queries.GetOrders;
 using Tannous.Pos.Application.Orders.Queries.GetOrderById;
+using Tannous.Pos.Application.Orders.Commands.RecordSplitPayment;
+using Tannous.Pos.Application.Orders.Queries.GetSplitBill;
 using Tannous.Pos.Domain.Enums;
 using Tannous.Pos.Domain.Interfaces;
 using Tannous.Pos.WebApi.Constants;
@@ -116,6 +118,26 @@ public class OrdersController : ControllerBase
         };
 
         var result = await _mediator.Send(command);
+        return Ok(result);
+    }
+
+    /// <summary>Calculate split amounts for an order.</summary>
+    [HttpGet("{orderId:guid}/split")]
+    public async Task<ActionResult<SplitBillDto>> GetSplitBill(Guid orderId, [FromQuery] int ways)
+    {
+        var result = await _mediator.Send(new GetSplitBillQuery { OrderId = orderId, Ways = ways });
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>Record one person's payment in a split-bill flow.</summary>
+    [HttpPost("{orderId:guid}/split/pay")]
+    [EnableRateLimiting("MutationsPerDevice")]
+    public async Task<ActionResult<SplitBillDto>> RecordSplitPayment(
+        Guid orderId,
+        [FromBody] RecordSplitPaymentCommand cmd)
+    {
+        cmd.OrderId = orderId;
+        var result = await _mediator.Send(cmd);
         return Ok(result);
     }
 

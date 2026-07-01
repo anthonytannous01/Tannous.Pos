@@ -3,7 +3,15 @@ package com.tannous.pos.core.data.remote
 import com.tannous.pos.core.data.model.*
 import okhttp3.ResponseBody
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.Headers
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface AuthService {
     
@@ -18,13 +26,37 @@ interface AuthService {
 }
 
 interface CatalogService {
-    
+
     @GET("catalog/categories")
     suspend fun getCategories(): List<CategoryDto>
-    
+
+    @POST("catalog/categories")
+    suspend fun createCategory(@Body request: CreateCategoryRequest): CategoryDto
+
+    @PUT("catalog/categories/{id}")
+    suspend fun updateCategory(
+        @Path("id") id: String,
+        @Body request: UpdateCategoryRequest
+    ): CategoryDto
+
+    @DELETE("catalog/categories/{id}")
+    suspend fun deleteCategory(@Path("id") id: String): Response<Unit>
+
     @GET("catalog/menu-items")
     suspend fun getMenuItems(): List<MenuItemDto>
-    
+
+    @POST("catalog/menu-items")
+    suspend fun createMenuItem(@Body request: CreateMenuItemRequest): MenuItemDto
+
+    @PUT("catalog/menu-items/{id}")
+    suspend fun updateMenuItem(
+        @Path("id") id: String,
+        @Body request: UpdateMenuItemRequest
+    ): MenuItemDto
+
+    @DELETE("catalog/menu-items/{id}")
+    suspend fun deleteMenuItem(@Path("id") id: String): Response<Unit>
+
     @GET("catalog/addons")
     suspend fun getAddOns(): List<AddOnDto>
 }
@@ -77,6 +109,18 @@ interface OrderService {
         @Path("id") id: String,
         @Body request: VoidOrderRequest
     ): OrderDto
+
+    @GET("orders/{id}/split")
+    suspend fun getSplitBill(
+        @Path("id") id: String,
+        @Query("ways") ways: Int
+    ): SplitBillDto
+
+    @POST("orders/{id}/split/pay")
+    suspend fun recordSplitPayment(
+        @Path("id") id: String,
+        @Body request: RecordSplitPaymentRequest
+    ): SplitBillDto
 }
 
 interface ShiftService {
@@ -134,6 +178,38 @@ interface ScheduleService {
         @Query("userId") userId: String? = null,
         @Query("branchId") branchId: String? = null
     ): List<TimeEntryDto>
+
+    /**
+     * Lightweight staff list for the shift-picker.
+     * Requires CanManageShifts (Owner + Manager) — NOT CanManageUsers.
+     */
+    @GET("schedule/staff")
+    suspend fun listStaff(
+        @Query("search") search: String? = null
+    ): List<UserDto>
+
+    /** Create a new shift (manager/owner only — CanManageShifts policy). */
+    @POST("schedule")
+    suspend fun createSchedule(@Body request: CreateScheduleRequest): EmployeeScheduleDto
+
+    /** Cancel / delete a shift by id. */
+    @DELETE("schedule/{id}")
+    suspend fun cancelSchedule(@Path("id") id: String)
+
+    /** Publish all draft shifts in the given id list. */
+    @POST("schedule/publish")
+    suspend fun publishSchedule(@Body request: PublishScheduleRequest): List<EmployeeScheduleDto>
+}
+
+/** User directory — manager/owner list employees for the shift picker. */
+interface UserService {
+
+    @GET("users")
+    suspend fun listUsers(
+        @Query("page") page: Int = 1,
+        @Query("pageSize") pageSize: Int = 100,
+        @Query("search") search: String? = null
+    ): PaginatedResponseDto<UserDto>
 }
 
 interface SyncService {
@@ -169,10 +245,19 @@ interface SettingsService {
 
 interface TableService {
 
-    @GET("v1/tables/floor-plans")
+    @GET("tables/floor-plans")
     suspend fun getFloorPlans(): List<FloorPlanDto>
 
-    @PATCH("v1/tables/{tableId}/status")
+    @POST("tables/floor-plans")
+    suspend fun createFloorPlan(@Body request: CreateFloorPlanRequest): FloorPlanDto
+
+    @POST("tables")
+    suspend fun createTable(@Body request: CreateTableRequest): TableDto
+
+    @DELETE("tables/{tableId}")
+    suspend fun deleteTable(@Path("tableId") tableId: String)
+
+    @PATCH("tables/{tableId}/status")
     suspend fun updateStatus(
         @Path("tableId") tableId: String,
         @Body request: UpdateTableStatusRequest
@@ -181,27 +266,27 @@ interface TableService {
 
 interface LoyaltyService {
 
-    @GET("v1/loyalty/customers/{customerId}")
+    @GET("loyalty/customers/{customerId}")
     suspend fun getAccount(@Path("customerId") customerId: String): LoyaltyAccountDto
 
-    @POST("v1/loyalty/customers/{customerId}/earn")
+    @POST("loyalty/customers/{customerId}/earn")
     suspend fun earn(
         @Path("customerId") customerId: String,
         @Body request: EarnPointsRequest
     ): LoyaltyAccountDto
 
-    @POST("v1/loyalty/customers/{customerId}/redeem")
+    @POST("loyalty/customers/{customerId}/redeem")
     suspend fun redeem(
         @Path("customerId") customerId: String,
         @Body request: RedeemPointsRequest
     ): LoyaltyAccountDto
 
     /** CRM analytics summary: segment counts, averages, and top customers. */
-    @GET("v1/loyalty/analytics")
+    @GET("loyalty/analytics")
     suspend fun getAnalytics(): CustomerAnalyticsDto
 
     /** Paginated list of customers in a behavioural segment (enum value 0..4). */
-    @GET("v1/loyalty/segments/{segment}")
+    @GET("loyalty/segments/{segment}")
     suspend fun getSegment(
         @Path("segment") segment: Int,
         @Query("page") page: Int = 1,
@@ -209,24 +294,24 @@ interface LoyaltyService {
     ): CustomerSegmentPageDto
 
     /** Dispatch a WhatsApp campaign to all customers in a target segment. */
-    @POST("v1/loyalty/campaigns")
+    @POST("loyalty/campaigns")
     suspend fun sendCampaign(@Body request: SendCampaignRequest): LoyaltyCampaignDto
 }
 
 interface KdsService {
 
-    @GET("v1/kds/stations")
+    @GET("kds/stations")
     suspend fun getStations(@Query("branchId") branchId: String? = null): List<KdsStationDto>
 
     /** Poll for active tickets (Pending + InProgress by default). */
-    @GET("v1/kds/tickets")
+    @GET("kds/tickets")
     suspend fun getTickets(
         @Query("status") status: Int? = null,
         @Query("stationId") stationId: String? = null
     ): List<KdsTicketDto>
 
     /** Update the KDS status of a single order line. */
-    @PATCH("v1/kds/tickets/{orderLineId}/status")
+    @PATCH("kds/tickets/{orderLineId}/status")
     suspend fun updateStatus(
         @Path("orderLineId") orderLineId: String,
         @Body request: UpdateKdsStatusRequest
@@ -235,19 +320,19 @@ interface KdsService {
 
 interface AccountingService {
 
-    @GET("v1/accounting/quickbooks/connect")
+    @GET("accounting/quickbooks/connect")
     suspend fun getQuickBooksConnectUrl(@Query("branchId") branchId: String? = null): QuickBooksConnectResponse
 
-    @GET("v1/accounting/status")
+    @GET("accounting/status")
     suspend fun getStatus(@Query("branchId") branchId: String? = null): List<AccountingConnectionStatusDto>
 
-    @POST("v1/accounting/sync")
+    @POST("accounting/sync")
     suspend fun triggerSync(
         @Query("date") date: String? = null,
         @Query("branchId") branchId: String? = null
     ): SyncTriggerResponse
 
-    @DELETE("v1/accounting/{provider}")
+    @DELETE("accounting/{provider}")
     suspend fun disconnect(
         @Path("provider") provider: String,
         @Query("branchId") branchId: String? = null
@@ -256,19 +341,19 @@ interface AccountingService {
 
 interface WebhooksService {
 
-    @GET("v1/webhooks")
+    @GET("webhooks")
     suspend fun getSubscriptions(): List<WebhookSubscriptionDto>
 
-    @DELETE("v1/webhooks/{id}")
+    @DELETE("webhooks/{id}")
     suspend fun deleteSubscription(@Path("id") id: String)
 
-    @POST("v1/webhooks/{id}/test")
+    @POST("webhooks/{id}/test")
     suspend fun testSubscription(@Path("id") id: String)
 
-    @GET("v1/apikeys")
+    @GET("apikeys")
     suspend fun getApiKeys(): List<ApiKeyDto>
 
-    @DELETE("v1/apikeys/{id}")
+    @DELETE("apikeys/{id}")
     suspend fun revokeApiKey(@Path("id") id: String)
 }
 
@@ -410,16 +495,16 @@ interface SupplierIntelligenceService {
 
 interface KioskService {
 
-    @GET("v1/kiosk/menu")
+    @GET("kiosk/menu")
     suspend fun getMenu(): PublicMenuDto
 
-    @POST("v1/kiosk/orders")
+    @POST("kiosk/orders")
     suspend fun placeOrder(@Body request: KioskOrderRequest): KioskOrderResultDto
 }
 
 interface DeliveryService {
 
-    @GET("v1/delivery/queue")
+    @GET("delivery/queue")
     suspend fun getQueue(
         @Query("branchId") branchId: String? = null,
         @Query("status")   status:   Int?    = null,
@@ -427,10 +512,10 @@ interface DeliveryService {
         @Query("to")       to:       String? = null
     ): List<DeliveryDto>
 
-    @POST("v1/delivery")
+    @POST("delivery")
     suspend fun create(@Body request: CreateDeliveryInfoRequest): DeliveryDto
 
-    @PATCH("v1/delivery/{id}/status")
+    @PATCH("delivery/{id}/status")
     suspend fun updateStatus(
         @Path("id") id: String,
         @Body request: UpdateDeliveryStatusRequest
@@ -439,7 +524,7 @@ interface DeliveryService {
 
 interface ReservationService {
 
-    @GET("v1/reservations")
+    @GET("reservations")
     suspend fun getReservations(
         @Query("branchId") branchId: String? = null,
         @Query("from")     from:     String? = null,
@@ -447,17 +532,17 @@ interface ReservationService {
         @Query("status")   status:   Int?    = null
     ): List<ReservationDto>
 
-    @GET("v1/reservations/available-tables")
+    @GET("reservations/available-tables")
     suspend fun getAvailableTables(
         @Query("slot")      slot:      String,
         @Query("partySize") partySize: Int = 1,
         @Query("branchId")  branchId:  String? = null
     ): List<AvailableTableDto>
 
-    @POST("v1/reservations")
+    @POST("reservations")
     suspend fun create(@Body request: CreateReservationRequest): ReservationDto
 
-    @PATCH("v1/reservations/{id}/status")
+    @PATCH("reservations/{id}/status")
     suspend fun updateStatus(
         @Path("id") id: String,
         @Body request: UpdateReservationStatusRequest
@@ -466,10 +551,10 @@ interface ReservationService {
 
 interface FeedbackService {
 
-    @POST("v1/feedback")
+    @POST("feedback")
     suspend fun submit(@Body request: SubmitFeedbackRequest): FeedbackDto
 
-    @GET("v1/feedback/summary")
+    @GET("feedback/summary")
     suspend fun getSummary(
         @Query("branchId")  branchId:  String? = null,
         @Query("from")      from:      String? = null,
@@ -480,12 +565,12 @@ interface FeedbackService {
 
 interface BranchService {
 
-    @GET("v1/branches")
+    @GET("branches")
     suspend fun getBranches(
         @Query("activeOnly") activeOnly: Boolean = true
     ): List<BranchDto>
 
-    @POST("v1/branches")
+    @POST("branches")
     suspend fun createBranch(@Body request: CreateBranchRequest): BranchDto
 }
 

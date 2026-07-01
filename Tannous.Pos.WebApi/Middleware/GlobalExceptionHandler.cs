@@ -94,9 +94,10 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
         foreach (var kv in extensions)
             problem.Extensions[kv.Key] = kv.Value!;
 
-        if (_environment.IsDevelopment() && statusCode >= 500)
+        if (_environment.IsDevelopment())
         {
             problem.Extensions["exceptionType"] = exception.GetType().FullName ?? exception.GetType().Name;
+            problem.Extensions["exceptionMessage"] = exception.Message;
             problem.Extensions["stackTrace"] = exception.StackTrace ?? string.Empty;
         }
 

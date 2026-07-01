@@ -45,6 +45,10 @@ class MenuEngineeringViewModel @Inject constructor(
             try {
                 val report = reportsService.getMenuEngineering(state.from, state.to)
                 _uiState.update { it.copy(report = report, isLoading = false) }
+            } catch (e: retrofit2.HttpException) {
+                val body = runCatching { e.response()?.errorBody()?.string() }.getOrNull()
+                Timber.e(e, "Menu engineering HTTP %d: %s", e.code(), body)
+                _uiState.update { it.copy(error = "HTTP ${e.code()}: $body", isLoading = false) }
             } catch (e: Exception) {
                 Timber.e(e, "Menu engineering load failed")
                 _uiState.update { it.copy(error = e.message ?: "Load failed", isLoading = false) }

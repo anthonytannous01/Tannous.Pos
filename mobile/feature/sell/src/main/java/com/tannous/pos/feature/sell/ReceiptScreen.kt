@@ -39,7 +39,7 @@ fun ReceiptScreen(
     val currencyCode by viewModel.currencyCode.collectAsStateWithLifecycle()
     val currencyFormatter = remember(currencyCode) { currencyFormatterFor(currencyCode) }
     val isArabic = LocalIsArabic.current
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     var showVoidDialog by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
@@ -50,23 +50,23 @@ fun ReceiptScreen(
         !order.status.isAlreadyVoidedStatus() &&
         !isPendingSync &&
         voidState !is VoidState.Voiding
-    
+
     // Best-effort fetch of line items for this order (never blocks the receipt)
     LaunchedEffect(order.id) {
         viewModel.loadOrderLines(order.id)
     }
-    
+
     // Show snackbar for print results
     LaunchedEffect(printState) {
         when (printState) {
             is PrintState.Success -> {
-                snackbarHostState.showSnackbar("Receipt printed successfully")
+                snackbarHostState.showSnackbar(if (isArabic) "تمت طباعة الفاتورة بنجاح" else "Receipt printed successfully")
                 viewModel.clearPrintState()
             }
             is PrintState.Error -> {
                 val errorState = printState as PrintState.Error
                 snackbarHostState.showSnackbar(
-                    message = "Print failed: ${errorState.message}",
+                    message = if (isArabic) "فشل الطباعة: ${errorState.message}" else "Print failed: ${errorState.message}",
                     duration = SnackbarDuration.Long
                 )
                 viewModel.clearPrintState()
@@ -78,7 +78,7 @@ fun ReceiptScreen(
     LaunchedEffect(voidState) {
         when (voidState) {
             is VoidState.Success -> {
-                snackbarHostState.showSnackbar("Order voided successfully")
+                snackbarHostState.showSnackbar(if (isArabic) "تم إلغاء الطلب بنجاح" else "Order voided successfully")
                 viewModel.clearVoidState()
                 delay(1500)
                 onDone()
@@ -100,14 +100,14 @@ fun ReceiptScreen(
                 showVoidDialog = false
                 voidReason = ""
             },
-            title = { Text("Void Order") },
+            title = { Text(if (isArabic) "إلغاء الطلب" else "Void Order") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("This will cancel the order. A reason is required.")
+                    Text(if (isArabic) "سيتم إلغاء الطلب. السبب مطلوب." else "This will cancel the order. A reason is required.")
                     OutlinedTextField(
                         value = voidReason,
                         onValueChange = { if (it.length <= 500) voidReason = it },
-                        label = { Text("Reason") },
+                        label = { Text(if (isArabic) "السبب" else "Reason") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         supportingText = { Text("${voidReason.length}/500") }
@@ -123,7 +123,7 @@ fun ReceiptScreen(
                     },
                     enabled = voidReason.isNotBlank()
                 ) {
-                    Text("Void", color = MaterialTheme.colorScheme.error)
+                    Text(if (isArabic) "تأكيد الإلغاء" else "Void", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -131,16 +131,16 @@ fun ReceiptScreen(
                     showVoidDialog = false
                     voidReason = ""
                 }) {
-                    Text("Cancel")
+                    Text(if (isArabic) "رجوع" else "Cancel")
                 }
             }
         )
     }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Order Finalized") }
+                title = { Text(if (isArabic) "تم إتمام الطلب" else "Order Finalized") }
             )
         },
         snackbarHost = {
@@ -156,24 +156,24 @@ fun ReceiptScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Success icon
             Icon(
                 imageVector = Icons.Filled.CheckCircle,
-                contentDescription = "Success",
+                contentDescription = if (isArabic) "نجاح" else "Success",
                 modifier = Modifier.size(80.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
-            
+
             Text(
-                text = "Order Finalized Successfully!",
+                text = if (isArabic) "تم إتمام الطلب بنجاح!" else "Order Finalized Successfully!",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            
+
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             // Receipt card
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -192,7 +192,7 @@ fun ReceiptScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Order #",
+                                text = if (isArabic) "رقم الطلب #" else "Order #",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
@@ -202,7 +202,7 @@ fun ReceiptScreen(
                             )
                         }
                     }
-                    
+
                     // Receipt number
                     val receiptNumber = order.receiptNumber
                     if (receiptNumber != null) {
@@ -211,7 +211,7 @@ fun ReceiptScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Receipt #",
+                                text = if (isArabic) "رقم الفاتورة #" else "Receipt #",
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
@@ -221,12 +221,12 @@ fun ReceiptScreen(
                             )
                         }
                     }
-                    
+
                     // Line items (best-effort; populated from GET /orders/{id})
                     if (orderLines.isNotEmpty()) {
                         Divider(modifier = Modifier.padding(vertical = 8.dp))
                         Text(
-                            text = "Items",
+                            text = if (isArabic) "العناصر" else "Items",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold
                         )
@@ -250,14 +250,14 @@ fun ReceiptScreen(
                     }
 
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    
+
                     // Totals
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Subtotal",
+                            text = if (isArabic) "المجموع الفرعي" else "Subtotal",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -265,13 +265,13 @@ fun ReceiptScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Tax",
+                            text = if (isArabic) "الضريبة" else "Tax",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -279,15 +279,15 @@ fun ReceiptScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    
+
                     Divider(modifier = Modifier.padding(vertical = 8.dp))
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Total",
+                            text = if (isArabic) "الإجمالي" else "Total",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -297,21 +297,21 @@ fun ReceiptScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    
+
                     // Sync status
                     if (order.syncedAt == null && order.receiptNumber?.startsWith("PENDING") == true) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Divider()
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "⚠️ Queued for sync",
+                            text = if (isArabic) "⚠️ في انتظار المزامنة" else "⚠️ Queued for sync",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.tertiary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            text = "This order will be synced when connection is restored.",
+                            text = if (isArabic) "سيتم مزامنة هذا الطلب عند استعادة الاتصال." else "This order will be synced when connection is restored.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -320,9 +320,9 @@ fun ReceiptScreen(
                     }
                 }
             }
-            
+
             Spacer(modifier = Modifier.weight(1f))
-            
+
             // Action buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -335,13 +335,13 @@ fun ReceiptScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Share,
-                        contentDescription = "Share",
+                        contentDescription = if (isArabic) "مشاركة" else "Share",
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Share")
+                    Text(if (isArabic) "مشاركة" else "Share")
                 }
-                
+
                 // Print button
                 OutlinedButton(
                     onClick = { viewModel.printReceipt(order.id) },
@@ -349,13 +349,11 @@ fun ReceiptScreen(
                     enabled = printState !is PrintState.Printing
                 ) {
                     if (printState is PrintState.Printing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp)
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp))
                     } else {
                         Icon(
                             imageVector = Icons.Default.Print,
-                            contentDescription = "Print",
+                            contentDescription = if (isArabic) "طباعة" else "Print",
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -376,21 +374,21 @@ fun ReceiptScreen(
                     voidState is VoidState.Voiding -> {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Voiding…")
+                        Text(if (isArabic) "جارٍ الإلغاء…" else "Voiding…")
                     }
-                    order.status.isAlreadyVoidedStatus() -> Text("Order Voided")
-                    isPendingSync -> Text("Sync required to void")
-                    else -> Text("Void Order")
+                    order.status.isAlreadyVoidedStatus() -> Text(if (isArabic) "تم إلغاء الطلب" else "Order Voided")
+                    isPendingSync -> Text(if (isArabic) "المزامنة مطلوبة للإلغاء" else "Sync required to void")
+                    else -> Text(if (isArabic) "إلغاء الطلب" else "Void Order")
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // SMS confirmation indicator (shown when customer had a phone number)
             if (!order.customerPhone.isNullOrBlank() && !isPendingSync &&
                 !order.status.isAlreadyVoidedStatus()) {
                 Text(
-                    text = "📱 Confirmation sent to ${order.customerPhone}",
+                    text = "📱 ${if (isArabic) "تم إرسال تأكيد إلى ${order.customerPhone}" else "Confirmation sent to ${order.customerPhone}"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -402,7 +400,7 @@ fun ReceiptScreen(
                     onClick = { showFeedbackDialog = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Leave Feedback ⭐")
+                    Text(if (isArabic) "اترك تقييماً ⭐" else "Leave Feedback ⭐")
                 }
             }
 
@@ -413,7 +411,7 @@ fun ReceiptScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                Text("Done")
+                Text(if (isArabic) "تم" else "Done")
             }
 
             if (showFeedbackDialog) {

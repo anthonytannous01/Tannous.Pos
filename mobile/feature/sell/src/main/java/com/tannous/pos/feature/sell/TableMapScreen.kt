@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.TableDto
+import com.tannous.pos.core.ui.LocalIsArabic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,6 +33,7 @@ fun TableMapScreen(
     viewModel: TablesViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTable by remember { mutableStateOf<TableDto?>(null) }
 
@@ -46,6 +48,7 @@ fun TableMapScreen(
     if (selectedTable != null && onTableSelected == null) {
         TableStatusDialog(
             table = selectedTable!!,
+            isArabic = isArabic,
             onDismiss = { selectedTable = null },
             onStatusChange = { status ->
                 viewModel.updateStatus(selectedTable!!.id, status)
@@ -58,15 +61,15 @@ fun TableMapScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (onTableSelected != null) "Select Table" else "Table Map") },
+                title = { Text(if (onTableSelected != null) (if (isArabic) "اختر طاولة" else "Select Table") else (if (isArabic) "خريطة الطاولات" else "Table Map")) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -74,10 +77,12 @@ fun TableMapScreen(
     ) { padding ->
         if (uiState.floorPlans.isEmpty()) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("No floor plans configured.\nAdd tables in settings.",
+                Text(
+                    if (isArabic) "لم يتم تكوين مخططات طوابق.\nأضف طاولات في الإعدادات." else "No floor plans configured.\nAdd tables in settings.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center)
+                    textAlign = TextAlign.Center
+                )
             }
         } else {
             Column(Modifier.fillMaxSize().padding(padding)) {
@@ -100,7 +105,7 @@ fun TableMapScreen(
                 }
 
                 // Legend
-                StatusLegend()
+                StatusLegend(isArabic = isArabic)
 
                 // Table grid
                 val tables = uiState.selectedFloorPlan?.tables ?: emptyList()
@@ -130,16 +135,16 @@ fun TableMapScreen(
 }
 
 @Composable
-private fun StatusLegend() {
+private fun StatusLegend(isArabic: Boolean) {
     Row(
         Modifier.padding(horizontal = 12.dp).fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         listOf(
-            TABLE_AVAILABLE to "Available",
-            TABLE_OCCUPIED  to "Occupied",
-            TABLE_RESERVED  to "Reserved",
-            TABLE_CLEANING  to "Cleaning"
+            TABLE_AVAILABLE to (if (isArabic) "متاحة" else "Available"),
+            TABLE_OCCUPIED  to (if (isArabic) "مشغولة" else "Occupied"),
+            TABLE_RESERVED  to (if (isArabic) "محجوزة" else "Reserved"),
+            TABLE_CLEANING  to (if (isArabic) "تنظيف" else "Cleaning")
         ).forEach { (status, label) ->
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -193,22 +198,25 @@ private fun TableCard(table: TableDto, pickerMode: Boolean, onClick: () -> Unit)
 @Composable
 private fun TableStatusDialog(
     table: TableDto,
+    isArabic: Boolean,
     onDismiss: () -> Unit,
     onStatusChange: (Int) -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Table ${table.tableNumber}${table.label?.let { " — $it" } ?: ""}") },
+        title = { Text("${if (isArabic) "طاولة" else "Table"} ${table.tableNumber}${table.label?.let { " — $it" } ?: ""}") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Capacity: ${table.capacity} | Current: ${statusLabel(table.status)}",
+                Text(
+                    if (isArabic) "السعة: ${table.capacity} | الحالي: ${statusLabel(table.status, isArabic)}" else "Capacity: ${table.capacity} | Current: ${statusLabel(table.status, isArabic)}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 listOf(
-                    TABLE_AVAILABLE to "Mark Available",
-                    TABLE_OCCUPIED  to "Mark Occupied",
-                    TABLE_RESERVED  to "Mark Reserved",
-                    TABLE_CLEANING  to "Mark Cleaning"
+                    TABLE_AVAILABLE to (if (isArabic) "تعيين كمتاحة" else "Mark Available"),
+                    TABLE_OCCUPIED  to (if (isArabic) "تعيين كمشغولة" else "Mark Occupied"),
+                    TABLE_RESERVED  to (if (isArabic) "تعيين كمحجوزة" else "Mark Reserved"),
+                    TABLE_CLEANING  to (if (isArabic) "تعيين للتنظيف" else "Mark Cleaning")
                 ).forEach { (status, label) ->
                     if (status != table.status) {
                         OutlinedButton(
@@ -221,7 +229,7 @@ private fun TableStatusDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(if (isArabic) "إلغاء" else "Cancel") }
         }
     )
 }
@@ -234,10 +242,10 @@ private fun tableColor(status: Int): Color = when (status) {
     else            -> Color(0xFF757575)
 }
 
-private fun statusLabel(status: Int): String = when (status) {
-    TABLE_AVAILABLE -> "Available"
-    TABLE_OCCUPIED  -> "Occupied"
-    TABLE_RESERVED  -> "Reserved"
-    TABLE_CLEANING  -> "Cleaning"
-    else            -> "Unknown"
+private fun statusLabel(status: Int, isArabic: Boolean): String = when (status) {
+    TABLE_AVAILABLE -> if (isArabic) "متاحة" else "Available"
+    TABLE_OCCUPIED  -> if (isArabic) "مشغولة" else "Occupied"
+    TABLE_RESERVED  -> if (isArabic) "محجوزة" else "Reserved"
+    TABLE_CLEANING  -> if (isArabic) "تنظيف" else "Cleaning"
+    else            -> if (isArabic) "غير معروف" else "Unknown"
 }

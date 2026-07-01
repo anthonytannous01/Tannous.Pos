@@ -37,7 +37,7 @@ fun ForecastDetailScreen(
                 title = { Text(if (isArabic) "التوقعات" else "Forecast") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )

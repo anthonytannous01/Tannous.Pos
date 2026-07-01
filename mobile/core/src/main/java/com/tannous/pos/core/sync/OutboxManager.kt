@@ -19,22 +19,32 @@ class OutboxManager @Inject constructor(
     private val syncManager: SyncManager
 ) {
     
-    suspend fun enqueueOperation(
+    // Public inline wrapper — resolves the correct serializer at each call site via reified T.
+    // Delegates to the internal function to avoid "public inline cannot access private member" error.
+    suspend inline fun <reified T : Any> enqueueOperation(
         type: String,
-        payload: Any,
+        payload: T,
+        orderId: String? = null,
+        shiftId: String? = null
+    ) = enqueueOperationJson(type, Json.encodeToString(payload), orderId, shiftId)
+
+    // @PublishedApi so the inline function above can call it; keeps outboxDao private.
+    @PublishedApi
+    internal suspend fun enqueueOperationJson(
+        type: String,
+        payloadJson: String,
         orderId: String? = null,
         shiftId: String? = null
     ) {
         val operation = OutboxOperationEntity(
             operationId = UUID.randomUUID().toString(),
             type = type,
-            payloadJson = Json.encodeToString(payload),
+            payloadJson = payloadJson,
             createdAt = Instant.now(),
             attempt = 0,
             lastError = null,
             status = OutboxStatus.PENDING
         )
-        
         outboxDao.insert(operation)
         Timber.d("Enqueued outbox operation: $type for ${orderId ?: shiftId}")
     }

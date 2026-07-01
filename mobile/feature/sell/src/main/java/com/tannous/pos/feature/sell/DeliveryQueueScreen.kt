@@ -26,6 +26,7 @@ fun DeliveryQueueScreen(
     viewModel: DeliveryQueueViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
@@ -39,15 +40,15 @@ fun DeliveryQueueScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Delivery Queue") },
+                title = { Text(if (isArabic) "قائمة التوصيل" else "Delivery Queue") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -78,8 +79,8 @@ fun DeliveryQueueScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No active deliveries", style = MaterialTheme.typography.titleMedium)
-                        Text("Active deliveries appear here automatically",
+                        Text(if (isArabic) "لا توجد توصيلات نشطة" else "No active deliveries", style = MaterialTheme.typography.titleMedium)
+                        Text(if (isArabic) "ستظهر التوصيلات النشطة هنا تلقائياً" else "Active deliveries appear here automatically",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -194,6 +195,7 @@ private fun DeliveryCard(
     onDelivered: () -> Unit,
     onFailed:    () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     var showAssignDialog by remember { mutableStateOf(false) }
     var driverName  by remember { mutableStateOf(delivery.driverName ?: "") }
     var driverPhone by remember { mutableStateOf(delivery.driverPhone ?: "") }
@@ -201,17 +203,17 @@ private fun DeliveryCard(
     if (showAssignDialog) {
         AlertDialog(
             onDismissRequest = { showAssignDialog = false },
-            title = { Text("Assign Driver") },
+            title = { Text(if (isArabic) "تعيين سائق" else "Assign Driver") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = driverName, onValueChange = { driverName = it },
-                        label = { Text("Driver Name *") },
+                        label = { Text(if (isArabic) "اسم السائق *" else "Driver Name *") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
                     OutlinedTextField(
                         value = driverPhone, onValueChange = { driverPhone = it },
-                        label = { Text("Driver Phone") },
+                        label = { Text(if (isArabic) "هاتف السائق" else "Driver Phone") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
                 }
@@ -223,9 +225,9 @@ private fun DeliveryCard(
                         showAssignDialog = false
                     },
                     enabled = driverName.isNotBlank()
-                ) { Text("Assign") }
+                ) { Text(if (isArabic) "تعيين" else "Assign") }
             },
-            dismissButton = { TextButton(onClick = { showAssignDialog = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showAssignDialog = false }) { Text(if (isArabic) "إلغاء" else "Cancel") } }
         )
     }
 
@@ -290,7 +292,7 @@ private fun DeliveryCard(
             }
 
             delivery.estimatedMinutes?.let {
-                Text("~${it} min", style = MaterialTheme.typography.bodySmall,
+                Text("~${it} ${if (isArabic) "دقيقة" else "min"}", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
@@ -308,35 +310,35 @@ private fun DeliveryCard(
                 when (delivery.status) {
                     DELIVERY_PENDING -> {
                         Button(onClick = { showAssignDialog = true },
-                            modifier = Modifier.weight(1f)) { Text("Assign") }
+                            modifier = Modifier.weight(1f)) { Text(if (isArabic) "تعيين" else "Assign") }
                         OutlinedButton(onClick = onFailed,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error)) { Text("Failed") }
+                                contentColor = MaterialTheme.colorScheme.error)) { Text(if (isArabic) "فشل" else "Failed") }
                     }
                     DELIVERY_ASSIGNED -> {
                         Button(onClick = onPickedUp,
-                            modifier = Modifier.weight(1f)) { Text("Picked Up") }
+                            modifier = Modifier.weight(1f)) { Text(if (isArabic) "تم الاستلام" else "Picked Up") }
                         OutlinedButton(onClick = onFailed,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error)) { Text("Failed") }
+                                contentColor = MaterialTheme.colorScheme.error)) { Text(if (isArabic) "فشل" else "Failed") }
                     }
                     DELIVERY_PICKED_UP -> {
                         Button(onClick = onOnWay,
-                            modifier = Modifier.weight(1f)) { Text("On the Way") }
+                            modifier = Modifier.weight(1f)) { Text(if (isArabic) "في الطريق" else "On the Way") }
                         OutlinedButton(onClick = onFailed,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error)) { Text("Failed") }
+                                contentColor = MaterialTheme.colorScheme.error)) { Text(if (isArabic) "فشل" else "Failed") }
                     }
                     DELIVERY_ON_WAY -> {
                         Button(onClick = onDelivered,
-                            modifier = Modifier.weight(1f)) { Text("Delivered ✓") }
+                            modifier = Modifier.weight(1f)) { Text(if (isArabic) "تم التسليم ✓" else "Delivered ✓") }
                         OutlinedButton(onClick = onFailed,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error)) { Text("Failed") }
+                                contentColor = MaterialTheme.colorScheme.error)) { Text(if (isArabic) "فشل" else "Failed") }
                     }
                 }
             }

@@ -56,11 +56,11 @@ fun IntegrationsScreen(
                 TextButton(onClick = {
                     revokeKeyId?.let { viewModel.revokeApiKey(it) }
                     revokeKeyId = null
-                }) { Text(if (isArabic) "إلغاء" else "Revoke") }
+                }) { Text(if (isArabic) "إلغاء الصلاحية" else "Revoke") }
             },
             dismissButton = {
                 TextButton(onClick = { revokeKeyId = null }) {
-                    Text(if (isArabic) "إلغاء" else "Cancel")
+                    Text(if (isArabic) "رجوع" else "Cancel")
                 }
             }
         )
@@ -73,7 +73,7 @@ fun IntegrationsScreen(
                 title = { Text(if (isArabic) "واجهة برمجة التطبيقات والتكاملات" else "API & Integrations") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -212,10 +212,10 @@ private fun WebhookCard(
                 horizontalArrangement = Arrangement.End
             ) {
                 IconButton(onClick = { onTest(webhook.id) }) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Test")
+                    Icon(Icons.Default.PlayArrow, contentDescription = if (isArabic) "اختبار" else "Test")
                 }
                 IconButton(onClick = { onDelete(webhook.id) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(Icons.Default.Delete, contentDescription = if (isArabic) "حذف" else "Delete")
                 }
             }
         }

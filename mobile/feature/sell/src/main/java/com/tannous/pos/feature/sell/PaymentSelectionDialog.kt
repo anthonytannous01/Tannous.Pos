@@ -9,6 +9,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.tannous.pos.core.data.model.PaymentDto
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 
@@ -29,28 +30,29 @@ fun PaymentSelectionDialog(
     var cardAmount by remember { mutableStateOf("") }
     var otherAmount by remember { mutableStateOf("") }
     var otherMethodName by remember { mutableStateOf("") }
-    
+    val isArabic = LocalIsArabic.current
+
     val currencyFormatter = remember(currencyCode) { currencyFormatterFor(currencyCode) }
-    
+
     // Calculate amounts
     val cashAmountDecimal = try {
         if (cashAmount.isNotEmpty()) BigDecimal(cashAmount) else BigDecimal.ZERO
     } catch (e: NumberFormatException) {
         BigDecimal.ZERO
     }
-    
+
     val cardAmountDecimal = try {
         if (cardAmount.isNotEmpty()) BigDecimal(cardAmount) else BigDecimal.ZERO
     } catch (e: NumberFormatException) {
         BigDecimal.ZERO
     }
-    
+
     val otherAmountDecimal = try {
         if (otherAmount.isNotEmpty()) BigDecimal(otherAmount) else BigDecimal.ZERO
     } catch (e: NumberFormatException) {
         BigDecimal.ZERO
     }
-    
+
     val totalPaid = cashAmountDecimal + cardAmountDecimal + otherAmountDecimal
     val remaining = total - totalPaid
     val change = if (cashAmountDecimal > BigDecimal.ZERO && totalPaid > total) {
@@ -58,7 +60,7 @@ fun PaymentSelectionDialog(
     } else {
         BigDecimal.ZERO
     }
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -71,12 +73,12 @@ fun PaymentSelectionDialog(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Select Payment Method",
+                    text = if (isArabic) "اختر طريقة الدفع" else "Select Payment Method",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 // Total display
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -90,7 +92,7 @@ fun PaymentSelectionDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = "Total Amount",
+                                text = if (isArabic) "المبلغ الإجمالي" else "Total Amount",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -102,17 +104,17 @@ fun PaymentSelectionDialog(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Payment method selection
                 Text(
-                    text = "Payment Method",
+                    text = if (isArabic) "طريقة الدفع" else "Payment Method",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -120,39 +122,39 @@ fun PaymentSelectionDialog(
                     FilterChip(
                         selected = selectedMethod == PaymentMethod.CASH,
                         onClick = { selectedMethod = PaymentMethod.CASH },
-                        label = { Text("Cash") },
+                        label = { Text(if (isArabic) "نقداً" else "Cash") },
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = selectedMethod == PaymentMethod.CARD,
                         onClick = { selectedMethod = PaymentMethod.CARD },
-                        label = { Text("Card") },
+                        label = { Text(if (isArabic) "بطاقة" else "Card") },
                         modifier = Modifier.weight(1f)
                     )
                     FilterChip(
                         selected = selectedMethod == PaymentMethod.OTHER,
                         onClick = { selectedMethod = PaymentMethod.OTHER },
-                        label = { Text("Other") },
+                        label = { Text(if (isArabic) "أخرى" else "Other") },
                         modifier = Modifier.weight(1f)
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Payment amount inputs
                 when (selectedMethod) {
                     PaymentMethod.CASH -> {
                         OutlinedTextField(
                             value = cashAmount,
                             onValueChange = { cashAmount = it },
-                            label = { Text("Cash Amount") },
+                            label = { Text(if (isArabic) "مبلغ نقدي" else "Cash Amount") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                         if (cashAmountDecimal > BigDecimal.ZERO && change > BigDecimal.ZERO) {
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Change: ${currencyFormatter.format(change)}",
+                                text = if (isArabic) "الباقي: ${currencyFormatter.format(change)}" else "Change: ${currencyFormatter.format(change)}",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.Bold
@@ -163,7 +165,7 @@ fun PaymentSelectionDialog(
                         OutlinedTextField(
                             value = cardAmount,
                             onValueChange = { cardAmount = it },
-                            label = { Text("Card Amount") },
+                            label = { Text(if (isArabic) "مبلغ البطاقة" else "Card Amount") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -172,7 +174,7 @@ fun PaymentSelectionDialog(
                         OutlinedTextField(
                             value = otherMethodName,
                             onValueChange = { otherMethodName = it },
-                            label = { Text("Payment Method Name") },
+                            label = { Text(if (isArabic) "اسم طريقة الدفع" else "Payment Method Name") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
@@ -180,33 +182,33 @@ fun PaymentSelectionDialog(
                         OutlinedTextField(
                             value = otherAmount,
                             onValueChange = { otherAmount = it },
-                            label = { Text("Amount") },
+                            label = { Text(if (isArabic) "المبلغ" else "Amount") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
                     }
                     null -> {
                         Text(
-                            text = "Please select a payment method",
+                            text = if (isArabic) "يرجى اختيار طريقة دفع" else "Please select a payment method",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                
+
                 // Remaining amount display
                 if (totalPaid < total && (cashAmountDecimal > BigDecimal.ZERO || cardAmountDecimal > BigDecimal.ZERO || otherAmountDecimal > BigDecimal.ZERO)) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Remaining: ${currencyFormatter.format(remaining)}",
+                        text = if (isArabic) "المتبقي: ${currencyFormatter.format(remaining)}" else "Remaining: ${currencyFormatter.format(remaining)}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.error,
                         fontWeight = FontWeight.Bold
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Action buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -216,44 +218,46 @@ fun PaymentSelectionDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
-                    
+
                     Button(
                         onClick = {
                             val payments = mutableListOf<PaymentDto>()
-                            
+
                             if (cashAmountDecimal > BigDecimal.ZERO) {
                                 payments.add(
                                     PaymentDto(
                                         paymentMethod = "CASH",
-                                        amount = cashAmountDecimal,
-                                        notes = if (change > BigDecimal.ZERO) "Change: ${currencyFormatter.format(change)}" else null
+                                        amount = cashAmountDecimal.toDouble(),
+                                        notes = if (change > BigDecimal.ZERO)
+                                            (if (isArabic) "الباقي: ${currencyFormatter.format(change)}" else "Change: ${currencyFormatter.format(change)}")
+                                        else null
                                     )
                                 )
                             }
-                            
+
                             if (cardAmountDecimal > BigDecimal.ZERO) {
                                 payments.add(
                                     PaymentDto(
                                         paymentMethod = "CARD",
-                                        amount = cardAmountDecimal,
+                                        amount = cardAmountDecimal.toDouble(),
                                         transactionId = null,
                                         notes = null
                                     )
                                 )
                             }
-                            
+
                             if (otherAmountDecimal > BigDecimal.ZERO) {
                                 payments.add(
                                     PaymentDto(
                                         paymentMethod = otherMethodName.ifEmpty { "OTHER" },
-                                        amount = otherAmountDecimal,
+                                        amount = otherAmountDecimal.toDouble(),
                                         notes = null
                                     )
                                 )
                             }
-                            
+
                             if (payments.isNotEmpty() && totalPaid >= total) {
                                 onConfirm(payments)
                             }
@@ -261,12 +265,10 @@ fun PaymentSelectionDialog(
                         modifier = Modifier.weight(1f),
                         enabled = selectedMethod != null && totalPaid >= total && totalPaid > BigDecimal.ZERO
                     ) {
-                        Text("Finalize Order")
+                        Text(if (isArabic) "إتمام الطلب" else "Finalize Order")
                     }
                 }
             }
         }
     }
 }
-
-

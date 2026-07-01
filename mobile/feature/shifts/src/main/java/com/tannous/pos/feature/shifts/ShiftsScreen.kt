@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -23,6 +24,7 @@ fun ShiftsScreen(
     viewModel: ShiftViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val currencyFormatter = remember(uiState.currencyCode) {
         currencyFormatterFor(uiState.currencyCode)
     }
@@ -54,10 +56,10 @@ fun ShiftsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Shift Management") },
+                title = { Text(if (isArabic) "إدارة الوردية" else "Shift Management") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -89,7 +91,7 @@ fun ShiftsScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-                            text = "No Active Shift",
+                            text = if (isArabic) "لا توجد وردية نشطة" else "No Active Shift",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -97,7 +99,7 @@ fun ShiftsScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(
-                            text = "Open a shift to begin processing sales",
+                            text = if (isArabic) "افتح وردية لبدء معالجة المبيعات" else "Open a shift to begin processing sales",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -108,7 +110,7 @@ fun ShiftsScreen(
                             onClick = { showOpenShiftDialog = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-                            Text("Open Shift")
+                            Text(if (isArabic) "فتح وردية" else "Open Shift")
                         }
                     }
                 }
@@ -130,7 +132,7 @@ fun ShiftsScreen(
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Text(
-                                    text = "Active Shift",
+                                    text = if (isArabic) "الوردية النشطة" else "Active Shift",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -142,7 +144,7 @@ fun ShiftsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Shift Number:",
+                                        text = if (isArabic) "رقم الوردية:" else "Shift Number:",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
@@ -157,7 +159,7 @@ fun ShiftsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Opened:",
+                                        text = if (isArabic) "فُتحت:" else "Opened:",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
@@ -171,7 +173,7 @@ fun ShiftsScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Opening Balance:",
+                                        text = if (isArabic) "رصيد الافتتاح:" else "Opening Balance:",
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
@@ -181,13 +183,48 @@ fun ShiftsScreen(
                                     )
                                 }
                                 
+                                // Live sales summary — computed from paid orders in Room.
+                                // Updates automatically when new orders are finalized.
+                                Divider()
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = if (isArabic) "طلبات هذه الوردية:" else "Orders This Shift:",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = "${uiState.shiftOrderCount}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = if (isArabic) "إجمالي المبيعات:" else "Sales Total:",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = currencyFormatter.format(uiState.shiftSalesTotal),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
                                 shift.expectedCash?.let { expected ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(
-                                            text = "Expected Cash:",
+                                            text = if (isArabic) "النقد المتوقع:" else "Expected Cash:",
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
@@ -202,7 +239,7 @@ fun ShiftsScreen(
                                     if (notes.isNotEmpty()) {
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "Notes: $notes",
+                                            text = if (isArabic) "ملاحظات: $notes" else "Notes: $notes",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -217,7 +254,7 @@ fun ShiftsScreen(
                             modifier = Modifier.fillMaxWidth(),
                             enabled = !uiState.isLoading
                         ) {
-                            Text("Cash Drop")
+                            Text(if (isArabic) "إيداع نقدي" else "Cash Drop")
                         }
 
                         // Close Shift Button
@@ -229,7 +266,7 @@ fun ShiftsScreen(
                                 containerColor = MaterialTheme.colorScheme.error
                             )
                         ) {
-                            Text("Close Shift")
+                            Text(if (isArabic) "إغلاق الوردية" else "Close Shift")
                         }
                     }
                 }

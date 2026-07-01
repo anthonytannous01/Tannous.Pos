@@ -24,7 +24,20 @@ class LanguageViewModel @Inject constructor(
         }
     }
 
-    /** Called after the user toggles the language in Settings, to refresh the app-level direction. */
+    /**
+     * Directly sets isArabic without an async DB read.
+     * Call this immediately after toggling the language so the UI recomposes synchronously
+     * without a race between the write coroutine and a follow-up read coroutine.
+     */
+    fun setIsArabic(value: Boolean) {
+        _isArabic.value = value
+    }
+
+    /**
+     * Re-reads the persisted language from the DB.
+     * Useful on cold start or after an external change. Prefer [setIsArabic] when the
+     * new value is already known to avoid a write/read race condition.
+     */
     fun refresh() {
         viewModelScope.launch {
             _isArabic.value = settingsRepository.getLanguage() == SettingsRepository.LANG_AR
