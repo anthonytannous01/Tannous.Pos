@@ -89,11 +89,7 @@ private fun MenuItemDialog(
     onDismiss: () -> Unit
 ) {
     var name        by remember(initial) { mutableStateOf(initial?.name ?: "") }
-    var nameAr      by remember(initial) { mutableStateOf(initial?.let {
-        // MenuItemEntity may store nameAr via description field — it's not in entity directly.
-        // nameAr is sent to server but not stored separately in Room, so we leave it blank on edit.
-        ""
-    } ?: "") }
+    var nameAr      by remember(initial) { mutableStateOf(initial?.nameAr ?: "") }
     var price       by remember(initial) { mutableStateOf(initial?.price?.toPlainString() ?: "") }
     var description by remember(initial) { mutableStateOf(initial?.description ?: "") }
     var categoryId  by remember(initial) {
