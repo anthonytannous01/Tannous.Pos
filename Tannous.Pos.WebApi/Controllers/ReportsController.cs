@@ -11,14 +11,23 @@ using Tannous.Pos.Application.Reports.Queries.GetSalesExport;
 using Tannous.Pos.Application.Reports.Queries.GetSectionSales;
 using Tannous.Pos.Application.Reports.Queries.GetPurchasesExport;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Tannous.Pos.WebApi.Authentication;
 using Tannous.Pos.WebApi.Constants;
 using System.Text;
 
 namespace Tannous.Pos.WebApi.Controllers;
 
+// Every action here is a read-only query, so it's safe to accept either a staff JWT (Owner/Manager)
+// or a read-only third-party API key at the controller level — there's no write action that could
+// accidentally inherit the looser policy. See PolicyConstants.CanViewReportsOrApiKey.
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = PolicyConstants.CanViewReports)]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
+[Authorize(
+    AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme + "," + ApiKeyAuthenticationHandler.SchemeName,
+    Policy = PolicyConstants.CanViewReportsOrApiKey)]
 public class ReportsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -38,7 +47,7 @@ public class ReportsController : ControllerBase
     [HttpGet("cogs")]
     public async Task<ActionResult<CogsReportDto>> GetCogsReport([FromQuery] DateTime from, [FromQuery] DateTime to)
     {
-        var query = new GetCogsReportQuery { From = from, To = to };
+        var query = new GetCogsReportQuery { From = DateTime.SpecifyKind(from, DateTimeKind.Utc), To = DateTime.SpecifyKind(to, DateTimeKind.Utc) };
         var result = await _mediator.Send(query);
         return Ok(result);
     }
@@ -81,7 +90,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime to,
         [FromQuery] Guid? branchId = null)
     {
-        var result = await _mediator.Send(new GetKdsPerformanceQuery { From = from, To = to, BranchId = branchId });
+        var result = await _mediator.Send(new GetKdsPerformanceQuery { From = DateTime.SpecifyKind(from, DateTimeKind.Utc), To = DateTime.SpecifyKind(to, DateTimeKind.Utc), BranchId = branchId });
         return Ok(result);
     }
 
@@ -94,7 +103,7 @@ public class ReportsController : ControllerBase
         [FromQuery] DateTime from,
         [FromQuery] DateTime to)
     {
-        var result = await _mediator.Send(new GetMenuEngineeringQuery { From = from, To = to });
+        var result = await _mediator.Send(new GetMenuEngineeringQuery { From = DateTime.SpecifyKind(from, DateTimeKind.Utc), To = DateTime.SpecifyKind(to, DateTimeKind.Utc) });
         return Ok(result);
     }
 
@@ -110,8 +119,8 @@ public class ReportsController : ControllerBase
     {
         var result = await _mediator.Send(new GetSectionSalesQuery
         {
-            From     = from,
-            To       = to,
+            From     = DateTime.SpecifyKind(from, DateTimeKind.Utc),
+            To       = DateTime.SpecifyKind(to, DateTimeKind.Utc),
             BranchId = branchId
         });
         return Ok(result);
