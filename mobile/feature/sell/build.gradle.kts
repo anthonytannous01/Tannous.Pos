@@ -65,6 +65,7 @@ dependencies {
     
     // Logging
     implementation(libs.timber)
+    implementation(libs.retrofit)
     
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.compose)

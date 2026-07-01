@@ -96,7 +96,7 @@ fun ReportsScreen(
     }
 
     val dateLabel = if (uiState.selectedDate == LocalDate.now()) {
-        "Today"
+        if (isArabic) "اليوم" else "Today"
     } else {
         uiState.selectedDate.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
     }
@@ -105,10 +105,10 @@ fun ReportsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Reports") },
+                title = { Text(if (isArabic) "التقارير" else "Reports") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -121,13 +121,13 @@ fun ReportsScreen(
         ) {
             TabRow(selectedTabIndex = uiState.selectedTab) {
                 Tab(selected = uiState.selectedTab == 0, onClick = { viewModel.selectTab(0) },
-                    text = { Text("End of Day") })
+                    text = { Text(if (isArabic) "نهاية اليوم" else "End of Day") })
                 Tab(selected = uiState.selectedTab == 1, onClick = { viewModel.selectTab(1) },
                     text = { Text("COGS") })
                 Tab(selected = uiState.selectedTab == KITCHEN_TAB, onClick = { viewModel.selectTab(KITCHEN_TAB) },
                     text = { Text(if (isArabic) "المطبخ" else "Kitchen") })
                 Tab(selected = uiState.selectedTab == EXPORT_TAB, onClick = { viewModel.selectTab(EXPORT_TAB) },
-                    text = { Text("Export") })
+                    text = { Text(if (isArabic) "تصدير" else "Export") })
                 Tab(selected = uiState.selectedTab == SECTIONS_TAB, onClick = { viewModel.selectTab(SECTIONS_TAB) },
                     text = { Text(if (isArabic) "الأقسام" else "Sections") })
             }
@@ -149,7 +149,7 @@ fun ReportsScreen(
                         }) {
                             Icon(
                                 Icons.Default.KeyboardArrowLeft,
-                                contentDescription = "Previous day"
+                                contentDescription = if (isArabic) "اليوم السابق" else "Previous day"
                             )
                         }
                         Text(
@@ -166,7 +166,7 @@ fun ReportsScreen(
                         ) {
                             Icon(
                                 Icons.Default.KeyboardArrowRight,
-                                contentDescription = "Next day"
+                                contentDescription = if (isArabic) "اليوم التالي" else "Next day"
                             )
                         }
                     }
@@ -192,7 +192,7 @@ fun ReportsScreen(
                                 onClick = { viewModel.loadReport() },
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
                             ) {
-                                Text("Retry")
+                                Text(if (isArabic) "إعادة المحاولة" else "Retry")
                             }
                         }
                         uiState.report != null -> {
@@ -202,17 +202,17 @@ fun ReportsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 SummaryCard(
-                                    label = "Net Sales",
+                                    label = if (isArabic) "صافي المبيعات" else "Net Sales",
                                     value = currencyFormatter.format(report.netSales),
                                     modifier = Modifier.weight(1f)
                                 )
                                 SummaryCard(
-                                    label = "Orders",
+                                    label = if (isArabic) "الطلبات" else "Orders",
                                     value = report.ordersCount.toString(),
                                     modifier = Modifier.weight(1f)
                                 )
                                 SummaryCard(
-                                    label = "Avg Ticket",
+                                    label = if (isArabic) "متوسط الفاتورة" else "Avg Ticket",
                                     value = currencyFormatter.format(report.avgTicket),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -222,12 +222,12 @@ fun ReportsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 SummaryCard(
-                                    label = "Cash Drops",
+                                    label = if (isArabic) "إيداعات النقد" else "Cash Drops",
                                     value = currencyFormatter.format(report.cashDrops),
                                     modifier = Modifier.weight(1f)
                                 )
                                 SummaryCard(
-                                    label = "Variance",
+                                    label = if (isArabic) "الفارق" else "Variance",
                                     value = report.variance?.let { currencyFormatter.format(it) }
                                         ?: "—",
                                     modifier = Modifier.weight(1f)
@@ -236,7 +236,7 @@ fun ReportsScreen(
 
                             if (report.topItems.isNotEmpty()) {
                                 Text(
-                                    text = "Top Items",
+                                    text = if (isArabic) "أعلى العناصر" else "Top Items",
                                     style = MaterialTheme.typography.titleSmall,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
@@ -273,23 +273,23 @@ fun ReportsScreen(
                                             strokeWidth = 2.dp
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Exporting…")
+                                        Text(if (isArabic) "جارٍ التصدير…" else "Exporting…")
                                     } else {
                                         Icon(Icons.Default.Share, contentDescription = null)
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Export CSV")
+                                        Text(if (isArabic) "تصدير CSV" else "Export CSV")
                                     }
                                 }
                                 TextButton(onClick = { viewModel.loadReport() }) {
                                     Icon(Icons.Default.Refresh, contentDescription = null)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Refresh")
+                                    Text(if (isArabic) "تحديث" else "Refresh")
                                 }
                             }
                         }
                         else -> {
                             Text(
-                                text = "No data for this date.",
+                                text = if (isArabic) "لا توجد بيانات لهذا التاريخ." else "No data for this date.",
                                 modifier = Modifier.padding(8.dp)
                             )
                         }
@@ -323,7 +323,7 @@ fun ReportsScreen(
                                 onClick = { viewModel.loadCogsReport() },
                                 modifier = Modifier.align(Alignment.CenterHorizontally)
                             ) {
-                                Text("Retry")
+                                Text(if (isArabic) "إعادة المحاولة" else "Retry")
                             }
                         }
                         uiState.cogsReport != null -> {
@@ -333,7 +333,7 @@ fun ReportsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 SummaryCard(
-                                    label = "Sales",
+                                    label = if (isArabic) "المبيعات" else "Sales",
                                     value = currencyFormatter.format(report.salesTotal),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -343,7 +343,7 @@ fun ReportsScreen(
                                     modifier = Modifier.weight(1f)
                                 )
                                 SummaryCard(
-                                    label = "Margin",
+                                    label = if (isArabic) "الهامش" else "Margin",
                                     value = currencyFormatter.format(report.grossMargin),
                                     modifier = Modifier.weight(1f)
                                 )
@@ -351,23 +351,23 @@ fun ReportsScreen(
 
                             if (report.ingredientUsage.isNotEmpty()) {
                                 Text(
-                                    text = "Ingredient Usage",
+                                    text = if (isArabic) "استهلاك المكونات" else "Ingredient Usage",
                                     style = MaterialTheme.typography.titleSmall,
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 )
                                 Row(modifier = Modifier.fillMaxWidth()) {
                                     Text(
-                                        text = "Ingredient",
+                                        text = if (isArabic) "المكون" else "Ingredient",
                                         modifier = Modifier.weight(1f),
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                     Text(
-                                        text = "Qty Used",
+                                        text = if (isArabic) "الكمية المستخدمة" else "Qty Used",
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
-                                        text = "Cost",
+                                        text = if (isArabic) "التكلفة" else "Cost",
                                         style = MaterialTheme.typography.labelSmall
                                     )
                                 }
@@ -390,7 +390,7 @@ fun ReportsScreen(
                                 }
                             } else {
                                 Text(
-                                    text = "No ingredient usage data for this period.",
+                                    text = if (isArabic) "لا توجد بيانات استهلاك لهذه الفترة." else "No ingredient usage data for this period.",
                                     modifier = Modifier.padding(8.dp)
                                 )
                             }
@@ -401,12 +401,12 @@ fun ReportsScreen(
                             ) {
                                 Icon(Icons.Default.Refresh, contentDescription = null)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Refresh")
+                                Text(if (isArabic) "تحديث" else "Refresh")
                             }
                         }
                         else -> {
                             Text(
-                                text = "Select a date range and tap Refresh.",
+                                text = if (isArabic) "اختر نطاقاً زمنياً ثم اضغط تحديث." else "Select a date range and tap Refresh.",
                                 modifier = Modifier.padding(8.dp)
                             )
                         }
@@ -428,11 +428,12 @@ fun ReportsScreen(
                     var exportFrom by remember { mutableStateOf(LocalDate.now().withDayOfMonth(1)) }
                     var exportTo   by remember { mutableStateOf(LocalDate.now()) }
 
-                    Text("Accounting Export",
+                    Text(if (isArabic) "التصدير المحاسبي" else "Accounting Export",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(bottom = 4.dp))
                     Text(
-                        "Download CSV files for your accountant. Open in Excel or any accounting software.",
+                        if (isArabic) "نزّل ملفات CSV لمحاسبك. افتحها في Excel أو أي برنامج محاسبة."
+                        else "Download CSV files for your accountant. Open in Excel or any accounting software.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -451,9 +452,11 @@ fun ReportsScreen(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Sales Export", style = MaterialTheme.typography.bodyLarge,
+                            Text(if (isArabic) "تصدير المبيعات" else "Sales Export",
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-                            Text("One row per paid order — date, receipt, type, subtotal, tax, total, payments",
+                            Text(if (isArabic) "صف واحد لكل طلب مدفوع — التاريخ، الفاتورة، النوع، الإجماليات"
+                                 else "One row per paid order — date, receipt, type, subtotal, tax, total, payments",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Button(
@@ -466,7 +469,8 @@ fun ReportsScreen(
                                         strokeWidth = 2.dp,
                                         color = MaterialTheme.colorScheme.onPrimary)
                                 } else {
-                                    Text("Export Sales CSV ($exportFrom → $exportTo)")
+                                    Text(if (isArabic) "تصدير CSV المبيعات ($exportFrom → $exportTo)"
+                                         else "Export Sales CSV ($exportFrom → $exportTo)")
                                 }
                             }
                         }
@@ -476,9 +480,11 @@ fun ReportsScreen(
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Purchases Export", style = MaterialTheme.typography.bodyLarge,
+                            Text(if (isArabic) "تصدير المشتريات" else "Purchases Export",
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-                            Text("Purchase orders — supplier, status, amounts",
+                            Text(if (isArabic) "أوامر الشراء — المورد، الحالة، المبالغ"
+                                 else "Purchase orders — supplier, status, amounts",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Button(
@@ -491,7 +497,8 @@ fun ReportsScreen(
                                         strokeWidth = 2.dp,
                                         color = MaterialTheme.colorScheme.onPrimary)
                                 } else {
-                                    Text("Export Purchases CSV ($exportFrom → $exportTo)")
+                                    Text(if (isArabic) "تصدير CSV المشتريات ($exportFrom → $exportTo)"
+                                         else "Export Purchases CSV ($exportFrom → $exportTo)")
                                 }
                             }
                         }

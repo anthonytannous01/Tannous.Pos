@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 
@@ -21,7 +22,8 @@ fun CashPaymentDialog(
 ) {
     var cashTendered by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
-    
+    val isArabic = LocalIsArabic.current
+
     val currencyFormatter = remember(currencyCode) {
         currencyFormatterFor(currencyCode)
     }
@@ -31,7 +33,7 @@ fun CashPaymentDialog(
     } catch (e: NumberFormatException) {
         BigDecimal.ZERO
     }
-    
+
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -42,12 +44,12 @@ fun CashPaymentDialog(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "Cash Payment",
+                    text = if (isArabic) "الدفع نقداً" else "Cash Payment",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                
+
                 // Total display
                 Card(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -56,7 +58,7 @@ fun CashPaymentDialog(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Total Amount",
+                            text = if (isArabic) "المبلغ الإجمالي" else "Total Amount",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -67,27 +69,27 @@ fun CashPaymentDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 OutlinedTextField(
                     value = cashTendered,
-                    onValueChange = { 
+                    onValueChange = {
                         cashTendered = it
                         hasError = false
                     },
-                    label = { Text("Cash Received") },
+                    label = { Text(if (isArabic) "النقد المستلم" else "Cash Received") },
                     isError = hasError,
                     supportingText = if (hasError) {
-                        { Text("Amount must be greater than or equal to total") }
+                        { Text(if (isArabic) "يجب أن يكون المبلغ أكبر من أو يساوي الإجمالي" else "Amount must be greater than or equal to total") }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 // Change calculation
                 if (cashTendered.isNotEmpty() && change >= BigDecimal.ZERO) {
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Card(
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                     ) {
@@ -95,7 +97,7 @@ fun CashPaymentDialog(
                             modifier = Modifier.padding(16.dp)
                         ) {
                             Text(
-                                text = "Change Due",
+                                text = if (isArabic) "الباقي" else "Change Due",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -108,9 +110,9 @@ fun CashPaymentDialog(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,9 +121,9 @@ fun CashPaymentDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(if (isArabic) "إلغاء" else "Cancel")
                     }
-                    
+
                     Button(
                         onClick = {
                             try {
@@ -138,7 +140,7 @@ fun CashPaymentDialog(
                         modifier = Modifier.weight(1f),
                         enabled = cashTendered.isNotEmpty() && change >= BigDecimal.ZERO
                     ) {
-                        Text("Finalize Order")
+                        Text(if (isArabic) "إتمام الطلب" else "Finalize Order")
                     }
                 }
             }

@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.IngredientDto
 import com.tannous.pos.core.data.model.InventoryItemDto
 import com.tannous.pos.core.data.model.RecipeDto
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.math.BigDecimal
 
@@ -43,6 +44,7 @@ fun InventoryScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val recipeUiState by recipeViewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val currencyFormatter = remember(uiState.currencyCode) {
         currencyFormatterFor(uiState.currencyCode)
@@ -68,10 +70,10 @@ fun InventoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Inventory") },
+                title = { Text(if (isArabic) "المخزون" else "Inventory") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
@@ -84,7 +86,7 @@ fun InventoryScreen(
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -99,17 +101,17 @@ fun InventoryScreen(
                 Tab(
                     selected = uiState.selectedTab == 0,
                     onClick = { viewModel.selectTab(0) },
-                    text = { Text("Stock") }
+                    text = { Text(if (isArabic) "المخزون" else "Stock") }
                 )
                 Tab(
                     selected = uiState.selectedTab == 1,
                     onClick = { viewModel.selectTab(1) },
-                    text = { Text("Ingredients") }
+                    text = { Text(if (isArabic) "المكونات" else "Ingredients") }
                 )
                 Tab(
                     selected = uiState.selectedTab == 2,
                     onClick = { viewModel.selectTab(2) },
-                    text = { Text("Recipes") }
+                    text = { Text(if (isArabic) "الوصفات" else "Recipes") }
                 )
             }
 
@@ -160,16 +162,17 @@ fun InventoryScreen(
     }
 
     if (uiState.showDeleteConfirm) {
+        val isArabicLocal = LocalIsArabic.current
         AlertDialog(
             onDismissRequest = {
                 if (!uiState.isDeletingIngredient) {
                     viewModel.dismissDelete()
                 }
             },
-            title = { Text("Delete Ingredient") },
+            title = { Text(if (isArabicLocal) "حذف المكون" else "Delete Ingredient") },
             text = {
                 Column {
-                    Text("Delete \"${uiState.deletingIngredient?.name}\"?")
+                    Text(if (isArabicLocal) "حذف \"${uiState.deletingIngredient?.name}\"؟" else "Delete \"${uiState.deletingIngredient?.name}\"?")
                     if (uiState.deleteError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -191,7 +194,7 @@ fun InventoryScreen(
                     if (uiState.isDeletingIngredient) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Delete")
+                        Text(if (isArabicLocal) "حذف" else "Delete")
                     }
                 }
             },
@@ -200,24 +203,27 @@ fun InventoryScreen(
                     onClick = { viewModel.dismissDelete() },
                     enabled = !uiState.isDeletingIngredient
                 ) {
-                    Text("Cancel")
+                    Text(if (isArabicLocal) "إلغاء" else "Cancel")
                 }
             }
         )
     }
 
     if (uiState.showForceDeleteConfirm) {
+        val isArabicLocal = LocalIsArabic.current
         AlertDialog(
             onDismissRequest = {
                 if (!uiState.isDeletingIngredient) {
                     viewModel.dismissDelete()
                 }
             },
-            title = { Text("Ingredient In Use") },
+            title = { Text(if (isArabicLocal) "المكون قيد الاستخدام" else "Ingredient In Use") },
             text = {
                 Text(
-                    "\"${uiState.deletingIngredient?.name}\" is used in active recipes. " +
-                        "Force deleting will deactivate those recipes. This cannot be undone."
+                    if (isArabicLocal)
+                        "\"${uiState.deletingIngredient?.name}\" مستخدم في وصفات نشطة. سيؤدي الحذف القسري إلى تعطيل تلك الوصفات. لا يمكن التراجع عن هذا."
+                    else
+                        "\"${uiState.deletingIngredient?.name}\" is used in active recipes. Force deleting will deactivate those recipes. This cannot be undone."
                 )
             },
             confirmButton = {
@@ -231,7 +237,7 @@ fun InventoryScreen(
                     if (uiState.isDeletingIngredient) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Force Delete")
+                        Text(if (isArabicLocal) "حذف قسري" else "Force Delete")
                     }
                 }
             },
@@ -240,7 +246,7 @@ fun InventoryScreen(
                     onClick = { viewModel.dismissDelete() },
                     enabled = !uiState.isDeletingIngredient
                 ) {
-                    Text("Cancel")
+                    Text(if (isArabicLocal) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -256,12 +262,13 @@ fun InventoryScreen(
     }
 
     if (recipeUiState.showDeleteConfirm) {
+        val isArabicLocal = LocalIsArabic.current
         AlertDialog(
             onDismissRequest = { if (!recipeUiState.isDeleting) recipeViewModel.dismissDelete() },
-            title = { Text("Delete Recipe") },
+            title = { Text(if (isArabicLocal) "حذف الوصفة" else "Delete Recipe") },
             text = {
                 Column {
-                    Text("Delete \"${recipeUiState.deletingRecipe?.name}\"?")
+                    Text(if (isArabicLocal) "حذف \"${recipeUiState.deletingRecipe?.name}\"؟" else "Delete \"${recipeUiState.deletingRecipe?.name}\"?")
                     if (recipeUiState.deleteError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -279,25 +286,28 @@ fun InventoryScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     if (recipeUiState.isDeleting) CircularProgressIndicator(Modifier.size(16.dp))
-                    else Text("Delete")
+                    else Text(if (isArabicLocal) "حذف" else "Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { recipeViewModel.dismissDelete() }, enabled = !recipeUiState.isDeleting) {
-                    Text("Cancel")
+                    Text(if (isArabicLocal) "إلغاء" else "Cancel")
                 }
             }
         )
     }
 
     if (recipeUiState.showForceDeleteConfirm) {
+        val isArabicLocal = LocalIsArabic.current
         AlertDialog(
             onDismissRequest = { if (!recipeUiState.isDeleting) recipeViewModel.dismissDelete() },
-            title = { Text("Recipe In Use") },
+            title = { Text(if (isArabicLocal) "الوصفة قيد الاستخدام" else "Recipe In Use") },
             text = {
                 Text(
-                    "\"${recipeUiState.deletingRecipe?.name}\" is linked to an active menu item. " +
-                        "Force deleting will deactivate that menu item. This cannot be undone."
+                    if (isArabicLocal)
+                        "\"${recipeUiState.deletingRecipe?.name}\" مرتبطة بعنصر قائمة نشط. سيؤدي الحذف القسري إلى تعطيل ذلك العنصر. لا يمكن التراجع عن هذا."
+                    else
+                        "\"${recipeUiState.deletingRecipe?.name}\" is linked to an active menu item. Force deleting will deactivate that menu item. This cannot be undone."
                 )
             },
             confirmButton = {
@@ -307,12 +317,12 @@ fun InventoryScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     if (recipeUiState.isDeleting) CircularProgressIndicator(Modifier.size(16.dp))
-                    else Text("Force Delete")
+                    else Text(if (isArabicLocal) "حذف قسري" else "Force Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { recipeViewModel.dismissDelete() }, enabled = !recipeUiState.isDeleting) {
-                    Text("Cancel")
+                    Text(if (isArabicLocal) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -326,19 +336,20 @@ private fun StockTabContent(
     currencyFormatter: java.text.NumberFormat,
     viewModel: InventoryViewModel
 ) {
+    val isArabic = LocalIsArabic.current
     Row(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         FilterChip(
             selected = uiState.filter == InventoryFilter.All,
             onClick = { viewModel.setFilter(InventoryFilter.All) },
-            label = { Text("All") }
+            label = { Text(if (isArabic) "الكل" else "All") }
         )
         Spacer(modifier = Modifier.width(8.dp))
         FilterChip(
             selected = uiState.filter == InventoryFilter.LowStock,
             onClick = { viewModel.setFilter(InventoryFilter.LowStock) },
-            label = { Text("Low Stock") }
+            label = { Text(if (isArabic) "مخزون منخفض" else "Low Stock") }
         )
     }
 
@@ -365,7 +376,7 @@ private fun StockTabContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { viewModel.load() }) {
-                    Text("Retry")
+                    Text(if (isArabic) "إعادة المحاولة" else "Retry")
                 }
             }
         }
@@ -376,9 +387,9 @@ private fun StockTabContent(
             ) {
                 Text(
                     if (uiState.filter == InventoryFilter.LowStock) {
-                        "No low stock items"
+                        if (isArabic) "لا توجد عناصر منخفضة المخزون" else "No low stock items"
                     } else {
-                        "No inventory items"
+                        if (isArabic) "لا توجد عناصر مخزون" else "No inventory items"
                     }
                 )
             }
@@ -408,6 +419,7 @@ private fun IngredientsTabContent(
     currencyFormatter: java.text.NumberFormat,
     viewModel: InventoryViewModel
 ) {
+    val isArabic = LocalIsArabic.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -417,7 +429,7 @@ private fun IngredientsTabContent(
         Button(onClick = { viewModel.openCreateIngredient() }) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(4.dp))
-            Text("Add Ingredient")
+            Text(if (isArabic) "إضافة مكون" else "Add Ingredient")
         }
     }
 
@@ -444,7 +456,7 @@ private fun IngredientsTabContent(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = { viewModel.loadIngredients() }) {
-                    Text("Retry")
+                    Text(if (isArabic) "إعادة المحاولة" else "Retry")
                 }
             }
         }
@@ -453,7 +465,7 @@ private fun IngredientsTabContent(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("No ingredients. Tap Add Ingredient to create one.")
+                Text(if (isArabic) "لا توجد مكونات. اضغط إضافة مكون لإنشاء واحد." else "No ingredients. Tap Add Ingredient to create one.")
             }
         }
         else -> {
@@ -478,6 +490,7 @@ private fun IngredientRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -499,7 +512,7 @@ private fun IngredientRow(
                     if (!ingredient.isActive) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Inactive",
+                            if (isArabic) "غير نشط" else "Inactive",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -521,12 +534,12 @@ private fun IngredientRow(
                 }
             }
             IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                Icon(Icons.Default.Edit, contentDescription = if (isArabic) "تعديل" else "Edit")
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Default.Clear,
-                    contentDescription = "Delete",
+                    contentDescription = if (isArabic) "حذف" else "Delete",
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -542,6 +555,7 @@ private fun IngredientDialog(
     onDismiss: () -> Unit,
     onSave: (String, String?, BigDecimal, String, Boolean) -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     var nameInput by rememberSaveable { mutableStateOf("") }
     var descriptionInput by rememberSaveable { mutableStateOf("") }
     var costInput by rememberSaveable { mutableStateOf("") }
@@ -564,7 +578,7 @@ private fun IngredientDialog(
 
     AlertDialog(
         onDismissRequest = { if (!isSaving) onDismiss() },
-        title = { Text(if (ingredient == null) "New Ingredient" else "Edit Ingredient") },
+        title = { Text(if (ingredient == null) (if (isArabic) "مكون جديد" else "New Ingredient") else (if (isArabic) "تعديل المكون" else "Edit Ingredient")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -573,7 +587,7 @@ private fun IngredientDialog(
                         nameInput = it
                         nameError = null
                     },
-                    label = { Text("Name") },
+                    label = { Text(if (isArabic) "الاسم" else "Name") },
                     isError = nameError != null,
                     supportingText = nameError?.let { err -> { Text(err) } },
                     singleLine = true,
@@ -585,7 +599,7 @@ private fun IngredientDialog(
                         unitInput = it
                         unitError = null
                     },
-                    label = { Text("Unit") },
+                    label = { Text(if (isArabic) "الوحدة" else "Unit") },
                     placeholder = { Text("kg, L, pcs") },
                     isError = unitError != null,
                     supportingText = unitError?.let { err -> { Text(err) } },
@@ -598,7 +612,7 @@ private fun IngredientDialog(
                         costInput = it
                         costError = null
                     },
-                    label = { Text("Cost per unit") },
+                    label = { Text(if (isArabic) "التكلفة لكل وحدة" else "Cost per unit") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = costError != null,
                     supportingText = costError?.let { err -> { Text(err) } },
@@ -608,7 +622,7 @@ private fun IngredientDialog(
                 OutlinedTextField(
                     value = descriptionInput,
                     onValueChange = { descriptionInput = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(if (isArabic) "الوصف (اختياري)" else "Description (optional)") },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -617,7 +631,7 @@ private fun IngredientDialog(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Active")
+                    Text(if (isArabic) "نشط" else "Active")
                     Switch(
                         checked = isActiveChecked,
                         onCheckedChange = { isActiveChecked = it }
@@ -640,15 +654,15 @@ private fun IngredientDialog(
                     unitError = null
                     val trimmedName = nameInput.trim()
                     when {
-                        trimmedName.isBlank() -> nameError = "Name is required"
-                        trimmedName.length > 100 -> nameError = "Max 100 characters"
-                        unitInput.isBlank() -> unitError = "Unit is required"
-                        unitInput.length > 20 -> unitError = "Max 20 characters"
+                        trimmedName.isBlank() -> nameError = if (isArabic) "الاسم مطلوب" else "Name is required"
+                        trimmedName.length > 100 -> nameError = if (isArabic) "100 حرف كحد أقصى" else "Max 100 characters"
+                        unitInput.isBlank() -> unitError = if (isArabic) "الوحدة مطلوبة" else "Unit is required"
+                        unitInput.length > 20 -> unitError = if (isArabic) "20 حرفاً كحد أقصى" else "Max 20 characters"
                         else -> {
                             val cost = costInput.trim().toBigDecimalOrNull()
                             when {
-                                cost == null -> costError = "Enter a valid cost"
-                                cost < BigDecimal.ZERO -> costError = "Cost must be ≥ 0"
+                                cost == null -> costError = if (isArabic) "أدخل تكلفة صحيحة" else "Enter a valid cost"
+                                cost < BigDecimal.ZERO -> costError = if (isArabic) "يجب أن تكون التكلفة ≥ 0" else "Cost must be ≥ 0"
                                 else -> onSave(
                                     trimmedName,
                                     descriptionInput.trim(),
@@ -665,13 +679,13 @@ private fun IngredientDialog(
                 if (isSaving) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 } else {
-                    Text("Save")
+                    Text(if (isArabic) "حفظ" else "Save")
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isSaving) {
-                Text("Cancel")
+                Text(if (isArabic) "إلغاء" else "Cancel")
             }
         }
     )
@@ -684,6 +698,7 @@ private fun InventoryItemRow(
     onAdjust: () -> Unit,
     onWastage: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -703,7 +718,7 @@ private fun InventoryItemRow(
                     )
                     if (item.currentStock <= item.minimumStock) {
                         Text(
-                            "Low stock",
+                            if (isArabic) "مخزون منخفض" else "Low stock",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.labelSmall
                         )
@@ -711,12 +726,12 @@ private fun InventoryItemRow(
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        "Min: ${item.minimumStock.stripTrailingZeros().toPlainString()}",
+                        "${if (isArabic) "الحد الأدنى" else "Min"}: ${item.minimumStock.stripTrailingZeros().toPlainString()}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        "Cost: ${currencyFormatter.format(item.averageCost)}/${item.ingredientUnit}",
+                        "${if (isArabic) "التكلفة" else "Cost"}: ${currencyFormatter.format(item.averageCost)}/${item.ingredientUnit}",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -727,11 +742,11 @@ private fun InventoryItemRow(
                 horizontalArrangement = Arrangement.End
             ) {
                 TextButton(onClick = onWastage) {
-                    Text("Wastage", color = MaterialTheme.colorScheme.error)
+                    Text(if (isArabic) "هدر" else "Wastage", color = MaterialTheme.colorScheme.error)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onAdjust) {
-                    Text("Adjust")
+                    Text(if (isArabic) "تعديل" else "Adjust")
                 }
             }
         }
@@ -743,6 +758,7 @@ private fun RecipesTabContent(
     recipeUiState: RecipeUiState,
     recipeViewModel: RecipeViewModel
 ) {
+    val isArabic = LocalIsArabic.current
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -753,7 +769,7 @@ private fun RecipesTabContent(
             Button(onClick = { recipeViewModel.openCreateRecipe() }) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Add Recipe")
+                Text(if (isArabic) "إضافة وصفة" else "Add Recipe")
             }
         }
 
@@ -771,12 +787,12 @@ private fun RecipesTabContent(
                 ) {
                     Text(recipeUiState.error!!, color = MaterialTheme.colorScheme.error)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { recipeViewModel.load() }) { Text("Retry") }
+                    Button(onClick = { recipeViewModel.load() }) { Text(if (isArabic) "إعادة المحاولة" else "Retry") }
                 }
             }
             recipeUiState.recipes.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No recipes found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if (isArabic) "لا توجد وصفات." else "No recipes found.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             else -> {
@@ -805,6 +821,7 @@ private fun RecipeRow(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {}
 ) {
+    val isArabic = LocalIsArabic.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -826,14 +843,14 @@ private fun RecipeRow(
                         if (!recipe.isActive) {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Inactive",
+                                if (isArabic) "غير نشط" else "Inactive",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                     Text(
-                        "${recipe.recipeLines.size} ingredient(s)",
+                        "${recipe.recipeLines.size} ${if (isArabic) "مكون (مكونات)" else "ingredient(s)"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -850,15 +867,15 @@ private fun RecipeRow(
                 Icon(
                     imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
                                   else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (isExpanded) "Collapse" else "Expand"
+                    contentDescription = if (isExpanded) (if (isArabic) "طي" else "Collapse") else (if (isArabic) "توسيع" else "Expand")
                 )
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit recipe")
+                    Icon(Icons.Default.Edit, contentDescription = if (isArabic) "تعديل الوصفة" else "Edit recipe")
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Clear,
-                        contentDescription = "Delete recipe",
+                        contentDescription = if (isArabic) "حذف الوصفة" else "Delete recipe",
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -897,6 +914,7 @@ private fun RecipeFormDialog(
     recipeUiState: RecipeUiState,
     recipeViewModel: RecipeViewModel
 ) {
+    val isArabic = LocalIsArabic.current
     val isEditing = recipeUiState.editingRecipe != null
     var nameError by remember { mutableStateOf<String?>(null) }
     var menuItemError by remember { mutableStateOf<String?>(null) }
@@ -906,7 +924,7 @@ private fun RecipeFormDialog(
     // Resolve menu item name from current list
     val selectedMenuItemName = recipeUiState.menuItems
         .find { it.id == recipeUiState.dialogMenuItemId }?.name
-        ?: recipeUiState.dialogMenuItemName.ifBlank { "Select menu item" }
+        ?: recipeUiState.dialogMenuItemName.ifBlank { if (isArabic) "اختر عنصر القائمة" else "Select menu item" }
 
     Dialog(
         onDismissRequest = { if (!recipeUiState.isSaving) recipeViewModel.dismissRecipeDialog() },
@@ -923,7 +941,7 @@ private fun RecipeFormDialog(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = if (isEditing) "Edit Recipe" else "New Recipe",
+                    text = if (isEditing) (if (isArabic) "تعديل الوصفة" else "Edit Recipe") else (if (isArabic) "وصفة جديدة" else "New Recipe"),
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(16.dp))
@@ -938,7 +956,7 @@ private fun RecipeFormDialog(
                     OutlinedTextField(
                         value = recipeUiState.dialogName,
                         onValueChange = { recipeViewModel.updateDialogName(it); nameError = null },
-                        label = { Text("Recipe name") },
+                        label = { Text(if (isArabic) "اسم الوصفة" else "Recipe name") },
                         isError = nameError != null,
                         supportingText = nameError?.let { err -> { Text(err) } },
                         singleLine = true,
@@ -949,7 +967,7 @@ private fun RecipeFormDialog(
                     OutlinedTextField(
                         value = recipeUiState.dialogDescription,
                         onValueChange = { recipeViewModel.updateDialogDescription(it) },
-                        label = { Text("Description (optional)") },
+                        label = { Text(if (isArabic) "الوصف (اختياري)" else "Description (optional)") },
                         maxLines = 2,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -963,7 +981,7 @@ private fun RecipeFormDialog(
                             value = selectedMenuItemName,
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Menu item") },
+                            label = { Text(if (isArabic) "عنصر القائمة" else "Menu item") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menuItemExpanded) },
                             isError = menuItemError != null,
                             supportingText = menuItemError?.let { err -> { Text(err) } },
@@ -975,7 +993,7 @@ private fun RecipeFormDialog(
                         ) {
                             if (recipeUiState.menuItems.isEmpty()) {
                                 DropdownMenuItem(
-                                    text = { Text("No menu items in Room — sync first") },
+                                    text = { Text(if (isArabic) "لا توجد عناصر — زامن أولاً" else "No menu items in Room — sync first") },
                                     onClick = { menuItemExpanded = false }
                                 )
                             } else {
@@ -999,11 +1017,11 @@ private fun RecipeFormDialog(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Ingredients", style = MaterialTheme.typography.titleSmall)
+                        Text(if (isArabic) "المكونات" else "Ingredients", style = MaterialTheme.typography.titleSmall)
                         TextButton(onClick = { recipeViewModel.addLine() }) {
                             Icon(Icons.Default.Add, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Add")
+                            Text(if (isArabic) "إضافة" else "Add")
                         }
                     }
 
@@ -1016,7 +1034,7 @@ private fun RecipeFormDialog(
                             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        "Line ${index + 1}",
+                                        "${if (isArabic) "سطر" else "Line"} ${index + 1}",
                                         style = MaterialTheme.typography.labelMedium,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -1025,7 +1043,7 @@ private fun RecipeFormDialog(
                                             onClick = { recipeViewModel.removeLine(line.id) },
                                             modifier = Modifier.size(24.dp)
                                         ) {
-                                            Icon(Icons.Default.Clear, "Remove line",
+                                            Icon(Icons.Default.Clear, if (isArabic) "إزالة السطر" else "Remove line",
                                                 tint = MaterialTheme.colorScheme.error,
                                                 modifier = Modifier.size(16.dp))
                                         }
@@ -1038,10 +1056,10 @@ private fun RecipeFormDialog(
                                     onExpandedChange = { ingredientExpanded = it }
                                 ) {
                                     OutlinedTextField(
-                                        value = line.ingredientName.ifBlank { "Select ingredient" },
+                                        value = line.ingredientName.ifBlank { if (isArabic) "اختر مكوناً" else "Select ingredient" },
                                         onValueChange = {},
                                         readOnly = true,
-                                        label = { Text("Ingredient") },
+                                        label = { Text(if (isArabic) "المكون" else "Ingredient") },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = ingredientExpanded) },
                                         isError = lineError != null && line.ingredientId.isBlank(),
                                         singleLine = true,
@@ -1053,7 +1071,7 @@ private fun RecipeFormDialog(
                                     ) {
                                         if (recipeUiState.ingredients.isEmpty()) {
                                             DropdownMenuItem(
-                                                text = { Text("No ingredients loaded") },
+                                                text = { Text(if (isArabic) "لا توجد مكونات محملة" else "No ingredients loaded") },
                                                 onClick = { ingredientExpanded = false }
                                             )
                                         } else {
@@ -1078,7 +1096,7 @@ private fun RecipeFormDialog(
                                         recipeViewModel.updateLineQuantity(line.id, it)
                                         lineErrors = lineErrors - line.id
                                     },
-                                    label = { Text("Quantity") },
+                                    label = { Text(if (isArabic) "الكمية" else "Quantity") },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     isError = lineError != null && line.ingredientId.isNotBlank(),
                                     supportingText = if (lineError != null && line.ingredientId.isNotBlank()) {
@@ -1112,7 +1130,7 @@ private fun RecipeFormDialog(
                     TextButton(
                         onClick = { recipeViewModel.dismissRecipeDialog() },
                         enabled = !recipeUiState.isSaving
-                    ) { Text("Cancel") }
+                    ) { Text(if (isArabic) "إلغاء" else "Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = {
@@ -1123,20 +1141,20 @@ private fun RecipeFormDialog(
                             lineErrors = emptyMap()
 
                             if (recipeUiState.dialogName.isBlank()) {
-                                nameError = "Name is required"; valid = false
+                                nameError = if (isArabic) "الاسم مطلوب" else "Name is required"; valid = false
                             } else if (recipeUiState.dialogName.length > 100) {
-                                nameError = "Max 100 characters"; valid = false
+                                nameError = if (isArabic) "100 حرف كحد أقصى" else "Max 100 characters"; valid = false
                             }
                             if (recipeUiState.dialogMenuItemId.isBlank()) {
-                                menuItemError = "Select a menu item"; valid = false
+                                menuItemError = if (isArabic) "اختر عنصر قائمة" else "Select a menu item"; valid = false
                             }
                             val newLineErrors = mutableMapOf<String, String>()
                             recipeUiState.dialogLines.forEach { line ->
                                 when {
                                     line.ingredientId.isBlank() ->
-                                        newLineErrors[line.id] = "Select an ingredient"
+                                        newLineErrors[line.id] = if (isArabic) "اختر مكوناً" else "Select an ingredient"
                                     line.quantity.trim().toBigDecimalOrNull()?.let { it <= BigDecimal.ZERO } != false ->
-                                        newLineErrors[line.id] = "Enter a quantity > 0"
+                                        newLineErrors[line.id] = if (isArabic) "أدخل كمية > 0" else "Enter a quantity > 0"
                                 }
                             }
                             if (newLineErrors.isNotEmpty()) {
@@ -1147,7 +1165,7 @@ private fun RecipeFormDialog(
                         enabled = !recipeUiState.isSaving
                     ) {
                         if (recipeUiState.isSaving) CircularProgressIndicator(Modifier.size(16.dp))
-                        else Text("Save")
+                        else Text(if (isArabic) "حفظ" else "Save")
                     }
                 }
             }
@@ -1164,6 +1182,7 @@ private fun InventoryActionDialog(
     onDismiss: () -> Unit,
     onSubmit: (BigDecimal, String) -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     var quantityInput by rememberSaveable { mutableStateOf("") }
     var reasonInput by rememberSaveable { mutableStateOf("") }
     var quantityError by remember { mutableStateOf<String?>(null) }
@@ -1178,14 +1197,17 @@ private fun InventoryActionDialog(
         onDismissRequest = { if (!isSubmitting) onDismiss() },
         title = {
             Text(
-                if (actionType == InventoryAction.Wastage) "Record Wastage" else "Adjust Stock"
+                if (actionType == InventoryAction.Wastage)
+                    (if (isArabic) "تسجيل هدر" else "Record Wastage")
+                else
+                    (if (isArabic) "تعديل المخزون" else "Adjust Stock")
             )
         },
         text = {
             Column {
                 Text(item.ingredientName, style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    "Current: ${item.currentStock.stripTrailingZeros().toPlainString()} ${item.ingredientUnit}",
+                    "${if (isArabic) "الحالي" else "Current"}: ${item.currentStock.stripTrailingZeros().toPlainString()} ${item.ingredientUnit}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1199,9 +1221,9 @@ private fun InventoryActionDialog(
                     label = {
                         Text(
                             if (actionType == InventoryAction.Wastage) {
-                                "Quantity wasted (${item.ingredientUnit})"
+                                if (isArabic) "الكمية المهدرة (${item.ingredientUnit})" else "Quantity wasted (${item.ingredientUnit})"
                             } else {
-                                "Quantity change (${item.ingredientUnit})"
+                                if (isArabic) "تغيير الكمية (${item.ingredientUnit})" else "Quantity change (${item.ingredientUnit})"
                             }
                         )
                     },
@@ -1214,7 +1236,7 @@ private fun InventoryActionDialog(
                 OutlinedTextField(
                     value = reasonInput,
                     onValueChange = { reasonInput = it },
-                    label = { Text("Reason") },
+                    label = { Text(if (isArabic) "السبب" else "Reason") },
                     maxLines = 2
                 )
                 if (submitError != null) {
@@ -1232,12 +1254,12 @@ private fun InventoryActionDialog(
                 onClick = {
                     val qty = quantityInput.trim().toBigDecimalOrNull()
                     when {
-                        reasonInput.isBlank() -> quantityError = "Reason is required"
-                        qty == null -> quantityError = "Enter a valid quantity"
+                        reasonInput.isBlank() -> quantityError = if (isArabic) "السبب مطلوب" else "Reason is required"
+                        qty == null -> quantityError = if (isArabic) "أدخل كمية صحيحة" else "Enter a valid quantity"
                         actionType == InventoryAction.Wastage && qty <= BigDecimal.ZERO ->
-                            quantityError = "Enter a positive quantity"
+                            quantityError = if (isArabic) "أدخل كمية موجبة" else "Enter a positive quantity"
                         actionType == InventoryAction.Adjust && qty == BigDecimal.ZERO ->
-                            quantityError = "Enter a non-zero quantity"
+                            quantityError = if (isArabic) "أدخل كمية غير صفرية" else "Enter a non-zero quantity"
                         else -> onSubmit(qty, reasonInput.trim())
                     }
                 },
@@ -1246,13 +1268,13 @@ private fun InventoryActionDialog(
                 if (isSubmitting) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 } else {
-                    Text(if (actionType == InventoryAction.Wastage) "Record" else "Adjust")
+                    Text(if (actionType == InventoryAction.Wastage) (if (isArabic) "تسجيل" else "Record") else (if (isArabic) "تعديل" else "Adjust"))
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, enabled = !isSubmitting) {
-                Text("Cancel")
+                Text(if (isArabic) "إلغاء" else "Cancel")
             }
         }
     )

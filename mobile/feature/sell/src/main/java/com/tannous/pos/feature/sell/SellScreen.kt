@@ -39,14 +39,16 @@ fun SellScreen(
     onNavigateToCustomers: () -> Unit,
     onNavigateToSettings: () -> Unit,
     onNavigateToOrderHistory: () -> Unit,
+    onNavigateToSplitBill: (String) -> Unit = {},
     viewModel: SellViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
     val cartItems by viewModel.cartItems.collectAsStateWithLifecycle()
     val finalizedOrder by viewModel.finalizedOrder.collectAsStateWithLifecycle()
-    
+
     var showPaymentDialog by remember { mutableStateOf(false) }
+    var showDeliverySheet by remember { mutableStateOf(false) }
     var showAddOnPicker by remember { mutableStateOf(false) }
     var pendingMenuItem by remember { mutableStateOf<MenuItemEntity?>(null) }
     var showOrderHistory by remember { mutableStateOf(false) }
@@ -56,6 +58,7 @@ fun SellScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     val currencyFormatter = remember(uiState.currencyCode) { currencyFormatterFor(uiState.currencyCode) }
+    val isArabic = LocalIsArabic.current
 
     LaunchedEffect(uiState.historyVoidError) {
         uiState.historyVoidError?.let { error ->
@@ -72,46 +75,44 @@ fun SellScreen(
             viewModel.addItemToCart(menuItem)
         }
     }
-    
+
     // Show receipt screen if order is finalized
     finalizedOrder?.let { order ->
         ReceiptScreen(
             order = order,
-            onDone = {
-                viewModel.clearFinalizedOrder()
-            }
+            onDone = { viewModel.clearFinalizedOrder() }
         )
         return
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Sell") },
+                title = { Text(if (isArabic) "البيع" else "Sell") },
                 actions = {
                     if (uiState.shiftOrders.isNotEmpty()) {
                         IconButton(onClick = { showOrderHistory = true }) {
                             Icon(
                                 imageVector = Icons.Default.List,
-                                contentDescription = "This shift's orders"
+                                contentDescription = if (isArabic) "طلبات الوردية" else "This shift's orders"
                             )
                         }
                     }
                     IconButton(onClick = onNavigateToOrderHistory) {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Order history"
+                            contentDescription = if (isArabic) "سجل الطلبات" else "Order history"
                         )
                     }
                     IconButton(onClick = onNavigateToShifts) {
-                        Icon(Icons.Default.Info, contentDescription = "Shifts")
+                        Icon(Icons.Default.Info, contentDescription = if (isArabic) "الورديات" else "Shifts")
                     }
                     IconButton(onClick = onNavigateToCustomers) {
-                        Icon(Icons.Default.Person, contentDescription = "Customers")
+                        Icon(Icons.Default.Person, contentDescription = if (isArabic) "العملاء" else "Customers")
                     }
                     IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                        Icon(Icons.Default.Settings, contentDescription = if (isArabic) "الإعدادات" else "Settings")
                     }
                 }
             )
@@ -126,22 +127,38 @@ fun SellScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Total: ${currencyFormatter.format(uiState.cartTotal)}",
+                                text = if (isArabic) "الإجمالي: ${currencyFormatter.format(uiState.cartTotal)}" else "Total: ${currencyFormatter.format(uiState.cartTotal)}",
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "${cartItems.size} items",
+                                text = if (isArabic) "${cartItems.size} عناصر" else "${cartItems.size} items",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
+                        // Split Bill is dine-in only; hide for delivery
+                        if (uiState.orderType != OrderType.Delivery) {
+                            OutlinedButton(
+                                onClick = { viewModel.startSplitBill(onNavigateToSplitBill) },
+                                enabled = !uiState.isLoading && !uiState.isFinalizing && uiState.cartTotal > 0
+                            ) {
+                                Text(if (isArabic) "تقسيم الفاتورة" else "Split Bill")
+                            }
+                        }
                         Button(
-                            onClick = { showPaymentDialog = true },
+                            onClick = {
+                                if (uiState.orderType == OrderType.Delivery) {
+                                    // Collect address/details first, then payment
+                                    showDeliverySheet = true
+                                } else {
+                                    showPaymentDialog = true
+                                }
+                            },
                             enabled = !uiState.isLoading && !uiState.isFinalizing
                         ) {
                             if (uiState.isFinalizing) {
@@ -150,7 +167,10 @@ fun SellScreen(
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                             } else {
-                                Text("Finalize Order")
+                                Text(when (uiState.orderType) {
+                                    OrderType.Delivery -> if (isArabic) "توصيل" else "Deliver"
+                                    else               -> if (isArabic) "إتمام الطلب" else "Finalize Order"
+                                })
                             }
                         }
                     }
@@ -171,6 +191,14 @@ fun SellScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
+                // Order-type selector (Dine-In / Takeaway / Delivery)
+                OrderTypeSelector(
+                    selected = uiState.orderType,
+                    onSelect = { viewModel.setOrderType(it) },
+                    isArabic = isArabic,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+
                 // Categories / empty catalog
                 if (uiState.categories.isEmpty()) {
                     Box(
@@ -191,12 +219,12 @@ fun SellScreen(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Catalog not loaded",
+                                text = if (isArabic) "لم يتم تحميل القائمة" else "Catalog not loaded",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Connect to the network and sync to load the menu.",
+                                text = if (isArabic) "اتصل بالشبكة وقم بالمزامنة لتحميل القائمة." else "Connect to the network and sync to load the menu.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center
@@ -208,13 +236,13 @@ fun SellScreen(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Sync Catalog")
+                                Text(if (isArabic) "مزامنة القائمة" else "Sync Catalog")
                             }
                         }
                     }
                 } else {
                     Text(
-                        text = "Categories",
+                        text = if (isArabic) "الأقسام" else "Categories",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(16.dp)
                     )
@@ -227,7 +255,6 @@ fun SellScreen(
                                 selected = selectedCategory?.id == category.id,
                                 onClick = { viewModel.selectCategory(category) },
                                 label = {
-                                    val isArabic = LocalIsArabic.current
                                     Text(if (isArabic) category.nameAr?.takeIf { it.isNotBlank() } ?: category.name else category.name)
                                 }
                             )
@@ -240,7 +267,7 @@ fun SellScreen(
                     val categoryItems = uiState.menuItems.filter { it.categoryId == selectedCategory!!.id }
                     if (categoryItems.isNotEmpty()) {
                         Text(
-                            text = "Menu Items",
+                            text = if (isArabic) "عناصر القائمة" else "Menu Items",
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(16.dp)
                         )
@@ -265,18 +292,18 @@ fun SellScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "No items in this category",
+                                text = if (isArabic) "لا توجد عناصر في هذا القسم" else "No items in this category",
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                 }
-                
+
                 // Cart review (lets the cashier verify/edit the order before payment)
                 Divider()
                 Text(
-                    text = "Cart",
+                    text = if (isArabic) "السلة" else "Cart",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -293,7 +320,7 @@ fun SellScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add customer")
+                        Text(if (isArabic) "إضافة عميل" else "Add customer")
                     }
                 } else {
                     Row(
@@ -316,14 +343,14 @@ fun SellScreen(
                         IconButton(onClick = { viewModel.detachCustomer() }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Remove customer"
+                                contentDescription = if (isArabic) "إزالة العميل" else "Remove customer"
                             )
                         }
                     }
                 }
                 if (cartItems.isEmpty()) {
                     Text(
-                        text = "Cart is empty",
+                        text = if (isArabic) "السلة فارغة" else "Cart is empty",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -343,7 +370,6 @@ fun SellScreen(
                                 onIncrement = { viewModel.addItemToCart(item.menuItem) },
                                 onDecrement = { viewModel.removeItemFromCart(item.menuItem) },
                                 onRemoveLine = {
-                                    // Remove the whole line via the existing decrement op (no VM change)
                                     repeat(item.quantity) { viewModel.removeItemFromCart(item.menuItem) }
                                 }
                             )
@@ -379,7 +405,7 @@ fun SellScreen(
                                 IconButton(onClick = { viewModel.clearError() }) {
                                     Icon(
                                         Icons.Default.Close,
-                                        contentDescription = "Dismiss",
+                                        contentDescription = if (isArabic) "إغلاق" else "Dismiss",
                                         tint = MaterialTheme.colorScheme.onErrorContainer
                                     )
                                 }
@@ -393,7 +419,7 @@ fun SellScreen(
                                     },
                                     modifier = Modifier.align(Alignment.End)
                                 ) {
-                                    Text("Open Shift")
+                                    Text(if (isArabic) "فتح وردية" else "Open Shift")
                                 }
                             }
                         }
@@ -401,7 +427,7 @@ fun SellScreen(
                 }
             }
         }
-        
+
         if (showOrderHistory) {
             ModalBottomSheet(
                 onDismissRequest = { showOrderHistory = false },
@@ -414,14 +440,14 @@ fun SellScreen(
                         .padding(bottom = 32.dp)
                 ) {
                     Text(
-                        text = "This Shift's Orders",
+                        text = if (isArabic) "طلبات هذه الوردية" else "This Shift's Orders",
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(vertical = 12.dp)
                     )
 
                     if (uiState.shiftOrders.isEmpty()) {
                         Text(
-                            text = "No orders this shift",
+                            text = if (isArabic) "لا توجد طلبات في هذه الوردية" else "No orders this shift",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     } else {
@@ -452,14 +478,14 @@ fun SellScreen(
                     historyVoidDialogOrderId = null
                     historyVoidReason = ""
                 },
-                title = { Text("Void Order") },
+                title = { Text(if (isArabic) "إلغاء الطلب" else "Void Order") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Enter a reason to void this order.")
+                        Text(if (isArabic) "أدخل سبب إلغاء هذا الطلب." else "Enter a reason to void this order.")
                         OutlinedTextField(
                             value = historyVoidReason,
                             onValueChange = { if (it.length <= 500) historyVoidReason = it },
-                            label = { Text("Reason") },
+                            label = { Text(if (isArabic) "السبب" else "Reason") },
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
                             supportingText = { Text("${historyVoidReason.length}/500") }
@@ -475,7 +501,7 @@ fun SellScreen(
                         },
                         enabled = historyVoidReason.isNotBlank()
                     ) {
-                        Text("Void", color = MaterialTheme.colorScheme.error)
+                        Text(if (isArabic) "تأكيد الإلغاء" else "Void", color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
@@ -483,7 +509,7 @@ fun SellScreen(
                         historyVoidDialogOrderId = null
                         historyVoidReason = ""
                     }) {
-                        Text("Cancel")
+                        Text(if (isArabic) "رجوع" else "Cancel")
                     }
                 }
             )
@@ -506,6 +532,19 @@ fun SellScreen(
             )
         }
 
+        // Delivery details sheet — shown before payment when order type is Delivery
+        if (showDeliverySheet) {
+            DeliveryDetailsSheet(
+                isArabic = isArabic,
+                onConfirm = { details ->
+                    viewModel.setDeliveryDetails(details)
+                    showDeliverySheet = false
+                    showPaymentDialog = true
+                },
+                onDismiss = { showDeliverySheet = false }
+            )
+        }
+
         // Payment selection dialog
         if (showPaymentDialog) {
             PaymentSelectionDialog(
@@ -523,11 +562,40 @@ fun SellScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun OrderTypeSelector(
+    selected: OrderType,
+    onSelect: (OrderType) -> Unit,
+    isArabic: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        listOf(OrderType.DineIn, OrderType.Takeaway, OrderType.Delivery).forEach { type ->
+            FilterChip(
+                selected = selected == type,
+                onClick  = { onSelect(type) },
+                label    = {
+                    Text(when (type) {
+                        OrderType.DineIn   -> if (isArabic) "داخل" else "Dine-In"
+                        OrderType.Takeaway -> if (isArabic) "تيك أواي" else "Takeaway"
+                        OrderType.Delivery -> if (isArabic) "توصيل" else "Delivery"
+                    })
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun MenuItemCard(
     menuItem: MenuItemEntity,
     currencyFormatter: NumberFormat,
     onAddToCart: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     Card(
         modifier = Modifier.fillMaxWidth(),
         onClick = onAddToCart
@@ -539,11 +607,9 @@ fun MenuItemCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (LocalIsArabic.current) menuItem.nameAr?.takeIf { it.isNotBlank() } ?: menuItem.name else menuItem.name,
+                    text = if (isArabic) menuItem.nameAr?.takeIf { it.isNotBlank() } ?: menuItem.name else menuItem.name,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -557,16 +623,14 @@ fun MenuItemCard(
                     }
                 }
             }
-            Column(
-                horizontalAlignment = Alignment.End
-            ) {
+            Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = currencyFormatter.format(menuItem.price),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onAddToCart) {
-                    Icon(Icons.Default.Add, contentDescription = "Add to cart")
+                    Icon(Icons.Default.Add, contentDescription = if (isArabic) "إضافة إلى السلة" else "Add to cart")
                 }
             }
         }
@@ -581,6 +645,7 @@ fun CartItemRow(
     onDecrement: () -> Unit,
     onRemoveLine: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     val unitAddOnsTotal = item.addOns.fold(BigDecimal.ZERO) { acc, addOn ->
         acc + BigDecimal.valueOf(addOn.price) * BigDecimal.valueOf(addOn.quantity.toLong())
     }
@@ -592,12 +657,12 @@ fun CartItemRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (LocalIsArabic.current) item.menuItem.nameAr?.takeIf { it.isNotBlank() } ?: item.menuItem.name else item.menuItem.name,
+                    text = if (isArabic) item.menuItem.nameAr?.takeIf { it.isNotBlank() } ?: item.menuItem.name else item.menuItem.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "${currencyFormatter.format(item.menuItem.price)} each",
+                    text = if (isArabic) "${currencyFormatter.format(item.menuItem.price)} للوحدة" else "${currencyFormatter.format(item.menuItem.price)} each",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -620,7 +685,7 @@ fun CartItemRow(
                 fontWeight = FontWeight.Bold
             )
             IconButton(onClick = onRemoveLine) {
-                Icon(Icons.Default.Close, contentDescription = "Remove ${item.menuItem.name}")
+                Icon(Icons.Default.Close, contentDescription = if (isArabic) "إزالة العنصر" else "Remove ${item.menuItem.name}")
             }
         }
         if (item.addOns.isNotEmpty()) {
@@ -641,10 +706,11 @@ private fun ShiftOrderRow(
     isVoiding: Boolean,
     onVoidClick: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     val statusText = when {
-        order.status.isAlreadyVoidedStatus() -> "Voided"
-        order.receiptNumber?.startsWith("PENDING") == true -> "Sync pending"
-        order.status.isVoidableStatus() -> "Paid / Open"
+        order.status.isAlreadyVoidedStatus() -> if (isArabic) "ملغى" else "Voided"
+        order.receiptNumber?.startsWith("PENDING") == true -> if (isArabic) "في انتظار المزامنة" else "Sync pending"
+        order.status.isVoidableStatus() -> if (isArabic) "مدفوع / مفتوح" else "Paid / Open"
         else -> order.status
     }
 
@@ -671,14 +737,14 @@ private fun ShiftOrderRow(
             order.status.isAlreadyVoidedStatus() -> Unit
             order.receiptNumber?.startsWith("PENDING") == true -> {
                 Text(
-                    text = "Sync first",
+                    text = if (isArabic) "زامن أولاً" else "Sync first",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             order.status.isVoidableStatus() -> {
                 TextButton(onClick = onVoidClick) {
-                    Text("Void", color = MaterialTheme.colorScheme.error)
+                    Text(if (isArabic) "إلغاء" else "Void", color = MaterialTheme.colorScheme.error)
                 }
             }
         }

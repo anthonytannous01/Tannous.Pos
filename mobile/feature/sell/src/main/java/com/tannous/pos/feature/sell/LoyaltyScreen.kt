@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.LoyaltyAccountDto
+import com.tannous.pos.core.ui.LocalIsArabic
 
 // Transaction type constants
 private const val TX_EARN   = 0
@@ -30,6 +31,7 @@ fun LoyaltyScreen(
     viewModel: LoyaltyViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     var redeemInput by remember { mutableStateOf("") }
     var showRedeemDialog by remember { mutableStateOf(false) }
@@ -44,7 +46,7 @@ fun LoyaltyScreen(
     }
     LaunchedEffect(uiState.redeemSuccess) {
         if (uiState.redeemSuccess) {
-            snackbarHostState.showSnackbar("Points redeemed successfully")
+            snackbarHostState.showSnackbar(if (isArabic) "تم استبدال النقاط بنجاح" else "Points redeemed successfully")
             viewModel.clearError()
         }
     }
@@ -52,14 +54,14 @@ fun LoyaltyScreen(
     if (showRedeemDialog) {
         AlertDialog(
             onDismissRequest = { showRedeemDialog = false },
-            title = { Text("Redeem Points") },
+            title = { Text(if (isArabic) "استبدال النقاط" else "Redeem Points") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Available: ${uiState.account?.pointBalance ?: 0} points")
+                    Text(if (isArabic) "المتاح: ${uiState.account?.pointBalance ?: 0} نقطة" else "Available: ${uiState.account?.pointBalance ?: 0} points")
                     OutlinedTextField(
                         value = redeemInput,
                         onValueChange = { redeemInput = it.filter { c -> c.isDigit() } },
-                        label = { Text("Points to redeem") },
+                        label = { Text(if (isArabic) "النقاط للاستبدال" else "Points to redeem") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true
                     )
@@ -71,10 +73,12 @@ fun LoyaltyScreen(
                     if (pts > 0) viewModel.redeem(pts)
                     showRedeemDialog = false
                     redeemInput = ""
-                }) { Text("Redeem") }
+                }) { Text(if (isArabic) "استبدال" else "Redeem") }
             },
             dismissButton = {
-                TextButton(onClick = { showRedeemDialog = false; redeemInput = "" }) { Text("Cancel") }
+                TextButton(onClick = { showRedeemDialog = false; redeemInput = "" }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
             }
         )
     }
@@ -83,10 +87,10 @@ fun LoyaltyScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Loyalty Account") },
+                title = { Text(if (isArabic) "حساب الولاء" else "Loyalty Account") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -106,16 +110,22 @@ fun LoyaltyScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("No loyalty account yet", style = MaterialTheme.typography.titleMedium)
-                    Text("Points will be created automatically on the next purchase.",
+                    Text(
+                        if (isArabic) "لا يوجد حساب ولاء بعد" else "No loyalty account yet",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        if (isArabic) "سيتم إنشاء النقاط تلقائياً عند الشراء التالي." else "Points will be created automatically on the next purchase.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
             else -> LoyaltyContent(
                 account = uiState.account!!,
                 isRedeeming = uiState.isRedeeming,
+                isArabic = isArabic,
                 onRedeemClick = { showRedeemDialog = true },
                 modifier = Modifier.padding(padding)
             )
@@ -127,6 +137,7 @@ fun LoyaltyScreen(
 private fun LoyaltyContent(
     account: LoyaltyAccountDto,
     isRedeeming: Boolean,
+    isArabic: Boolean,
     onRedeemClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -153,8 +164,11 @@ private fun LoyaltyContent(
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary)
-                    Text("available points", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        if (isArabic) "نقاط متاحة" else "available points",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -164,16 +178,22 @@ private fun LoyaltyContent(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Card(Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Lifetime Earned", style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (isArabic) "مجموع المكتسب" else "Lifetime Earned",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text("${account.lifetimePointsEarned}",
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
                 }
                 Card(Modifier.weight(1f)) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Lifetime Redeemed", style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (isArabic) "مجموع المستبدل" else "Lifetime Redeemed",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text("${account.lifetimePointsRedeemed}",
                             style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                     }
@@ -192,15 +212,18 @@ private fun LoyaltyContent(
                     CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (isRedeeming) "Redeeming…" else "Redeem Points")
+                Text(if (isRedeeming) (if (isArabic) "جارٍ الاستبدال…" else "Redeeming…") else (if (isArabic) "استبدال النقاط" else "Redeem Points"))
             }
         }
 
         // Transaction history
         if (account.recentTransactions.isNotEmpty()) {
             item {
-                Text("Recent Transactions", style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (isArabic) "المعاملات الأخيرة" else "Recent Transactions",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             items(account.recentTransactions) { tx ->
                 val isEarn = tx.transactionType == TX_EARN
@@ -213,9 +236,9 @@ private fun LoyaltyContent(
                         Column(Modifier.weight(1f)) {
                             Text(
                                 when (tx.transactionType) {
-                                    TX_EARN -> "Points earned"
-                                    TX_REDEEM -> "Points redeemed"
-                                    else -> "Adjustment"
+                                    TX_EARN -> if (isArabic) "نقاط مكتسبة" else "Points earned"
+                                    TX_REDEEM -> if (isArabic) "نقاط مستبدلة" else "Points redeemed"
+                                    else -> if (isArabic) "تعديل" else "Adjustment"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium

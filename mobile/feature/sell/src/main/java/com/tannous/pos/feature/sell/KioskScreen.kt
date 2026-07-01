@@ -46,17 +46,17 @@ fun KioskScreen(
     if (showPinDialog) {
         AlertDialog(
             onDismissRequest = { showPinDialog = false; enteredPin = ""; pinError = false },
-            title = { Text("Exit Kiosk Mode") },
+            title = { Text(if (isArabic) "الخروج من وضع الكشك" else "Exit Kiosk Mode") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter operator PIN to exit:")
+                    Text(if (isArabic) "أدخل رقم PIN للمشغل للخروج:" else "Enter operator PIN to exit:")
                     OutlinedTextField(
                         value = enteredPin,
                         onValueChange = { if (it.length <= 4) enteredPin = it },
                         label = { Text("PIN") },
                         visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                         isError = pinError,
-                        supportingText = if (pinError) {{ Text("Incorrect PIN", color = MaterialTheme.colorScheme.error) }} else null,
+                        supportingText = if (pinError) {{ Text(if (isArabic) "رقم PIN غير صحيح" else "Incorrect PIN", color = MaterialTheme.colorScheme.error) }} else null,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -68,11 +68,11 @@ fun KioskScreen(
                     } else {
                         pinError = true; enteredPin = ""
                     }
-                }) { Text("Exit") }
+                }) { Text(if (isArabic) "خروج" else "Exit") }
             },
             dismissButton = {
                 TextButton(onClick = { showPinDialog = false; enteredPin = ""; pinError = false }) {
-                    Text("Cancel")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -127,7 +127,7 @@ fun KioskScreen(
                     onClick = { showPinDialog = true },
                     modifier = Modifier.align(Alignment.CenterEnd),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White.copy(alpha = 0.5f))
-                ) { Text("Exit", fontSize = 12.sp) }
+                ) { Text(if (isArabic) "خروج" else "Exit", fontSize = 12.sp) }
             }
 
             when {
@@ -136,7 +136,7 @@ fun KioskScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator()
                         Spacer(Modifier.height(16.dp))
-                        Text("Loading menu...", style = MaterialTheme.typography.bodyLarge)
+                        Text(if (isArabic) "جارٍ تحميل القائمة..." else "Loading menu...", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
 
@@ -145,7 +145,7 @@ fun KioskScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(uiState.error!!, style = MaterialTheme.typography.bodyLarge)
-                        Button(onClick = { viewModel.loadMenu() }) { Text("Retry") }
+                        Button(onClick = { viewModel.loadMenu() }) { Text(if (isArabic) "إعادة المحاولة" else "Retry") }
                     }
                 }
 
@@ -203,7 +203,8 @@ fun KioskScreen(
                     shape    = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text     = "View Order ($cartCount items) · ${uiState.currency} ${viewModel.cartTotal}",
+                        text     = if (isArabic) "عرض الطلب ($cartCount عنصر) · ${uiState.currency} ${viewModel.cartTotal}"
+                                   else "View Order ($cartCount items) · ${uiState.currency} ${viewModel.cartTotal}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -305,6 +306,7 @@ private fun KioskCartScreen(
     onPlace:   (String?, String?) -> Unit,
     onClearError: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     var customerName by remember { mutableStateOf("") }
     var notes        by remember { mutableStateOf("") }
     val total = cart.fold(BigDecimal.ZERO) { acc, l -> acc + l.item.price * BigDecimal(l.quantity) }
@@ -313,11 +315,11 @@ private fun KioskCartScreen(
         // Header
         Box(modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary)
             .padding(24.dp)) {
-            Text("Your Order", color = Color.White, fontSize = 24.sp,
+            Text(if (isArabic) "طلبك" else "Your Order", color = Color.White, fontSize = 24.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.CenterStart))
             TextButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterEnd),
                 colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
-                Text("Back to Menu")
+                Text(if (isArabic) "العودة للقائمة" else "Back to Menu")
             }
         }
 
@@ -326,12 +328,13 @@ private fun KioskCartScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(cart) { line ->
+                val lineName = if (isArabic) line.item.nameAr?.takeIf { it.isNotBlank() } ?: line.item.name else line.item.name
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Row(modifier = Modifier.padding(16.dp).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(line.item.name, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                            Text("$currency ${line.item.price} each",
+                            Text(lineName, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                            Text(if (isArabic) "$currency ${line.item.price} للواحدة" else "$currency ${line.item.price} each",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically,
@@ -354,11 +357,11 @@ private fun KioskCartScreen(
             item {
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = customerName, onValueChange = { customerName = it },
-                    label = { Text("Your name (optional)") }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text(if (isArabic) "اسمك (اختياري)" else "Your name (optional)") }, modifier = Modifier.fillMaxWidth(),
                     singleLine = true)
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = notes, onValueChange = { notes = it },
-                    label = { Text("Special requests (optional)") }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text(if (isArabic) "طلبات خاصة (اختياري)" else "Special requests (optional)") }, modifier = Modifier.fillMaxWidth(),
                     minLines = 2)
             }
 
@@ -375,7 +378,7 @@ private fun KioskCartScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Total", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                Text(if (isArabic) "الإجمالي" else "Total", fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 Text("$currency $total", fontSize = 22.sp, fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary)
             }
@@ -387,7 +390,7 @@ private fun KioskCartScreen(
             ) {
                 if (isPlacing) CircularProgressIndicator(modifier = Modifier.size(24.dp),
                     color = Color.White, strokeWidth = 3.dp)
-                else Text("Place Order", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                else Text(if (isArabic) "تقديم الطلب" else "Place Order", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -399,6 +402,7 @@ private fun KioskOrderPlacedScreen(
     currency:  String,
     onNewOrder:() -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primary),
         contentAlignment = Alignment.Center) {
         Column(
@@ -407,12 +411,12 @@ private fun KioskOrderPlacedScreen(
             modifier = Modifier.padding(32.dp)
         ) {
             Text("✓", fontSize = 80.sp, color = Color.White)
-            Text("Order Placed!", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(if (isArabic) "تم تقديم الطلب!" else "Order Placed!", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Your Order Number", style = MaterialTheme.typography.titleMedium)
+                    Text(if (isArabic) "رقم طلبك" else "Your Order Number", style = MaterialTheme.typography.titleMedium)
                     Text(result.orderNumber, fontSize = 48.sp, fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.primary)
                     Text("$currency ${result.totalAmount}", fontSize = 24.sp,
@@ -425,7 +429,7 @@ private fun KioskOrderPlacedScreen(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White, contentColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)) {
-                Text("New Order", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(if (isArabic) "طلب جديد" else "New Order", fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

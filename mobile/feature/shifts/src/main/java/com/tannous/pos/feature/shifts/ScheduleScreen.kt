@@ -3,8 +3,13 @@ package com.tannous.pos.feature.shifts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
@@ -12,23 +17,29 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.EmployeeScheduleDto
 import com.tannous.pos.core.data.model.TimeEntryDto
+import com.tannous.pos.core.data.model.UserDto
 import com.tannous.pos.core.ui.LocalIsArabic
 import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.OffsetDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 private val timeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val dateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE MMM d")
+private val isoInstant: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT
 
 /** Backend timestamps are UTC; tolerate both offset ("...Z") and plain ISO forms. */
 private fun parseUtc(value: String): LocalDateTime? = try {
@@ -57,6 +68,7 @@ fun ScheduleScreen(
     val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableStateOf(0) }
+    var showAddShiftSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let {
@@ -72,10 +84,18 @@ fun ScheduleScreen(
                 title = { Text(if (isArabic) "جدول الموظفين" else "Staff Schedule") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            // Show FAB only on the Schedule tab
+            if (selectedTab == 0) {
+                FloatingActionButton(onClick = { showAddShiftSheet = true }) {
+                    Icon(Icons.Default.Add, contentDescription = if (isArabic) "إضافة مناوبة" else "Add Shift")
+                }
+            }
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -97,7 +117,9 @@ fun ScheduleScreen(
                     uiState = uiState,
                     isArabic = isArabic,
                     onPreviousWeek = { viewModel.previousWeek() },
-                    onNextWeek = { viewModel.nextWeek() }
+                    onNextWeek = { viewModel.nextWeek() },
+                    onCancelShift = { viewModel.cancelShift(it) },
+                    onPublishDrafts = { viewModel.publishDrafts() }
                 )
                 1 -> TimeClockTab(
                     uiState = uiState,
@@ -108,6 +130,25 @@ fun ScheduleScreen(
             }
         }
     }
+
+    // Add Shift bottom sheet
+    if (showAddShiftSheet) {
+        AddShiftSheet(
+            users = uiState.users,
+            isArabic = isArabic,
+            isSaving = uiState.isSaving,
+            onConfirm = { userId, start, end, position ->
+                viewModel.createShift(
+                    userId = userId,
+                    scheduledStart = start,
+                    scheduledEnd = end,
+                    position = position
+                )
+                showAddShiftSheet = false
+            },
+            onDismiss = { showAddShiftSheet = false }
+        )
+    }
 }
 
 // ─── Schedule tab ────────────────────────────────────────────────────────────
@@ -117,7 +158,9 @@ private fun ScheduleTab(
     uiState: ScheduleUiState,
     isArabic: Boolean,
     onPreviousWeek: () -> Unit,
-    onNextWeek: () -> Unit
+    onNextWeek: () -> Unit,
+    onCancelShift: (String) -> Unit,
+    onPublishDrafts: () -> Unit
 ) {
     val weekStart = uiState.currentWeekStart
     val weekEnd = weekStart.plusDays(6)
@@ -130,7 +173,7 @@ private fun ScheduleTab(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onPreviousWeek) {
-                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Previous week")
+                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = if (isArabic) "الأسبوع السابق" else "Previous week")
             }
             Text(
                 "${weekStart.format(dateFormatter)} – ${weekEnd.format(dateFormatter)}",
@@ -138,7 +181,28 @@ private fun ScheduleTab(
                 fontWeight = FontWeight.SemiBold
             )
             IconButton(onClick = onNextWeek) {
-                Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Next week")
+                Icon(Icons.Default.KeyboardArrowRight, contentDescription = if (isArabic) "الأسبوع التالي" else "Next week")
+            }
+        }
+
+        // Publish Drafts button — visible only when there are draft shifts
+        if (uiState.hasDrafts) {
+            Button(
+                onClick = onPublishDrafts,
+                enabled = !uiState.isSaving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (isArabic) "نشر المسودات" else "Publish Drafts")
             }
         }
 
@@ -164,7 +228,7 @@ private fun ScheduleTab(
                 val byDate = schedules.groupBy { parseUtc(it.scheduledStart)?.toLocalDate() }
                 LazyColumn(
                     Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
+                    contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 80.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     (0..6).forEach { offset ->
@@ -185,7 +249,13 @@ private fun ScheduleTab(
                             }
                         } else {
                             items(daySchedules, key = { it.id }) { schedule ->
-                                ScheduleCard(schedule = schedule, isArabic = isArabic)
+                                ScheduleCard(
+                                    schedule = schedule,
+                                    isArabic = isArabic,
+                                    onCancel = if (schedule.status.equals("Draft", ignoreCase = true))
+                                        { { onCancelShift(schedule.id) } }
+                                    else null
+                                )
                             }
                         }
                     }
@@ -207,7 +277,11 @@ private fun DayHeader(date: LocalDate, isArabic: Boolean) {
 }
 
 @Composable
-private fun ScheduleCard(schedule: EmployeeScheduleDto, isArabic: Boolean) {
+private fun ScheduleCard(
+    schedule: EmployeeScheduleDto,
+    isArabic: Boolean,
+    onCancel: (() -> Unit)? = null
+) {
     val start = parseUtc(schedule.scheduledStart)
     val end = parseUtc(schedule.scheduledEnd)
     val timeRange = if (start != null && end != null)
@@ -242,7 +316,7 @@ private fun ScheduleCard(schedule: EmployeeScheduleDto, isArabic: Boolean) {
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
-                    if (schedule.status == "Draft") {
+                    if (schedule.status.equals("Draft", ignoreCase = true)) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant,
                             shape = MaterialTheme.shapes.small
@@ -263,12 +337,299 @@ private fun ScheduleCard(schedule: EmployeeScheduleDto, isArabic: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                if (minutes == 0) "${hours}h" else "${hours}h ${minutes}m",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold
-            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (minutes == 0) "${hours}h" else "${hours}h ${minutes}m",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (onCancel != null) {
+                    IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = if (isArabic) "حذف المناوبة" else "Delete shift",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+// ─── Add Shift sheet ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddShiftSheet(
+    users: List<UserDto>,
+    isArabic: Boolean,
+    isSaving: Boolean,
+    onConfirm: (userId: String, start: String, end: String, position: String?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Form state
+    var selectedUser by remember { mutableStateOf<UserDto?>(null) }
+    var employeeExpanded by remember { mutableStateOf(false) }
+    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
+    var startHour by remember { mutableIntStateOf(8) }
+    var startMinute by remember { mutableIntStateOf(0) }
+    var endHour by remember { mutableIntStateOf(16) }
+    var endMinute by remember { mutableIntStateOf(0) }
+    var position by remember { mutableStateOf("") }
+
+    // Dialog visibility
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+
+    // Date picker state
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = selectedDate
+            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+    )
+    val startTimePickerState = rememberTimePickerState(
+        initialHour = startHour, initialMinute = startMinute, is24Hour = true
+    )
+    val endTimePickerState = rememberTimePickerState(
+        initialHour = endHour, initialMinute = endMinute, is24Hour = true
+    )
+
+    val canConfirm = selectedUser != null
+
+    fun buildUtcString(date: LocalDate, hour: Int, minute: Int): String =
+        LocalDateTime.of(date, LocalTime.of(hour, minute))
+            .atZone(ZoneId.systemDefault())
+            .withZoneSameInstant(ZoneOffset.UTC)
+            .format(isoInstant)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = if (isArabic) "إضافة مناوبة" else "Add Shift",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(vertical = 4.dp)
+            )
+
+            // Employee picker
+            ExposedDropdownMenuBox(
+                expanded = employeeExpanded,
+                onExpandedChange = { employeeExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedUser?.let { "${it.firstName} ${it.lastName}".trim().ifBlank { it.username } }
+                        ?: "",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(if (isArabic) "الموظف *" else "Employee *") },
+                    placeholder = { Text(if (isArabic) "اختر موظفاً" else "Select employee") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = employeeExpanded) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = employeeExpanded,
+                    onDismissRequest = { employeeExpanded = false }
+                ) {
+                    if (users.isEmpty()) {
+                        DropdownMenuItem(
+                            text = { Text(if (isArabic) "لا يوجد موظفون" else "No employees found") },
+                            onClick = { employeeExpanded = false },
+                            enabled = false
+                        )
+                    } else {
+                        users.forEach { user ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            "${user.firstName} ${user.lastName}".trim().ifBlank { user.username },
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            user.role,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedUser = user
+                                    employeeExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Date field
+            OutlinedTextField(
+                value = selectedDate.format(DateTimeFormatter.ofPattern("EEE, MMM d yyyy")),
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(if (isArabic) "التاريخ" else "Date") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = {
+                    TextButton(onClick = { showDatePicker = true }) {
+                        Text(if (isArabic) "تغيير" else "Change")
+                    }
+                }
+            )
+
+            // Start / End time row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = LocalTime.of(startHour, startMinute).format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(if (isArabic) "وقت البدء" else "Start") },
+                    modifier = Modifier
+                        .weight(1f),
+                    trailingIcon = {
+                        TextButton(onClick = { showStartTimePicker = true }) {
+                            Text(if (isArabic) "تغيير" else "Edit")
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = LocalTime.of(endHour, endMinute).format(timeFormatter),
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text(if (isArabic) "وقت الانتهاء" else "End") },
+                    modifier = Modifier
+                        .weight(1f),
+                    trailingIcon = {
+                        TextButton(onClick = { showEndTimePicker = true }) {
+                            Text(if (isArabic) "تغيير" else "Edit")
+                        }
+                    }
+                )
+            }
+
+            // Optional position
+            OutlinedTextField(
+                value = position,
+                onValueChange = { position = it },
+                label = { Text(if (isArabic) "المنصب (اختياري)" else "Position (optional)") },
+                placeholder = { Text(if (isArabic) "مثال: كاشير" else "e.g. Cashier") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    val user = selectedUser ?: return@Button
+                    onConfirm(
+                        user.id,
+                        buildUtcString(selectedDate, startHour, startMinute),
+                        buildUtcString(selectedDate, endHour, endMinute),
+                        position.trim().ifBlank { null }
+                    )
+                },
+                enabled = canConfirm && !isSaving,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (isArabic) "إنشاء المناوبة" else "Create Shift")
+            }
+
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
+                Text(if (isArabic) "إلغاء" else "Cancel")
+            }
+        }
+    }
+
+    // Date picker dialog
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        selectedDate = Instant.ofEpochMilli(millis)
+                            .atZone(ZoneOffset.UTC).toLocalDate()
+                    }
+                    showDatePicker = false
+                }) { Text(if (isArabic) "تأكيد" else "OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    // Start time picker dialog
+    if (showStartTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showStartTimePicker = false },
+            title = { Text(if (isArabic) "وقت البدء" else "Start time") },
+            text = { TimePicker(state = startTimePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    startHour = startTimePickerState.hour
+                    startMinute = startTimePickerState.minute
+                    showStartTimePicker = false
+                }) { Text(if (isArabic) "تأكيد" else "OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showStartTimePicker = false }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
+            }
+        )
+    }
+
+    // End time picker dialog
+    if (showEndTimePicker) {
+        AlertDialog(
+            onDismissRequest = { showEndTimePicker = false },
+            title = { Text(if (isArabic) "وقت الانتهاء" else "End time") },
+            text = { TimePicker(state = endTimePickerState) },
+            confirmButton = {
+                TextButton(onClick = {
+                    endHour = endTimePickerState.hour
+                    endMinute = endTimePickerState.minute
+                    showEndTimePicker = false
+                }) { Text(if (isArabic) "تأكيد" else "OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEndTimePicker = false }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
+            }
+        )
     }
 }
 

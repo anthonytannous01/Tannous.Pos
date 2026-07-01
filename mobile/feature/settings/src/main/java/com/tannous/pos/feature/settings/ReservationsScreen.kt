@@ -17,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.model.CreateReservationRequest
 import com.tannous.pos.core.data.model.ReservationDto
+import com.tannous.pos.core.ui.LocalIsArabic
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -28,6 +29,7 @@ fun ReservationsScreen(
     viewModel: ReservationsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
@@ -42,6 +44,7 @@ fun ReservationsScreen(
             availableTables = uiState.availableTables,
             isCreating      = uiState.isCreating,
             error           = uiState.createError,
+            isArabic        = isArabic,
             onLoadTables    = { slot, size -> viewModel.loadAvailableTables(slot, size) },
             onCreate        = { viewModel.create(it) },
             onDismiss       = { viewModel.dismissCreateDialog() }
@@ -52,17 +55,17 @@ fun ReservationsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Reservations") },
+                title = { Text(if (isArabic) "الحجوزات" else "Reservations") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showCreateDialog() }) {
-                Icon(Icons.Default.Add, contentDescription = "New reservation")
+                Icon(Icons.Default.Add, contentDescription = if (isArabic) "حجز جديد" else "New reservation")
             }
         }
     ) { padding ->
@@ -77,7 +80,7 @@ fun ReservationsScreen(
             ) {
                 IconButton(onClick = {
                     viewModel.loadForDate(uiState.selectedDate.minusDays(1))
-                }) { Icon(Icons.Default.ArrowBack, contentDescription = "Previous day") }
+                }) { Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "اليوم السابق" else "Previous day") }
 
                 Text(
                     text = uiState.selectedDate.format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy")),
@@ -87,7 +90,7 @@ fun ReservationsScreen(
 
                 IconButton(onClick = {
                     viewModel.loadForDate(uiState.selectedDate.plusDays(1))
-                }) { Icon(Icons.Default.ArrowForward, contentDescription = "Next day") }
+                }) { Icon(Icons.Default.ArrowForward, contentDescription = if (isArabic) "اليوم التالي" else "Next day") }
             }
 
             Divider()
@@ -100,9 +103,12 @@ fun ReservationsScreen(
                     Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("No reservations", style = MaterialTheme.typography.titleMedium)
-                        Text("Tap + to add one", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (isArabic) "لا توجد حجوزات" else "No reservations", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (isArabic) "اضغط + لإضافة حجز" else "Tap + to add one",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
                 else -> LazyColumn(
@@ -113,6 +119,7 @@ fun ReservationsScreen(
                     items(uiState.reservations) { res ->
                         ReservationCard(
                             reservation = res,
+                            isArabic    = isArabic,
                             onConfirm   = { viewModel.updateStatus(res.id, RESERVATION_CONFIRMED) },
                             onSeat      = { viewModel.updateStatus(res.id, RESERVATION_SEATED) },
                             onCancel    = { viewModel.updateStatus(res.id, RESERVATION_CANCELLED) },
@@ -128,10 +135,11 @@ fun ReservationsScreen(
 @Composable
 private fun ReservationCard(
     reservation: ReservationDto,
-    onConfirm: () -> Unit,
-    onSeat:    () -> Unit,
-    onCancel:  () -> Unit,
-    onNoShow:  () -> Unit
+    isArabic:    Boolean,
+    onConfirm:   () -> Unit,
+    onSeat:      () -> Unit,
+    onCancel:    () -> Unit,
+    onNoShow:    () -> Unit
 ) {
     val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
     val time = try {
@@ -158,9 +166,15 @@ private fun ReservationCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text("${reservation.partySize} guests", style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (isArabic) "${reservation.partySize} ضيوف" else "${reservation.partySize} guests",
+                    style = MaterialTheme.typography.bodySmall
+                )
                 reservation.tableNumber?.let {
-                    Text("Table $it", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        if (isArabic) "طاولة $it" else "Table $it",
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
                 reservation.customerPhone?.let {
                     Text(it, style = MaterialTheme.typography.bodySmall)
@@ -184,20 +198,20 @@ private fun ReservationCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (reservation.status == RESERVATION_PENDING) {
                         OutlinedButton(onClick = onConfirm, modifier = Modifier.weight(1f)) {
-                            Text("Confirm")
+                            Text(if (isArabic) "تأكيد" else "Confirm")
                         }
                     }
                     OutlinedButton(onClick = onSeat, modifier = Modifier.weight(1f)) {
-                        Text("Seat")
+                        Text(if (isArabic) "إجلاس" else "Seat")
                     }
                     OutlinedButton(
                         onClick = onCancel, modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error)
-                    ) { Text("Cancel") }
+                    ) { Text(if (isArabic) "إلغاء" else "Cancel") }
                     if (reservation.status == RESERVATION_CONFIRMED) {
                         OutlinedButton(onClick = onNoShow, modifier = Modifier.weight(1f)) {
-                            Text("No Show")
+                            Text(if (isArabic) "لم يحضر" else "No Show")
                         }
                     }
                 }
@@ -212,6 +226,7 @@ private fun CreateReservationDialog(
     availableTables: List<com.tannous.pos.core.data.model.AvailableTableDto>,
     isCreating:      Boolean,
     error:           String?,
+    isArabic:        Boolean,
     onLoadTables:    (slot: String, partySize: Int) -> Unit,
     onCreate:        (CreateReservationRequest) -> Unit,
     onDismiss:       () -> Unit
@@ -226,21 +241,26 @@ private fun CreateReservationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Reservation") },
+        title = { Text(if (isArabic) "حجز جديد" else "New Reservation") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(value = name, onValueChange = { name = it },
-                    label = { Text("Customer Name *") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    label = { Text(if (isArabic) "اسم العميل *" else "Customer Name *") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
                 OutlinedTextField(value = phone, onValueChange = { phone = it },
-                    label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    label = { Text(if (isArabic) "الهاتف" else "Phone") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = partySize, onValueChange = { partySize = it },
-                        label = { Text("Guests") }, modifier = Modifier.weight(1f), singleLine = true)
+                        label = { Text(if (isArabic) "الضيوف" else "Guests") },
+                        modifier = Modifier.weight(1f), singleLine = true)
                     OutlinedTextField(value = time, onValueChange = { time = it },
-                        label = { Text("Time (HH:mm)") }, modifier = Modifier.weight(1f), singleLine = true)
+                        label = { Text(if (isArabic) "الوقت (HH:mm)" else "Time (HH:mm)") },
+                        modifier = Modifier.weight(1f), singleLine = true)
                 }
                 OutlinedTextField(value = date, onValueChange = { date = it },
-                    label = { Text("Date (YYYY-MM-DD)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    label = { Text(if (isArabic) "التاريخ (YYYY-MM-DD)" else "Date (YYYY-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 // Check availability button
                 OutlinedButton(
@@ -249,11 +269,11 @@ private fun CreateReservationDialog(
                         onLoadTables(slot, partySize.toIntOrNull() ?: 2)
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Check Available Tables") }
+                ) { Text(if (isArabic) "التحقق من الطاولات المتاحة" else "Check Available Tables") }
 
                 // Table picker
                 if (availableTables.isNotEmpty()) {
-                    Text("Select table:", style = MaterialTheme.typography.labelMedium)
+                    Text(if (isArabic) "اختر طاولة:" else "Select table:", style = MaterialTheme.typography.labelMedium)
                     availableTables.forEach { t ->
                         FilterChip(
                             selected  = tableId == t.id,
@@ -264,7 +284,8 @@ private fun CreateReservationDialog(
                 }
 
                 OutlinedTextField(value = notes, onValueChange = { notes = it },
-                    label = { Text("Notes") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                    label = { Text(if (isArabic) "ملاحظات" else "Notes") },
+                    modifier = Modifier.fillMaxWidth(), minLines = 2)
 
                 error?.let {
                     Text(it, color = MaterialTheme.colorScheme.error,
@@ -288,11 +309,11 @@ private fun CreateReservationDialog(
                 enabled = name.isNotBlank() && !isCreating
             ) {
                 if (isCreating) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Text("Create")
+                else Text(if (isArabic) "إنشاء" else "Create")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(if (isArabic) "إلغاء" else "Cancel") }
         }
     )
 }

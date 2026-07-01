@@ -126,7 +126,7 @@ fun PrinterSettingsSection(
                 val connectionLabel = when (connectionType) {
                     PrinterConnectionType.BLUETOOTH -> "Bluetooth"
                     PrinterConnectionType.NETWORK -> "LAN"
-                    PrinterConnectionType.USB -> "USB (Coming Soon)"
+                    PrinterConnectionType.USB -> if (isArabic) "USB (قريباً)" else "USB (Coming Soon)"
                 }
                 OutlinedTextField(
                     value = connectionLabel,
@@ -156,7 +156,7 @@ fun PrinterSettingsSection(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("USB (Coming Soon)") },
+                        text = { Text(if (isArabic) "USB (قريباً)" else "USB (Coming Soon)") },
                         onClick = { connectionExpanded = false },
                         enabled = false
                     )
@@ -186,7 +186,7 @@ fun PrinterSettingsSection(
                         }
                         if (bluetoothAddress != null) {
                             IconButton(onClick = onClearBluetoothDevice) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear device")
+                                Icon(Icons.Default.Close, contentDescription = if (isArabic) "إزالة الجهاز" else "Clear device")
                             }
                         }
                     }
@@ -215,7 +215,7 @@ fun PrinterSettingsSection(
                 }
                 PrinterConnectionType.USB -> {
                     Text(
-                        text = "USB printing coming in a future update.",
+                        text = if (isArabic) "الطباعة عبر USB قادمة في تحديث مستقبلي." else "USB printing coming in a future update.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.local.entity.OrderEntity
 import com.tannous.pos.core.data.repository.isAlreadyVoidedStatus
 import com.tannous.pos.core.data.repository.isVoidableStatus
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.core.util.currencyFormatterFor
 import java.text.NumberFormat
 import java.time.ZoneId
@@ -32,6 +33,7 @@ fun OrderHistoryScreen(
     viewModel: OrderHistoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val currencyFormatter = remember(uiState.currencyCode) {
         currencyFormatterFor(uiState.currencyCode)
@@ -50,10 +52,10 @@ fun OrderHistoryScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Order History") },
+                title = { Text(if (isArabic) "سجل الطلبات" else "Order History") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
@@ -61,7 +63,7 @@ fun OrderHistoryScreen(
                         onClick = { viewModel.refresh() },
                         enabled = !uiState.isRefreshing
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -82,7 +84,7 @@ fun OrderHistoryScreen(
                     FilterChip(
                         selected = uiState.filter == filter,
                         onClick = { viewModel.setFilter(filter) },
-                        label = { Text(orderHistoryFilterLabel(filter)) }
+                        label = { Text(orderHistoryFilterLabel(filter, isArabic)) }
                     )
                 }
             }
@@ -107,7 +109,7 @@ fun OrderHistoryScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No orders found",
+                        text = if (isArabic) "لا توجد طلبات" else "No orders found",
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
@@ -122,6 +124,7 @@ fun OrderHistoryScreen(
                             order = order,
                             currencyFormatter = currencyFormatter,
                             isVoiding = uiState.voidingOrderId == order.id,
+                            isArabic = isArabic,
                             onTap = { onNavigateToReceipt(order.id) },
                             onVoidClick = {
                                 voidDialogOrderId = order.id
@@ -140,14 +143,14 @@ fun OrderHistoryScreen(
                 voidDialogOrderId = null
                 voidReason = ""
             },
-            title = { Text("Void Order") },
+            title = { Text(if (isArabic) "إلغاء الطلب" else "Void Order") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter a reason to void this order.")
+                    Text(if (isArabic) "أدخل سبب إلغاء هذا الطلب." else "Enter a reason to void this order.")
                     OutlinedTextField(
                         value = voidReason,
                         onValueChange = { if (it.length <= 500) voidReason = it },
-                        label = { Text("Reason") },
+                        label = { Text(if (isArabic) "السبب" else "Reason") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         supportingText = { Text("${voidReason.length}/500") }
@@ -163,7 +166,7 @@ fun OrderHistoryScreen(
                     },
                     enabled = voidReason.isNotBlank()
                 ) {
-                    Text("Void", color = MaterialTheme.colorScheme.error)
+                    Text(if (isArabic) "إلغاء الطلب" else "Void", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
@@ -171,7 +174,7 @@ fun OrderHistoryScreen(
                     voidDialogOrderId = null
                     voidReason = ""
                 }) {
-                    Text("Cancel")
+                    Text(if (isArabic) "تراجع" else "Cancel")
                 }
             }
         )
@@ -183,6 +186,7 @@ private fun OrderHistoryRow(
     order: OrderEntity,
     currencyFormatter: NumberFormat,
     isVoiding: Boolean,
+    isArabic: Boolean,
     onTap: () -> Unit,
     onVoidClick: () -> Unit
 ) {
@@ -204,7 +208,7 @@ private fun OrderHistoryRow(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "${currencyFormatter.format(order.total)} · ${orderStatusLabel(order)}",
+                    text = "${currencyFormatter.format(order.total)} · ${orderStatusLabel(order, isArabic)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -221,21 +225,21 @@ private fun OrderHistoryRow(
                 isVoiding -> CircularProgressIndicator(modifier = Modifier.size(20.dp))
                 order.status.isAlreadyVoidedStatus() -> {
                     Text(
-                        text = "Voided",
+                        text = if (isArabic) "ملغى" else "Voided",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 order.receiptNumber?.startsWith("PENDING") == true -> {
                     Text(
-                        text = "Pending",
+                        text = if (isArabic) "معلق" else "Pending",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 order.status.isVoidableStatus() -> {
                     TextButton(onClick = onVoidClick) {
-                        Text("Void", color = MaterialTheme.colorScheme.error)
+                        Text(if (isArabic) "إلغاء" else "Void", color = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -244,18 +248,18 @@ private fun OrderHistoryRow(
     }
 }
 
-private fun orderHistoryFilterLabel(filter: OrderHistoryFilter): String = when (filter) {
-    OrderHistoryFilter.All -> "All"
-    OrderHistoryFilter.Paid -> "Paid"
-    OrderHistoryFilter.Open -> "Open"
-    OrderHistoryFilter.Voided -> "Voided"
-    OrderHistoryFilter.PendingSync -> "Pending"
+private fun orderHistoryFilterLabel(filter: OrderHistoryFilter, isArabic: Boolean): String = when (filter) {
+    OrderHistoryFilter.All -> if (isArabic) "الكل" else "All"
+    OrderHistoryFilter.Paid -> if (isArabic) "مدفوع" else "Paid"
+    OrderHistoryFilter.Open -> if (isArabic) "مفتوح" else "Open"
+    OrderHistoryFilter.Voided -> if (isArabic) "ملغى" else "Voided"
+    OrderHistoryFilter.PendingSync -> if (isArabic) "معلق" else "Pending"
 }
 
-private fun orderStatusLabel(order: OrderEntity): String = when {
-    order.receiptNumber?.startsWith("PENDING") == true -> "Queued"
-    order.status.isAlreadyVoidedStatus() -> "Voided"
-    order.status in setOf("6", "Paid", "PAID") -> "Paid"
-    order.status in setOf("1", "Open", "OPEN") -> "Open"
+private fun orderStatusLabel(order: OrderEntity, isArabic: Boolean): String = when {
+    order.receiptNumber?.startsWith("PENDING") == true -> if (isArabic) "في الانتظار" else "Queued"
+    order.status.isAlreadyVoidedStatus() -> if (isArabic) "ملغى" else "Voided"
+    order.status in setOf("6", "Paid", "PAID") -> if (isArabic) "مدفوع" else "Paid"
+    order.status in setOf("1", "Open", "OPEN") -> if (isArabic) "مفتوح" else "Open"
     else -> order.status
 }

@@ -3,6 +3,7 @@ package com.tannous.pos.feature.shifts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.model.ShiftDto
+import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.data.repository.ShiftRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,15 +19,38 @@ import javax.inject.Inject
 @HiltViewModel
 class ShiftViewModel @Inject constructor(
     private val shiftRepository: ShiftRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val orderRepository: OrderRepository
 ) : ViewModel() {
-    
+
     private val _uiState = MutableStateFlow(ShiftUiState())
     val uiState: StateFlow<ShiftUiState> = _uiState.asStateFlow()
-    
+
     init {
         loadCurrency()
         loadActiveShift()
+    }
+
+    /**
+     * Starts observing paid orders for [shiftId] from Room.
+     * Automatically updates [ShiftUiState.shiftSalesTotal] and [ShiftUiState.shiftOrderCount]
+     * whenever a new order is finalized in [SellViewModel], since both share the same Room database.
+     */
+    private fun observeShiftSales(shiftId: String) {
+        viewModelScope.launch {
+            orderRepository.getShiftOrders(shiftId).collect { orders ->
+                // Backend sends OrderStatus as integer: 6 = Paid (see OrderStatusExtensions.kt).
+                // With isLenient=true, kotlinx.serialization coerces the integer to string "6".
+                // Also accept "Paid"/"PAID" for future-proofing if the backend ever switches to
+                // string enum serialization.
+                val paidStatuses = setOf("6", "Paid", "PAID")
+                val paidOrders = orders.filter { it.status in paidStatuses }
+                _uiState.update { it.copy(
+                    shiftOrderCount = paidOrders.size,
+                    shiftSalesTotal = paidOrders.fold(BigDecimal.ZERO) { acc, order -> acc + order.total }
+                ) }
+            }
+        }
     }
 
     private fun loadCurrency() {
@@ -55,6 +79,9 @@ class ShiftViewModel @Inject constructor(
                     activeShift = shift,
                     errorMessage = null
                 )
+                if (shift != null) {
+                    observeShiftSales(shift.id)
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Error loading active shift")
                 _uiState.value = _uiState.value.copy(
@@ -77,6 +104,7 @@ class ShiftViewModel @Inject constructor(
                             activeShift = shift,
                             errorMessage = null
                         )
+                        observeShiftSales(shift.id)
                     },
                     onFailure = { error ->
                         Timber.e(error, "Error opening shift")
@@ -167,6 +195,10 @@ data class ShiftUiState(
     val isLoading: Boolean = false,
     val activeShift: ShiftDto? = null,
     val errorMessage: String? = null,
-    val currencyCode: String = "USD"
+    val currencyCode: String = "USD",
+    /** Number of paid orders in this shift (live, from local Room). */
+    val shiftOrderCount: Int = 0,
+    /** Sum of totals from paid orders in this shift (live, from local Room). */
+    val shiftSalesTotal: BigDecimal = BigDecimal.ZERO
 )
 

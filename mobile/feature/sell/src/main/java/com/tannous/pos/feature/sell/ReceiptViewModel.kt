@@ -81,12 +81,15 @@ class ReceiptViewModel @Inject constructor(
                     } catch (e: Exception) {
                         null
                     }
+                    val unitPriceBd = line.unitPrice.toBigDecimal()
+                    // Backend never sends totalPrice in order lines; compute it locally.
+                    val totalPriceBd = unitPriceBd.multiply(java.math.BigDecimal.valueOf(line.quantity.toLong()))
                     ReceiptLine(
-                        name    = menuItem?.name ?: line.menuItemId.take(8),
-                        nameAr  = menuItem?.nameAr,
+                        name       = menuItem?.name ?: line.menuItemId.take(8),
+                        nameAr     = menuItem?.nameAr,
                         quantity   = line.quantity,
-                        unitPrice  = line.unitPrice,
-                        totalPrice = line.totalPrice
+                        unitPrice  = unitPriceBd,
+                        totalPrice = totalPriceBd
                     )
                 }
                 _orderLines.value = resolved

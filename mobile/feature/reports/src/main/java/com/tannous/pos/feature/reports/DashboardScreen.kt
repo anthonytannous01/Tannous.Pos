@@ -33,6 +33,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.error) {
@@ -46,15 +47,15 @@ fun DashboardScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Sales Dashboard") },
+                title = { Text(if (isArabic) "لوحة المبيعات" else "Sales Dashboard") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = if (isArabic) "تحديث" else "Refresh")
                     }
                 }
             )
@@ -84,8 +85,9 @@ fun DashboardScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("No data yet", style = MaterialTheme.typography.titleMedium)
-                        Text("No paid orders today.", style = MaterialTheme.typography.bodySmall,
+                        Text(if (isArabic) "لا توجد بيانات بعد" else "No data yet", style = MaterialTheme.typography.titleMedium)
+                        Text(if (isArabic) "لا توجد طلبات مدفوعة اليوم." else "No paid orders today.",
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -110,6 +112,7 @@ private fun BranchSelectorRow(
     selectedBranch: BranchDto?,
     onSelect: (BranchDto?) -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -121,7 +124,7 @@ private fun BranchSelectorRow(
             FilterChip(
                 selected = selectedBranch == null,
                 onClick = { onSelect(null) },
-                label = { Text("All Branches") }
+                label = { Text(if (isArabic) "جميع الفروع" else "All Branches") }
             )
         }
         items(branches) { branch ->
@@ -143,6 +146,7 @@ private fun DashboardContent(
     onNavigateToSupplierIntelligence: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val isArabic = LocalIsArabic.current
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -152,22 +156,27 @@ private fun DashboardContent(
     ) {
         // ── Core KPI cards ───────────────────────────────────────────────────
         item {
-            Text("Today's Sales", style = MaterialTheme.typography.titleMedium,
+            Text(if (isArabic) "مبيعات اليوم" else "Today's Sales",
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold)
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KpiCard("Net Sales", "$${summary.netSales.toPlainString()}",
+                KpiCard(if (isArabic) "صافي المبيعات" else "Net Sales",
+                    "$${summary.netSales.toPlainString()}",
                     MaterialTheme.colorScheme.primaryContainer, Modifier.weight(1f))
-                KpiCard("Orders", summary.ordersCount.toString(),
+                KpiCard(if (isArabic) "الطلبات" else "Orders",
+                    summary.ordersCount.toString(),
                     MaterialTheme.colorScheme.secondaryContainer, Modifier.weight(1f))
             }
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KpiCard("Avg Ticket", "$${summary.avgTicket.toPlainString()}",
+                KpiCard(if (isArabic) "متوسط الفاتورة" else "Avg Ticket",
+                    "$${summary.avgTicket.toPlainString()}",
                     MaterialTheme.colorScheme.tertiaryContainer, Modifier.weight(1f))
-                KpiCard("Void Rate", "${summary.voidRate}%",
+                KpiCard(if (isArabic) "نسبة الإلغاء" else "Void Rate",
+                    "${summary.voidRate}%",
                     if (summary.voidRate > BigDecimal("5"))
                         MaterialTheme.colorScheme.errorContainer
                     else
@@ -179,16 +188,19 @@ private fun DashboardContent(
         // ── VAT + stamp duty ─────────────────────────────────────────────────
         if (summary.taxCollected > BigDecimal.ZERO || summary.stampDutyCollected > BigDecimal.ZERO) {
             item {
-                Text("Tax & Duties", style = MaterialTheme.typography.titleSmall,
+                Text(if (isArabic) "الضرائب والرسوم" else "Tax & Duties",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (summary.taxCollected > BigDecimal.ZERO)
-                        KpiCard("VAT Collected", "$${summary.taxCollected.toPlainString()}",
+                        KpiCard(if (isArabic) "ضريبة القيمة المضافة" else "VAT Collected",
+                            "$${summary.taxCollected.toPlainString()}",
                             MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
                     if (summary.stampDutyCollected > BigDecimal.ZERO)
-                        KpiCard("Stamp Duty", "$${summary.stampDutyCollected.toPlainString()}",
+                        KpiCard(if (isArabic) "رسوم الطابع" else "Stamp Duty",
+                            "$${summary.stampDutyCollected.toPlainString()}",
                             MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
                 }
             }
@@ -196,16 +208,20 @@ private fun DashboardContent(
 
         // ── Order type split ─────────────────────────────────────────────────
         item {
-            Text("Order Types", style = MaterialTheme.typography.titleSmall,
+            Text(if (isArabic) "أنواع الطلبات" else "Order Types",
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                KpiCard("Dine-In",   summary.dineInCount.toString(),
+                KpiCard(if (isArabic) "داخل المطعم" else "Dine-In",
+                    summary.dineInCount.toString(),
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                KpiCard("Takeaway",  summary.takeawayCount.toString(),
+                KpiCard(if (isArabic) "للمنزل" else "Takeaway",
+                    summary.takeawayCount.toString(),
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
-                KpiCard("Delivery",  summary.deliveryCount.toString(),
+                KpiCard(if (isArabic) "توصيل" else "Delivery",
+                    summary.deliveryCount.toString(),
                     MaterialTheme.colorScheme.surfaceVariant, Modifier.weight(1f))
             }
         }
@@ -213,7 +229,8 @@ private fun DashboardContent(
         // ── Hourly sparkline ─────────────────────────────────────────────────
         if (summary.hourlySales.isNotEmpty()) {
             item {
-                Text("Sales by Hour", style = MaterialTheme.typography.titleSmall,
+                Text(if (isArabic) "المبيعات بالساعة" else "Sales by Hour",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item { HourlyChart(summary.hourlySales) }
@@ -238,7 +255,8 @@ private fun DashboardContent(
         // ── Payment methods ──────────────────────────────────────────────────
         if (summary.paymentMethods.isNotEmpty()) {
             item {
-                Text("Payment Methods", style = MaterialTheme.typography.titleSmall,
+                Text(if (isArabic) "طرق الدفع" else "Payment Methods",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(summary.paymentMethods) { pm ->
@@ -251,7 +269,7 @@ private fun DashboardContent(
                             Text("${pm.method} (${pm.currency})",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium)
-                            Text("${pm.count} transaction(s)",
+                            Text(if (isArabic) "${pm.count} معاملة" else "${pm.count} transaction(s)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -267,10 +285,11 @@ private fun DashboardContent(
         // ── Top items ────────────────────────────────────────────────────────
         if (summary.topItems.isNotEmpty()) {
             item {
-                Text("Top Items", style = MaterialTheme.typography.titleSmall,
+                Text(if (isArabic) "أعلى العناصر" else "Top Items",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            items(summary.topItems.take(8)) { item ->
+            items(summary.topItems.take(8)) { topItem ->
                 Card(Modifier.fillMaxWidth()) {
                     Row(
                         Modifier.fillMaxWidth().padding(12.dp),
@@ -278,13 +297,13 @@ private fun DashboardContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(item.name, style = MaterialTheme.typography.bodyMedium,
+                            Text(topItem.name, style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium)
-                            Text("Qty: ${item.qty}",
+                            Text("${if (isArabic) "الكمية:" else "Qty:"} ${topItem.qty}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Text("$${item.sales.toPlainString()}",
+                        Text("$${topItem.sales.toPlainString()}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Bold)
                     }

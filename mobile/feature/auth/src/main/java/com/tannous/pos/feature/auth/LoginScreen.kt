@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tannous.pos.core.ui.LocalIsArabic
 
 @Composable
 fun LoginScreen(
@@ -15,7 +16,8 @@ fun LoginScreen(
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+    val isArabic = LocalIsArabic.current
+
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
             onLoginSuccess()
@@ -39,7 +41,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = uiState.username,
             onValueChange = { viewModel.updateUsername(it) },
-            label = { Text("Username") },
+            label = { Text(if (isArabic) "اسم المستخدم" else "Username") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
@@ -49,7 +51,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = uiState.password,
             onValueChange = { viewModel.updatePassword(it) },
-            label = { Text("Password") },
+            label = { Text(if (isArabic) "كلمة المرور" else "Password") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             visualTransformation = PasswordVisualTransformation()
@@ -68,7 +70,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             } else {
-                Text("Login")
+                Text(if (isArabic) "تسجيل الدخول" else "Login")
             }
         }
         

@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.ui.LanguageViewModel
+import com.tannous.pos.core.ui.LocalIsArabic
 import com.tannous.pos.feature.settings.printer.PrinterSettingsSection
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,26 +35,26 @@ private fun LebanonPresetDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val isArabic = LocalIsArabic.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Lebanon Quick Setup") },
+        title = { Text(if (isArabic) "إعداد لبنان السريع" else "Lebanon Quick Setup") },
         text = {
             Text(
-                "This will set:\n" +
-                "• VAT = 11%\n" +
-                "• Show LBP on receipts = ON\n" +
-                "• Stamp duty ($2 USD) = ON\n\n" +
-                "You will still need to enter the current exchange rate manually."
+                if (isArabic)
+                    "سيتم ضبط:\n• ضريبة القيمة المضافة = 11%\n• عرض الليرة اللبنانية على الفواتير = مفعّل\n• رسوم الطابع (2 دولار) = مفعّل\n\nستحتاج إلى إدخال سعر الصرف الحالي يدوياً."
+                else
+                    "This will set:\n• VAT = 11%\n• Show LBP on receipts = ON\n• Stamp duty (\$2 USD) = ON\n\nYou will still need to enter the current exchange rate manually."
             )
         },
         confirmButton = {
             TextButton(onClick = {
                 onConfirm()
                 onDismiss()
-            }) { Text("Apply") }
+            }) { Text(if (isArabic) "تطبيق" else "Apply") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(if (isArabic) "إلغاء" else "Cancel") }
         }
     )
 }
@@ -78,10 +79,13 @@ fun SettingsScreen(
     onNavigateToSchedule: () -> Unit = {},
     onNavigateToAccounting: () -> Unit = {},
     onNavigateToIntegrations: () -> Unit = {},
+    onNavigateToMenuManagement: () -> Unit = {},
+    onNavigateToTableManagement: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     var showLebanonPresetDialog by remember { mutableStateOf(false) }
@@ -102,7 +106,7 @@ fun SettingsScreen(
 
     LaunchedEffect(uiState.saveSuccess) {
         if (uiState.saveSuccess) {
-            snackbarHostState.showSnackbar("Settings saved")
+            snackbarHostState.showSnackbar(if (isArabic) "تم حفظ الإعدادات" else "Settings saved")
             viewModel.clearError()
         }
     }
@@ -125,10 +129,10 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(if (isArabic) "الإعدادات" else "Settings") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
@@ -175,13 +179,13 @@ fun SettingsScreen(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "${uiState.failedSyncCount} sync operation(s) failed",
+                                        text = if (isArabic) "${uiState.failedSyncCount} عملية مزامنة فشلت" else "${uiState.failedSyncCount} sync operation(s) failed",
                                         style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Medium,
                                         color = MaterialTheme.colorScheme.onErrorContainer
                                     )
                                     Text(
-                                        text = "Some adjustments or operations could not be sent to the server. Contact support if this persists.",
+                                        text = if (isArabic) "لم يتم إرسال بعض العمليات إلى الخادم. تواصل مع الدعم إذا استمرت المشكلة." else "Some adjustments or operations could not be sent to the server. Contact support if this persists.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onErrorContainer
                                     )
@@ -210,8 +214,11 @@ fun SettingsScreen(
                             Switch(
                                 checked = uiState.language == "ar",
                                 onCheckedChange = {
+                                    // Capture new value before the async toggle writes to DB,
+                                    // so we avoid a write/read race with an async refresh.
+                                    val newIsArabic = uiState.language != SettingsRepository.LANG_AR
                                     viewModel.toggleLanguage()
-                                    languageViewModel.refresh()
+                                    languageViewModel.setIsArabic(newIsArabic)
                                 }
                             )
                         }
@@ -233,12 +240,34 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Reports")
+                            Text(if (isArabic) "التقارير" else "Reports")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,
                                 contentDescription = null
                             )
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToMenuManagement
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(if (isArabic) "إدارة القائمة" else "Manage Menu")
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
 
@@ -258,7 +287,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Order History")
+                            Text(if (isArabic) "سجل الطلبات" else "Order History")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,
@@ -283,7 +312,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Inventory")
+                            Text(if (isArabic) "المخزون" else "Inventory")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,
@@ -308,7 +337,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Printing Preview")
+                            Text(if (isArabic) "معاينة الطباعة" else "Printing Preview")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,
@@ -333,7 +362,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Sales Dashboard")
+                            Text(if (isArabic) "لوحة المبيعات" else "Sales Dashboard")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -350,7 +379,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.List, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Menu Engineering")
+                            Text(if (isArabic) "هندسة القائمة" else "Menu Engineering")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -367,8 +396,31 @@ fun SettingsScreen(
                             Icon(Icons.Default.List, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Table Map")
+                            Text(if (isArabic) "خريطة الطاولات" else "Table Map")
                             Spacer(modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onNavigateToTableManagement
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.List, contentDescription = null,
+                                modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(if (isArabic) "إدارة الطاولات" else "Configure Tables")
+                                Text(
+                                    if (isArabic) "إنشاء مناطق وطاولات" else "Create floor plans and tables",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
@@ -389,7 +441,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp)
                             )
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Kitchen Display (KDS)")
+                            Text(if (isArabic) "شاشة المطبخ (KDS)" else "Kitchen Display (KDS)")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,
@@ -409,7 +461,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.Info, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Digital Menu (QR)")
+                            Text(if (isArabic) "القائمة الرقمية (QR)" else "Digital Menu (QR)")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -426,7 +478,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.List, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Reservations")
+                            Text(if (isArabic) "الحجوزات" else "Reservations")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -443,7 +495,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.List, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Delivery Queue")
+                            Text(if (isArabic) "قائمة التوصيل" else "Delivery Queue")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -461,8 +513,8 @@ fun SettingsScreen(
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
-                                Text("Self-Ordering Kiosk")
-                                Text("Exit PIN: ${uiState.kioskPin}",
+                                Text(if (isArabic) "كشك الطلب الذاتي" else "Self-Ordering Kiosk")
+                                Text(if (isArabic) "رمز الخروج: ${uiState.kioskPin}" else "Exit PIN: ${uiState.kioskPin}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -482,7 +534,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.Person, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Loyalty CRM")
+                            Text(if (isArabic) "برنامج الولاء" else "Loyalty CRM")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -499,7 +551,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.Person, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Staff Schedule & Time Clock")
+                            Text(if (isArabic) "جدول الموظفين وساعات العمل" else "Staff Schedule & Time Clock")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -516,14 +568,13 @@ fun SettingsScreen(
                             Icon(Icons.Default.List, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("Accounting & Integrations")
+                            Text(if (isArabic) "المحاسبة والتكاملات" else "Accounting & Integrations")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
 
                     run {
-                        val isArabic = uiState.language == SettingsRepository.LANG_AR
                         PrinterSettingsSection(
                             viewModel = viewModel,
                             isArabic = isArabic,
@@ -560,7 +611,7 @@ fun SettingsScreen(
                             Icon(Icons.Default.Info, contentDescription = null,
                                 modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(16.dp))
-                            Text("API & Integrations")
+                            Text(if (isArabic) "الواجهة البرمجية والتكاملات" else "API & Integrations")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
@@ -574,10 +625,10 @@ fun SettingsScreen(
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.fillMaxWidth().padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text("Kiosk Exit PIN",
+                                Text(if (isArabic) "رمز خروج الكشك" else "Kiosk Exit PIN",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold)
-                                Text("4-digit PIN operators enter to exit kiosk mode.",
+                                Text(if (isArabic) "رمز مكون من 4 أرقام يدخله المشغل للخروج من وضع الكشك." else "4-digit PIN operators enter to exit kiosk mode.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Row(
@@ -592,7 +643,7 @@ fun SettingsScreen(
                                                 pinError = ""
                                             }
                                         },
-                                        label = { Text("Exit PIN") },
+                                        label = { Text(if (isArabic) "رمز الخروج" else "Exit PIN") },
                                         visualTransformation = if (showPin) VisualTransformation.None
                                                                else PasswordVisualTransformation(),
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
@@ -602,43 +653,43 @@ fun SettingsScreen(
                                         singleLine = true,
                                         trailingIcon = {
                                             TextButton(onClick = { showPin = !showPin }) {
-                                                Text(if (showPin) "Hide" else "Show",
+                                                Text(if (showPin) (if (isArabic) "إخفاء" else "Hide") else (if (isArabic) "إظهار" else "Show"),
                                                     style = MaterialTheme.typography.labelSmall)
                                             }
                                         }
                                     )
                                     Button(onClick = {
                                         if (pinInput.length < 4) {
-                                            pinError = "Minimum 4 digits"
+                                            pinError = if (isArabic) "4 أرقام على الأقل" else "Minimum 4 digits"
                                         } else {
                                             viewModel.saveKioskPin(pinInput)
                                         }
-                                    }) { Text("Save") }
+                                    }) { Text(if (isArabic) "حفظ" else "Save") }
                                 }
                             }
                         }
                     }
 
-                    SettingsSectionHeader("Business Information")
+                    SettingsSectionHeader(if (isArabic) "معلومات المنشأة" else "Business Information")
                     OutlinedTextField(
                         value = uiState.storeName,
                         onValueChange = { viewModel.onFieldChange(SettingsField.StoreName, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Store Name *") },
+                        label = { Text(if (isArabic) "اسم المنشأة *" else "Store Name *") },
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = uiState.address,
                         onValueChange = { viewModel.onFieldChange(SettingsField.Address, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Address") },
+                        label = { Text(if (isArabic) "العنوان" else "Address") },
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = uiState.phone,
                         onValueChange = { viewModel.onFieldChange(SettingsField.Phone, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Phone") },
+                        label = { Text(if (isArabic) "الهاتف" else "Phone") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true
                     )
@@ -646,7 +697,7 @@ fun SettingsScreen(
                         value = uiState.email,
                         onValueChange = { viewModel.onFieldChange(SettingsField.Email, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Email") },
+                        label = { Text(if (isArabic) "البريد الإلكتروني" else "Email") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true
                     )
@@ -654,20 +705,20 @@ fun SettingsScreen(
                         value = uiState.website,
                         onValueChange = { viewModel.onFieldChange(SettingsField.Website, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Website") },
+                        label = { Text(if (isArabic) "الموقع الإلكتروني" else "Website") },
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = uiState.taxNumber,
                         onValueChange = { viewModel.onFieldChange(SettingsField.TaxNumber, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Tax Number") },
+                        label = { Text(if (isArabic) "الرقم الضريبي" else "Tax Number") },
                         singleLine = true
                     )
 
-                    SettingsSectionHeader("Tax")
+                    SettingsSectionHeader(if (isArabic) "الضريبة" else "Tax")
                     SettingsToggleRow(
-                        label = "Enable Tax",
+                        label = if (isArabic) "تفعيل الضريبة" else "Enable Tax",
                         checked = uiState.taxEnabled,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.TaxEnabled, it)
@@ -677,7 +728,7 @@ fun SettingsScreen(
                         value = uiState.taxRate,
                         onValueChange = { viewModel.onFieldChange(SettingsField.TaxRate, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Tax Rate (%)") },
+                        label = { Text(if (isArabic) "نسبة الضريبة (%)" else "Tax Rate (%)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         enabled = uiState.taxEnabled,
                         singleLine = true
@@ -686,43 +737,43 @@ fun SettingsScreen(
                         value = uiState.currency,
                         onValueChange = { viewModel.onFieldChange(SettingsField.Currency, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Currency Code (e.g. USD)") },
+                        label = { Text(if (isArabic) "رمز العملة (مثال: USD)" else "Currency Code (e.g. USD)") },
                         singleLine = true
                     )
 
-                    SettingsSectionHeader("Receipt")
+                    SettingsSectionHeader(if (isArabic) "الفاتورة" else "Receipt")
                     OutlinedTextField(
                         value = uiState.receiptHeader,
                         onValueChange = { viewModel.onFieldChange(SettingsField.ReceiptHeader, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Receipt Header") },
+                        label = { Text(if (isArabic) "رأس الفاتورة" else "Receipt Header") },
                         minLines = 2
                     )
                     OutlinedTextField(
                         value = uiState.receiptFooter,
                         onValueChange = { viewModel.onFieldChange(SettingsField.ReceiptFooter, it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Receipt Footer") },
+                        label = { Text(if (isArabic) "ذيل الفاتورة" else "Receipt Footer") },
                         minLines = 2
                     )
 
-                    SettingsSectionHeader("Features")
+                    SettingsSectionHeader(if (isArabic) "الميزات" else "Features")
                     SettingsToggleRow(
-                        label = "Require Customer Info",
+                        label = if (isArabic) "طلب بيانات العميل" else "Require Customer Info",
                         checked = uiState.requireCustomerInfo,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.RequireCustomerInfo, it)
                         }
                     )
                     SettingsToggleRow(
-                        label = "Inventory Tracking",
+                        label = if (isArabic) "تتبع المخزون" else "Inventory Tracking",
                         checked = uiState.enableInventoryTracking,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.EnableInventoryTracking, it)
                         }
                     )
                     SettingsToggleRow(
-                        label = "Recipe Management",
+                        label = if (isArabic) "إدارة الوصفات" else "Recipe Management",
                         checked = uiState.enableRecipeManagement,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.EnableRecipeManagement, it)
@@ -730,9 +781,9 @@ fun SettingsScreen(
                     )
 
                     // ── Loyalty Programme ────────────────────────────────────
-                    SettingsSectionHeader("Loyalty Programme")
+                    SettingsSectionHeader(if (isArabic) "برنامج الولاء" else "Loyalty Programme")
                     SettingsToggleRow(
-                        label = "Enable Loyalty Points",
+                        label = if (isArabic) "تفعيل نقاط الولاء" else "Enable Loyalty Points",
                         checked = uiState.loyaltyEnabled,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.LoyaltyEnabled, it)
@@ -745,9 +796,9 @@ fun SettingsScreen(
                                 viewModel.onFieldChange(SettingsField.LoyaltyPointsPerDollar, it)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Points per USD spent") },
+                            label = { Text(if (isArabic) "نقاط لكل دولار" else "Points per USD spent") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            supportingText = { Text("e.g. 10 = 10 points per \$1") },
+                            supportingText = { Text(if (isArabic) "مثال: 10 = 10 نقاط لكل \$1" else "e.g. 10 = 10 points per \$1") },
                             singleLine = true
                         )
                         OutlinedTextField(
@@ -756,9 +807,9 @@ fun SettingsScreen(
                                 viewModel.onFieldChange(SettingsField.LoyaltyPointValueUsd, it)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Point value in USD") },
+                            label = { Text(if (isArabic) "قيمة النقطة بالدولار" else "Point value in USD") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            supportingText = { Text("e.g. 0.01 = 1 cent per point") },
+                            supportingText = { Text(if (isArabic) "مثال: 0.01 = سنت لكل نقطة" else "e.g. 0.01 = 1 cent per point") },
                             singleLine = true
                         )
                         OutlinedTextField(
@@ -767,14 +818,13 @@ fun SettingsScreen(
                                 viewModel.onFieldChange(SettingsField.LoyaltyMinRedeemPoints, it)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Minimum points to redeem") },
+                            label = { Text(if (isArabic) "الحد الأدنى للاستبدال" else "Minimum points to redeem") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
                     }
 
                     // ── Notifications ────────────────────────────────────────
-                    val isArabic = uiState.language == "ar"
                     SettingsSectionHeader(if (isArabic) "الإشعارات" else "Notifications")
                     SettingsToggleRowWithDescription(
                         label = if (isArabic) "إشعارات نقاط الولاء" else "Loyalty Points Notifications",
@@ -792,7 +842,7 @@ fun SettingsScreen(
                     )
 
                     // ── Lebanese Market ──────────────────────────────────────
-                    SettingsSectionHeader("Lebanese Market")
+                    SettingsSectionHeader(if (isArabic) "السوق اللبناني" else "Lebanese Market")
 
                     // Quick-setup banner
                     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
@@ -801,12 +851,12 @@ fun SettingsScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Text(
-                                text = "Lebanon Quick Setup",
+                                text = if (isArabic) "إعداد لبنان السريع" else "Lebanon Quick Setup",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                text = "Set VAT 11%, LBP display, and stamp duty in one tap.",
+                                text = if (isArabic) "ضبط ضريبة القيمة المضافة 11% وعرض الليرة ورسوم الطابع بنقرة واحدة." else "Set VAT 11%, LBP display, and stamp duty in one tap.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -814,7 +864,7 @@ fun SettingsScreen(
                                 onClick = { showLebanonPresetDialog = true },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Apply Lebanon Preset")
+                                Text(if (isArabic) "تطبيق إعداد لبنان" else "Apply Lebanon Preset")
                             }
                         }
                     }
@@ -826,7 +876,7 @@ fun SettingsScreen(
                             viewModel.onFieldChange(SettingsField.ExchangeRateLbpPerUsd, it)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Exchange Rate (LBP per 1 USD)") },
+                        label = { Text(if (isArabic) "سعر الصرف (ل.ل. لكل دولار)" else "Exchange Rate (LBP per 1 USD)") },
                         placeholder = { Text("e.g. 89500") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         supportingText = {
@@ -838,7 +888,7 @@ fun SettingsScreen(
                     )
 
                     SettingsToggleRow(
-                        label = "Show LBP on Receipts",
+                        label = if (isArabic) "عرض الليرة اللبنانية على الفواتير" else "Show LBP on Receipts",
                         checked = uiState.showLbpOnReceipt,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.ShowLbpOnReceipt, it)
@@ -846,7 +896,7 @@ fun SettingsScreen(
                     )
 
                     SettingsToggleRow(
-                        label = "Stamp Duty (2025 Budget Law)",
+                        label = if (isArabic) "رسوم الطابع (قانون موازنة 2025)" else "Stamp Duty (2025 Budget Law)",
                         checked = uiState.stampDutyEnabled,
                         onCheckedChange = {
                             viewModel.onToggleChange(SettingsToggle.StampDutyEnabled, it)
@@ -860,9 +910,9 @@ fun SettingsScreen(
                                 viewModel.onFieldChange(SettingsField.StampDutyAmountUsd, it)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Stamp Duty Amount (USD)") },
+                            label = { Text(if (isArabic) "مبلغ رسوم الطابع (دولار)" else "Stamp Duty Amount (USD)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            supportingText = { Text("Default: \$2.00 per receipt (2025 law)") },
+                            supportingText = { Text(if (isArabic) "الافتراضي: \$2.00 لكل فاتورة (قانون 2025)" else "Default: \$2.00 per receipt (2025 law)") },
                             singleLine = true
                         )
                     }
@@ -879,7 +929,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                         }
-                        Text(if (uiState.isSaving) "Saving…" else "Save Settings")
+                        Text(if (uiState.isSaving) (if (isArabic) "جارٍ الحفظ…" else "Saving…") else (if (isArabic) "حفظ الإعدادات" else "Save Settings"))
                     }
                 }
             }

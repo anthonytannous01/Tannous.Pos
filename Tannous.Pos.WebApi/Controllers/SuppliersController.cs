@@ -24,6 +24,8 @@ namespace Tannous.Pos.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 [Authorize(Policy = PolicyConstants.CanManageUsers)]
 public class SuppliersController : ControllerBase
 {

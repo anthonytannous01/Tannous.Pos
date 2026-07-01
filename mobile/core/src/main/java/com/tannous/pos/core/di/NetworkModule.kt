@@ -259,4 +259,10 @@ object NetworkModule {
     fun provideWebhooksService(retrofit: Retrofit): WebhooksService {
         return retrofit.create(WebhooksService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideUserService(retrofit: Retrofit): UserService {
+        return retrofit.create(UserService::class.java)
+    }
 }

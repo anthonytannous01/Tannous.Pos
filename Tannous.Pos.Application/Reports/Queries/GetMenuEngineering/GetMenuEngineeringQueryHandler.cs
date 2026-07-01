@@ -41,9 +41,16 @@ public class GetMenuEngineeringQueryHandler : IRequestHandler<GetMenuEngineering
             .Distinct()
             .ToList();
 
-        var inventoryItems = await _dbContext.Set<InventoryItem>()
+        // An ingredient can have multiple InventoryItem rows (one per branch).
+        // Fetching then grouping in memory avoids the ArgumentException that ToDictionaryAsync
+        // throws on duplicate keys, and gives us a weighted average cost across branches.
+        var rawInventoryItems = await _dbContext.Set<InventoryItem>()
             .Where(ii => ingredientIds.Contains(ii.IngredientId))
-            .ToDictionaryAsync(ii => ii.IngredientId, ii => ii.AverageCost, cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var inventoryItems = rawInventoryItems
+            .GroupBy(ii => ii.IngredientId)
+            .ToDictionary(g => g.Key, g => g.Average(ii => ii.AverageCost));
 
         var totalOrders = orderLines.Select(ol => ol.OrderId).Distinct().Count();
 

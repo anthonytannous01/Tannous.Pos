@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.local.entity.CustomerEntity
+import com.tannous.pos.core.ui.LocalIsArabic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +29,7 @@ fun CustomersScreen(
     viewModel: CustomersViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     var firstName by remember { mutableStateOf("") }
@@ -63,7 +65,7 @@ fun CustomersScreen(
 
     LaunchedEffect(uiState.createSuccess) {
         if (uiState.createSuccess) {
-            snackbarHostState.showSnackbar("Customer created")
+            snackbarHostState.showSnackbar(if (isArabic) "تم إنشاء العميل" else "Customer created")
             firstName = ""
             lastName = ""
             phone = ""
@@ -76,17 +78,17 @@ fun CustomersScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Customers") },
+                title = { Text(if (isArabic) "العملاء" else "Customers") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Default.ArrowBack, contentDescription = if (isArabic) "رجوع" else "Back")
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { viewModel.showCreateDialog() }) {
-                Icon(Icons.Default.Add, contentDescription = "Add customer")
+                Icon(Icons.Default.Add, contentDescription = if (isArabic) "إضافة عميل" else "Add customer")
             }
         }
     ) { paddingValues ->
@@ -101,12 +103,12 @@ fun CustomersScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search by name or phone") },
+                placeholder = { Text(if (isArabic) "ابحث بالاسم أو الهاتف" else "Search by name or phone") },
                 singleLine = true,
                 trailingIcon = {
                     if (uiState.searchQuery.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            Icon(Icons.Default.Close, contentDescription = if (isArabic) "مسح البحث" else "Clear search")
                         }
                     }
                 }
@@ -121,7 +123,7 @@ fun CustomersScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No customers found",
+                            text = if (isArabic) "لا يوجد عملاء" else "No customers found",
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -134,7 +136,7 @@ fun CustomersScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No customers yet",
+                            text = if (isArabic) "لا يوجد عملاء بعد" else "No customers yet",
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
@@ -148,6 +150,7 @@ fun CustomersScreen(
                         items(uiState.customers, key = { it.id }) { customer ->
                             CustomerRow(
                                 customer = customer,
+                                isArabic = isArabic,
                                 onClick = { onCustomerSelected(customer) },
                                 onEditClick = { viewModel.startEdit(it) }
                             )
@@ -161,41 +164,41 @@ fun CustomersScreen(
     if (uiState.showCreateDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissCreateDialog() },
-            title = { Text("New Customer") },
+            title = { Text(if (isArabic) "عميل جديد" else "New Customer") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = firstName,
                         onValueChange = { firstName = it },
-                        label = { Text("First name *") },
+                        label = { Text(if (isArabic) "الاسم الأول *" else "First name *") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = lastName,
                         onValueChange = { lastName = it },
-                        label = { Text("Last name *") },
+                        label = { Text(if (isArabic) "اسم العائلة *" else "Last name *") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = phone,
                         onValueChange = { phone = it },
-                        label = { Text("Phone") },
+                        label = { Text(if (isArabic) "الهاتف" else "Phone") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text(if (isArabic) "البريد الإلكتروني" else "Email") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text("Notes") },
+                        label = { Text(if (isArabic) "ملاحظات" else "Notes") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
                     )
@@ -219,13 +222,13 @@ fun CustomersScreen(
                     if (uiState.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Create")
+                        Text(if (isArabic) "إنشاء" else "Create")
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissCreateDialog() }) {
-                    Text("Cancel")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -234,48 +237,48 @@ fun CustomersScreen(
     uiState.editingCustomer?.let {
         AlertDialog(
             onDismissRequest = { viewModel.dismissEdit() },
-            title = { Text("Edit Customer") },
+            title = { Text(if (isArabic) "تعديل العميل" else "Edit Customer") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = editFirstName,
                         onValueChange = { editFirstName = it },
-                        label = { Text("First name *") },
+                        label = { Text(if (isArabic) "الاسم الأول *" else "First name *") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = editLastName,
                         onValueChange = { editLastName = it },
-                        label = { Text("Last name *") },
+                        label = { Text(if (isArabic) "اسم العائلة *" else "Last name *") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = editPhone,
                         onValueChange = { editPhone = it },
-                        label = { Text("Phone") },
+                        label = { Text(if (isArabic) "الهاتف" else "Phone") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = editEmail,
                         onValueChange = { editEmail = it },
-                        label = { Text("Email") },
+                        label = { Text(if (isArabic) "البريد الإلكتروني" else "Email") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
                     OutlinedTextField(
                         value = editNotes,
                         onValueChange = { editNotes = it },
-                        label = { Text("Notes") },
+                        label = { Text(if (isArabic) "ملاحظات" else "Notes") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
                     )
                     OutlinedTextField(
                         value = editAllergies,
                         onValueChange = { editAllergies = it },
-                        label = { Text("Allergies") },
+                        label = { Text(if (isArabic) "الحساسية" else "Allergies") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -286,7 +289,7 @@ fun CustomersScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                         TextButton(onClick = { viewModel.dismissEdit() }) {
-                            Text("Dismiss")
+                            Text(if (isArabic) "إغلاق" else "Dismiss")
                         }
                     }
                 }
@@ -311,13 +314,13 @@ fun CustomersScreen(
                     if (uiState.isUpdating) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp))
                     } else {
-                        Text("Save")
+                        Text(if (isArabic) "حفظ" else "Save")
                     }
                 }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.dismissEdit() }) {
-                    Text("Cancel")
+                    Text(if (isArabic) "إلغاء" else "Cancel")
                 }
             }
         )
@@ -327,6 +330,7 @@ fun CustomersScreen(
 @Composable
 private fun CustomerRow(
     customer: CustomerEntity,
+    isArabic: Boolean,
     onClick: () -> Unit,
     onEditClick: (CustomerEntity) -> Unit
 ) {
@@ -353,18 +357,18 @@ private fun CustomerRow(
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = customer.phone ?: customer.email ?: "No contact info",
+                    text = customer.phone ?: customer.email ?: if (isArabic) "لا توجد معلومات تواصل" else "No contact info",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             AssistChip(
                 onClick = onClick,
-                label = { Text("${customer.totalOrders} orders") }
+                label = { Text(if (isArabic) "${customer.totalOrders} طلبات" else "${customer.totalOrders} orders") }
             )
             if (customer.version != null) {
                 IconButton(onClick = { onEditClick(customer) }) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit customer")
+                    Icon(Icons.Default.Edit, contentDescription = if (isArabic) "تعديل العميل" else "Edit customer")
                 }
             }
         }

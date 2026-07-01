@@ -37,6 +37,7 @@ import com.tannous.pos.feature.sell.OrderHistoryScreen
 import com.tannous.pos.feature.sell.OrderReceiptState
 import com.tannous.pos.feature.sell.OrderReceiptViewModel
 import com.tannous.pos.feature.sell.ReceiptScreen
+import com.tannous.pos.feature.sell.SplitBillScreen
 import com.tannous.pos.feature.sell.SellScreen
 import com.tannous.pos.feature.sell.SellViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,6 +50,8 @@ import com.tannous.pos.feature.reports.MenuEngineeringScreen
 import com.tannous.pos.feature.reports.ReportsScreen
 import com.tannous.pos.core.ui.LanguageViewModel
 import com.tannous.pos.core.ui.LocalIsArabic
+import com.tannous.pos.feature.settings.MenuManagementScreen
+import com.tannous.pos.feature.settings.TableManagementScreen
 import com.tannous.pos.feature.settings.QrMenuScreen
 import com.tannous.pos.feature.settings.ReservationsScreen
 import com.tannous.pos.feature.settings.AccountingScreen
@@ -127,7 +130,25 @@ fun TannousPosApp(
                     onNavigateToShifts = { navController.navigate("shifts") },
                     onNavigateToCustomers = { navController.navigate("customers") },
                     onNavigateToSettings = { navController.navigate("settings") },
-                    onNavigateToOrderHistory = { navController.navigate("order-history") }
+                    onNavigateToOrderHistory = { navController.navigate("order-history") },
+                    onNavigateToSplitBill = { orderId ->
+                        navController.navigate("split/$orderId")
+                    }
+                )
+            }
+
+            composable(
+                route = "split/{orderId}",
+                arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+                SplitBillScreen(
+                    orderId = orderId,
+                    onComplete = { order ->
+                        navController.navigate("receipt/${order.id}") {
+                            popUpTo("sell") { inclusive = false }
+                        }
+                    }
                 )
             }
 
@@ -239,8 +260,22 @@ fun TannousPosApp(
                     onNavigateToLoyaltyCrm = { navController.navigate("loyalty-crm") },
                     onNavigateToSchedule = { navController.navigate("schedule") },
                     onNavigateToAccounting = { navController.navigate("accounting") },
-                    onNavigateToIntegrations = { navController.navigate("integrations") }
+                    onNavigateToIntegrations = { navController.navigate("integrations") },
+                    onNavigateToMenuManagement = { navController.navigate("menu-management") },
+                    onNavigateToTableManagement = { navController.navigate("table-management") },
+                    // Pass the Activity-scoped instance so language toggles propagate to the root.
+                    // SettingsScreen's default hiltViewModel() would create a BackStackEntry-scoped
+                    // instance that is invisible to TannousPosApp's CompositionLocalProvider.
+                    languageViewModel = languageViewModel
                 )
+            }
+
+            composable("menu-management") {
+                MenuManagementScreen(onNavigateBack = { navController.popBackStack() })
+            }
+
+            composable("table-management") {
+                TableManagementScreen(onNavigateBack = { navController.popBackStack() })
             }
 
             composable("accounting") {

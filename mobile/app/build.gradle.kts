@@ -54,6 +54,7 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            resValue("bool", "cleartext_permitted", "false")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -62,6 +63,7 @@ android {
         }
         debug {
             isDebuggable = true
+            resValue("bool", "cleartext_permitted", "true")
         }
     }
 

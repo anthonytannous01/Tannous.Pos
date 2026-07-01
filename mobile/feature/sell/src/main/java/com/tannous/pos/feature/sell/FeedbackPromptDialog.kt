@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.tannous.pos.core.ui.LocalIsArabic
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +22,7 @@ fun FeedbackPromptDialog(
     viewModel: FeedbackViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val isArabic = LocalIsArabic.current
 
     // Auto-dismiss after successful submission
     LaunchedEffect(uiState.submitted) {
@@ -34,12 +36,13 @@ fun FeedbackPromptDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                if (uiState.submitted) "Thank you! 🎉" else "How was your experience?"
+                if (uiState.submitted) (if (isArabic) "شكرًا! 🎉" else "Thank you! 🎉")
+                else (if (isArabic) "كيف كانت تجربتك؟" else "How was your experience?")
             )
         },
         text = {
             if (uiState.submitted) {
-                Text("Your feedback has been recorded.")
+                Text(if (isArabic) "تم تسجيل ملاحظاتك." else "Your feedback has been recorded.")
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     // Star rating row
@@ -84,7 +87,7 @@ fun FeedbackPromptDialog(
                     OutlinedTextField(
                         value = uiState.comment,
                         onValueChange = { if (it.length <= 500) viewModel.setComment(it) },
-                        label = { Text("Comment (optional)") },
+                        label = { Text(if (isArabic) "تعليق (اختياري)" else "Comment (optional)") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         supportingText = { Text("${uiState.comment.length}/500") }
@@ -106,14 +109,14 @@ fun FeedbackPromptDialog(
                     if (uiState.isSubmitting) {
                         CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Submit")
+                        Text(if (isArabic) "إرسال" else "Submit")
                     }
                 }
             }
         },
         dismissButton = {
             if (!uiState.submitted) {
-                TextButton(onClick = onDismiss) { Text("Skip") }
+                TextButton(onClick = onDismiss) { Text(if (isArabic) "تخطي" else "Skip") }
             }
         }
     )

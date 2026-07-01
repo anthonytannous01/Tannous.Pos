@@ -7,9 +7,12 @@ import com.tannous.pos.core.data.local.entity.CategoryEntity
 import com.tannous.pos.core.data.local.entity.CustomerEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.local.entity.OrderEntity
+import com.tannous.pos.core.data.model.CreateDeliveryInfoRequest
 import com.tannous.pos.core.data.model.OrderDto
 import com.tannous.pos.core.data.model.PaymentDto
+import com.tannous.pos.core.data.remote.DeliveryService
 import com.tannous.pos.core.data.repository.CatalogRepository
+import com.tannous.pos.core.data.repository.CustomerRepository
 import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.data.repository.ShiftRepository
@@ -20,12 +23,28 @@ import timber.log.Timber
 import java.math.BigDecimal
 import javax.inject.Inject
 
+enum class OrderType(val code: Int) {
+    DineIn(1),
+    Takeaway(2),
+    Delivery(3)
+}
+
+data class PendingDeliveryDetails(
+    val address: String,
+    val phone: String? = null,
+    val fee: BigDecimal = BigDecimal.ZERO,
+    val estimatedMinutes: Int? = null,
+    val notes: String? = null
+)
+
 @HiltViewModel
 class SellViewModel @Inject constructor(
     private val catalogRepository: CatalogRepository,
     private val orderRepository: OrderRepository,
     private val shiftRepository: ShiftRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val customerRepository: CustomerRepository,
+    private val deliveryService: DeliveryService
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(SellUiState())
@@ -208,6 +227,14 @@ class SellViewModel @Inject constructor(
     fun detachCustomer() {
         _uiState.update { it.copy(attachedCustomer = null) }
     }
+
+    fun setOrderType(type: OrderType) {
+        _uiState.update { it.copy(orderType = type) }
+    }
+
+    fun setDeliveryDetails(details: PendingDeliveryDetails) {
+        _uiState.update { it.copy(pendingDeliveryDetails = details) }
+    }
     
     /**
      * Creates an order from cart items and finalizes it with the given payments.
@@ -251,11 +278,12 @@ class SellViewModel @Inject constructor(
                 val createResult = orderRepository.createOrderFromCart(
                     shiftId = activeShift.id,
                     cartItems = cartItemsForOrder,
-                    customerId = _uiState.value.attachedCustomer?.id
+                    customerId = _uiState.value.attachedCustomer?.id,
+                    orderType = _uiState.value.orderType.code
                 )
-                
+
                 if (createResult.isFailure) {
-                    _uiState.update { 
+                    _uiState.update {
                         it.copy(
                             isLoading = false,
                             isFinalizing = false,
@@ -264,9 +292,32 @@ class SellViewModel @Inject constructor(
                     }
                     return@launch
                 }
-                
+
                 val orderId = createResult.getOrThrow()
-                
+
+                // Attach delivery info if this is a delivery order
+                if (_uiState.value.orderType == OrderType.Delivery) {
+                    val details = _uiState.value.pendingDeliveryDetails
+                    if (details != null) {
+                        try {
+                            deliveryService.create(
+                                CreateDeliveryInfoRequest(
+                                    orderId = orderId,
+                                    deliveryAddress = details.address,
+                                    customerPhone = details.phone?.takeIf { it.isNotBlank() },
+                                    deliveryFee = details.fee,
+                                    estimatedMinutes = details.estimatedMinutes,
+                                    notes = details.notes?.takeIf { it.isNotBlank() }
+                                )
+                            )
+                            Timber.d("Delivery info attached to order $orderId")
+                        } catch (e: Exception) {
+                            // Don't fail the order — cashier can see it in the delivery queue
+                            Timber.w(e, "Failed to attach delivery info to order $orderId")
+                        }
+                    }
+                }
+
                 // Finalize order
                 val finalizeResult = orderRepository.finalizeOrder(orderId, payments)
                 
@@ -300,11 +351,25 @@ class SellViewModel @Inject constructor(
                 
                 val finalizedOrder = finalizeResult.getOrThrow()
                 _finalizedOrder.value = finalizedOrder
-                
-                // Clear cart and attached customer on success
+
+                // Capture customer id before detaching — detachCustomer() clears the reference
+                val attachedCustomerId = _uiState.value.attachedCustomer?.id
+
+                // Clear cart, customer, and pending delivery details on success
                 clearCart()
                 detachCustomer()
-                
+                _uiState.update { it.copy(pendingDeliveryDetails = null) }
+
+                // Optimistically increment local order count so the Customers screen
+                // reflects the new total immediately (no sync round-trip required)
+                if (attachedCustomerId != null) {
+                    try {
+                        customerRepository.incrementLocalOrderCount(attachedCustomerId)
+                    } catch (e: Exception) {
+                        Timber.w(e, "Failed to increment local order count for customer $attachedCustomerId")
+                    }
+                }
+
                 _uiState.update { it.copy(isLoading = false, isFinalizing = false, error = null) }
                 
                 Timber.d("Order finalized successfully: ${finalizedOrder.id}, Receipt: ${finalizedOrder.receiptNumber}")
@@ -324,6 +389,75 @@ class SellViewModel @Inject constructor(
     
     fun clearFinalizedOrder() {
         _finalizedOrder.value = null
+    }
+
+    /**
+     * Creates an open order from the current cart for split-bill collection.
+     * Clears the cart on success and invokes [onOrderCreated] with the server order id.
+     */
+    fun startSplitBill(onOrderCreated: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(isLoading = true, error = null) }
+
+                val activeShift = shiftRepository.getActiveShift()
+                if (activeShift == null) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "No active shift. Please open a shift first."
+                        )
+                    }
+                    return@launch
+                }
+
+                if (_cartItems.value.isEmpty()) {
+                    _uiState.update { it.copy(isLoading = false, error = "Cart is empty") }
+                    return@launch
+                }
+
+                val cartItemsForOrder = _cartItems.value.map { cartItem ->
+                    com.tannous.pos.core.data.repository.CartItem(
+                        menuItem = cartItem.menuItem,
+                        quantity = cartItem.quantity,
+                        addOns = cartItem.addOns.map { addOn ->
+                            com.tannous.pos.core.data.repository.CartAddOn(
+                                id = addOn.id,
+                                name = addOn.name,
+                                price = BigDecimal.valueOf(addOn.price),
+                                quantity = addOn.quantity
+                            )
+                        }
+                    )
+                }
+
+                val createResult = orderRepository.createOrderFromCart(
+                    shiftId = activeShift.id,
+                    cartItems = cartItemsForOrder,
+                    customerId = _uiState.value.attachedCustomer?.id
+                )
+
+                if (createResult.isFailure) {
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = createResult.exceptionOrNull()?.message ?: "Failed to create order"
+                        )
+                    }
+                    return@launch
+                }
+
+                clearCart()
+                detachCustomer()
+                _uiState.update { it.copy(isLoading = false) }
+                onOrderCreated(createResult.getOrThrow())
+            } catch (e: Exception) {
+                Timber.e(e, "Error starting split bill")
+                _uiState.update {
+                    it.copy(isLoading = false, error = e.message ?: "Failed to start split bill")
+                }
+            }
+        }
     }
 
     fun voidShiftOrder(orderId: String, reason: String) {
@@ -357,7 +491,9 @@ data class SellUiState(
     val shiftOrders: List<OrderEntity> = emptyList(),
     val voidingOrderId: String? = null,
     val historyVoidError: String? = null,
-    val attachedCustomer: CustomerEntity? = null
+    val attachedCustomer: CustomerEntity? = null,
+    val orderType: OrderType = OrderType.DineIn,
+    val pendingDeliveryDetails: PendingDeliveryDetails? = null
 )
 
 data class CartItem(
