@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Tannous.Pos.WebApi.Authentication;
 using Tannous.Pos.WebApi.Constants;
 
 namespace Tannous.Pos.WebApi.Extensions;
@@ -49,6 +50,26 @@ public static class AuthorizationExtensions
                 RoleConstants.Waiter,
                 RoleConstants.Manager,
                 RoleConstants.Owner));
+
+        // CanViewReportsOrApiKey: same staff roles as CanViewReports, OR a valid read-only
+        // third-party API key (see ApiKeyAuthenticationHandler). Must list both authentication
+        // schemes ("Bearer,ApiKey") on the [Authorize] attribute for the ApiKeyId claim check
+        // to ever get a chance to run.
+        options.AddPolicy(PolicyConstants.CanViewReportsOrApiKey, policy =>
+            policy.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RoleConstants.Owner) ||
+                ctx.User.IsInRole(RoleConstants.Manager) ||
+                ctx.User.HasClaim(c => c.Type == ApiKeyAuthenticationHandler.ApiKeyIdClaimType)));
+
+        // CanViewCustomersOrApiKey: same staff roles as CanManageCustomers, OR a valid read-only
+        // API key. Applied only to the two customer GET actions — write actions keep using
+        // CanManageCustomers alone, so an API key can never create/update a customer record.
+        options.AddPolicy(PolicyConstants.CanViewCustomersOrApiKey, policy =>
+            policy.RequireAssertion(ctx =>
+                ctx.User.IsInRole(RoleConstants.Owner) ||
+                ctx.User.IsInRole(RoleConstants.Manager) ||
+                ctx.User.IsInRole(RoleConstants.Cashier) ||
+                ctx.User.HasClaim(c => c.Type == ApiKeyAuthenticationHandler.ApiKeyIdClaimType)));
     }
 }
 

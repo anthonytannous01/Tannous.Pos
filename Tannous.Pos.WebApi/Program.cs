@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -44,6 +45,7 @@ builder.Host.ConfigureSerilog();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<RequireDeviceIdFilter>();
+    options.Filters.Add<UtcDateTimeActionFilter>();
 });
 
 // Add HttpContextAccessor for audit service
@@ -209,7 +211,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 return Task.CompletedTask;
             }
         };
-    });
+    })
+    // Secondary scheme for long-lived, read-only third-party integrator keys (X-Api-Key header).
+    // Never the default scheme — only endpoints that explicitly list it in AuthenticationSchemes
+    // (the *OrApiKey policies) will accept it. See ApiKeyAuthenticationHandler for details.
+    .AddScheme<AuthenticationSchemeOptions, Tannous.Pos.WebApi.Authentication.ApiKeyAuthenticationHandler>(
+        Tannous.Pos.WebApi.Authentication.ApiKeyAuthenticationHandler.SchemeName, _ => { });
 
 builder.Services.AddAuthorization(options =>
 {
@@ -395,14 +402,22 @@ builder.Services.AddHealthChecks()
 // Configure Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
-    // Auth endpoints: 5 requests per minute per IP
-    options.AddFixedWindowLimiter("AuthBurst", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 5;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0;
-    });
+    // Return 429 instead of the default 503 so clients can distinguish
+    // rate-limiting from actual service unavailability.
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Auth endpoints: 10 attempts per minute per IP address.
+    // Uses a partitioned limiter so one client can't block others.
+    options.AddPolicy("AuthBurst", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit             = 10,
+                Window                  = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder    = QueueProcessingOrder.OldestFirst,
+                QueueLimit              = 0
+            }));
 
     // Device-based rate limiting for mutations
     options.AddPolicy<string, DeviceIdRateLimiterPolicy>("MutationsPerDevice");

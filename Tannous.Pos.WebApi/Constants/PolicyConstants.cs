@@ -16,5 +16,13 @@ public static class PolicyConstants
 
     /// <summary>Kitchen Display System — kitchen staff + managers + owners.</summary>
     public const string CanViewKds = "CanViewKds";
+
+    /// <summary>Owner/Manager JWT, OR a valid read-only third-party API key (X-Api-Key). Reports only —
+    /// there is no write equivalent.</summary>
+    public const string CanViewReportsOrApiKey = "CanViewReportsOrApiKey";
+
+    /// <summary>Owner/Manager/Cashier JWT, OR a valid read-only third-party API key (X-Api-Key).
+    /// Applies only to customer READ endpoints — writes still require CanManageCustomers alone.</summary>
+    public const string CanViewCustomersOrApiKey = "CanViewCustomersOrApiKey";
 }
 

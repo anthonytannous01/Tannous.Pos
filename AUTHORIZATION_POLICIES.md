@@ -82,6 +82,37 @@ The system defines the following roles (matching the `Role` enum in `Tannous.Pos
 **Applied To:**
 - SettingsController (PUT settings)
 
+### CanViewReportsOrApiKey
+**Allowed:** Owner, Manager (JWT) — OR a valid, active, non-expired third-party API key presented
+via the `X-Api-Key` header.
+
+**Purpose:** Lets a third-party integrator (e.g. an accounting export tool, a franchise reporting
+dashboard) pull business reports without a staff login, while staff access is completely
+unchanged. Implemented as `RequireAssertion` in `AuthorizationExtensions`, not a role — API keys
+authenticate as role `ApiIntegrator`, which no write policy recognizes.
+
+**Applied To:**
+- ReportsController (all endpoints — every action here is a read-only query, so applying this at
+  the controller level is safe; there's no write action that could inherit it by accident)
+
+**Authentication schemes required:** `Bearer,ApiKey` (both must be listed on the `[Authorize]`
+attribute, or the ApiKey handler never gets a chance to run for that request)
+
+### CanViewCustomersOrApiKey
+**Allowed:** Owner, Manager, Cashier (JWT) — OR a valid API key.
+
+**Purpose:** Same idea as above, scoped to customer records. Deliberately **not** applied at the
+controller level, because `CustomersController` mixes reads and writes — ASP.NET Core combines
+class- and method-level `[Authorize]` attributes with logical AND, so a looser class-level policy
+here could never be tightened back up per-action. Instead:
+
+**Applied To:**
+- `GET /customers`, `GET /customers/{id}` only
+
+**Explicitly NOT applied to:** `POST /customers`, `PUT /customers/{id}`,
+`PUT /customers/orders/{orderId}/customer` — these keep requiring `CanManageCustomers` alone, so
+an API key can never create, update, or attach a customer.
+
 ## Controller-to-Policy Mapping
 
 | Controller | Endpoint(s) | Policy | Notes |
@@ -103,6 +134,37 @@ The system defines the following roles (matching the `Role` enum in `Tannous.Pos
 | **PrintingController** | All endpoints | `CanSell` | Owner, Manager, Cashier |
 | **SyncController** | All endpoints | `CanSell` | Owner, Manager, Cashier |
 | **AdminController** | All endpoints | `CanManageUsers` | Owner only |
+| **ReportsController** | All endpoints | `CanViewReportsOrApiKey` | Owner, Manager, OR API key |
+| **CustomersController** | GET (list, by id) | `CanViewCustomersOrApiKey` | Owner, Manager, Cashier, OR API key |
+| **CustomersController** | POST, PUT | `CanManageCustomers` | Owner, Manager, Cashier only — no API key |
+
+## Third-Party API Keys (X-Api-Key)
+
+Separate from staff JWTs. Created by an Owner via `POST /api/v1/apikeys` (Swagger — no in-app
+creation UI yet). The raw key (`tnp_...`) is shown exactly once at creation; only its SHA-256 hash
+and an 8-character prefix are persisted (`ApiKey.KeyHash`/`KeyPrefix`).
+
+Presented on a request via the `X-Api-Key` header. `ApiKeyAuthenticationHandler` (registered as the
+`"ApiKey"` authentication scheme in `Program.cs`) hashes the presented key, looks it up, checks
+`IsActive` and `ExpiresAt`, stamps `LastUsedAt`, and issues a principal with role `ApiIntegrator` —
+a role no write policy (`CanManageCustomers`, `CanManageCatalog`, etc.) recognizes, so a key can
+never be used to write data, only to satisfy the two `*OrApiKey` policies above.
+
+An endpoint only accepts a key if its `[Authorize]` attribute explicitly lists both schemes, e.g.
+`AuthenticationSchemes = "Bearer,ApiKey"` — a plain `[Authorize(Policy = "CanViewReportsOrApiKey")]`
+without the scheme list would only ever try the default (Bearer/JWT) scheme.
+
+### Known limitations
+
+- **Branch scoping is not enforced.** `ApiKey.BranchId` is stored, but no query handler
+  (`GetCustomersQueryHandler`, the Reports query handlers, etc.) currently filters by it — there's
+  no `ICurrentUserService`-style mechanism reading branch claims anywhere in the Application layer
+  yet. A key created with a specific `BranchId` still sees all-branch data today. Flag as the next
+  step if/when multi-branch data isolation for integrators actually matters.
+- **Webhook subscriptions and API keys can only be created via Swagger/raw API calls** — there is
+  no in-app (mobile) creation form for either, only view/test/delete of existing ones
+  (`IntegrationsScreen.kt`). This is an intentional gap for now (target audience is technical
+  integrators), not a bug — revisit if non-technical staff ever need to self-serve these.
 
 ## Implementation Details
 
