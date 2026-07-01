@@ -38,6 +38,7 @@ class CatalogRepository @Inject constructor(
                 CategoryEntity(
                     id = dto.id,
                     name = dto.name,
+                    nameAr = dto.nameAr,
                     description = dto.description,
                     displayOrder = dto.displayOrder ?: 0,
                     isActive = dto.isActive,
@@ -102,7 +103,9 @@ class CatalogRepository @Inject constructor(
                 MenuItemEntity(
                     id = dto.id,
                     name = dto.name,
+                    nameAr = dto.nameAr,
                     description = dto.description,
+                    descriptionAr = dto.descriptionAr,
                     price = dto.price,
                     categoryId = dto.categoryId,
                     imageUrl = dto.imageUrl,
@@ -132,7 +135,8 @@ class CatalogRepository @Inject constructor(
             )
         )
         val entity = MenuItemEntity(
-            id = dto.id, name = dto.name, description = dto.description, price = dto.price,
+            id = dto.id, name = dto.name, nameAr = dto.nameAr,
+            description = dto.description, descriptionAr = dto.descriptionAr, price = dto.price,
             categoryId = dto.categoryId, imageUrl = dto.imageUrl, isActive = dto.isActive,
             hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
             isDeleted = false, version = dto.version
@@ -153,7 +157,8 @@ class CatalogRepository @Inject constructor(
             )
         )
         val entity = MenuItemEntity(
-            id = dto.id, name = dto.name, description = dto.description, price = dto.price,
+            id = dto.id, name = dto.name, nameAr = dto.nameAr,
+            description = dto.description, descriptionAr = dto.descriptionAr, price = dto.price,
             categoryId = dto.categoryId, imageUrl = dto.imageUrl, isActive = dto.isActive,
             hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
             isDeleted = false, version = dto.version
