@@ -33,7 +33,12 @@ public class AccountingController : ControllerBase
     {
         var redirectUri = Uri.EscapeDataString(
             $"{_settings.BaseUrl.TrimEnd('/')}/api/v1/accounting/quickbooks/callback");
-        var state = branchId?.ToString() ?? string.Empty;
+        // Intuit rejects an empty `state` param as "missing", so fall back to a
+        // non-empty sentinel that intentionally won't parse as a branch GUID.
+        // The callback's Guid.TryParse(state, ...) already treats an unparseable
+        // value as "no branch", so this preserves existing behavior for the
+        // single-branch case without touching CompleteQuickBooksOAuthCommandHandler.
+        var state = branchId?.ToString() ?? "none";
         var clientId = Uri.EscapeDataString(_settings.QuickBooks.ClientId);
 
         var url = "https://appcenter.intuit.com/connect/oauth2"
