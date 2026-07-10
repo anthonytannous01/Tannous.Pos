@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.io.IOException
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -79,7 +80,20 @@ class CatalogRepository @Inject constructor(
     }
 
     suspend fun deleteCategory(id: String) {
-        catalogService.deleteCategory(id)
+        val response = catalogService.deleteCategory(id)
+        if (!response.isSuccessful) {
+            // deleteCategory returns Response<Unit> — Retrofit does NOT throw on 4xx/5xx for
+            // Response<T>-typed calls, so this check is required or failures (e.g. 409 Conflict
+            // "category has menu items") get silently swallowed and look like a successful delete.
+            val errorMessage = try {
+                response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                    ?: "Failed to delete category (HTTP ${response.code()})"
+            } catch (ex: Exception) {
+                "Failed to delete category (HTTP ${response.code()})"
+            }
+            Timber.e("Delete category failed: HTTP ${response.code()} - $errorMessage")
+            throw IOException(errorMessage)
+        }
         refreshCategories() // re-sync so Room reflects server state
     }
 
@@ -168,7 +182,21 @@ class CatalogRepository @Inject constructor(
     }
 
     suspend fun deleteMenuItem(id: String) {
-        catalogService.deleteMenuItem(id)
+        val response = catalogService.deleteMenuItem(id)
+        if (!response.isSuccessful) {
+            // deleteMenuItem returns Response<Unit> — Retrofit does NOT throw on 4xx/5xx for
+            // Response<T>-typed calls, so this check is required or failures (most commonly a 409
+            // Conflict when the item has order history — DeleteMenuItemCommandHandler blocks a hard
+            // delete unless force=true) get silently swallowed and look like a successful delete.
+            val errorMessage = try {
+                response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                    ?: "Failed to delete item (HTTP ${response.code()})"
+            } catch (ex: Exception) {
+                "Failed to delete item (HTTP ${response.code()})"
+            }
+            Timber.e("Delete menu item failed: HTTP ${response.code()} - $errorMessage")
+            throw IOException(errorMessage)
+        }
         refreshMenuItems() // re-sync so Room reflects server state
     }
 
