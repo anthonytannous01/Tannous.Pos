@@ -430,8 +430,15 @@ public class SyncController : ControllerBase
         if (string.IsNullOrEmpty(cursor))
             return DateTime.UtcNow.AddDays(-1);
 
+        // AdjustToUniversal is required: default DateTime.TryParse converts "...Z" strings to
+        // Kind=Local, and Npgsql rejects non-UTC DateTimes against 'timestamp with time zone'
+        // (ArgumentException -> mapped to HTTP 400 by GlobalExceptionHandler).
         var parts = cursor.Split('|');
-        if (parts.Length > 0 && DateTime.TryParse(parts[0], out var date))
+        if (parts.Length > 0 && DateTime.TryParse(
+                parts[0],
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var date))
             return date;
 
         return DateTime.UtcNow.AddDays(-1);

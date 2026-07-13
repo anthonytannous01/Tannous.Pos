@@ -736,8 +736,11 @@ data class OperationResultDto(
     val operationId: String,
     val success: Boolean,
     val conflict: Boolean,
-    val serverEntity: String?,
-    val error: String?
+    // Defaults required: backend omits serverEntity when null ([JsonIgnore(WhenWritingNull)] on
+    // OpResultDto.ServerEntity). Without a default, kotlinx.serialization throws
+    // MissingFieldException for a missing key even on nullable types.
+    val serverEntity: String? = null,
+    val error: String? = null
 )
 
 // Pagination

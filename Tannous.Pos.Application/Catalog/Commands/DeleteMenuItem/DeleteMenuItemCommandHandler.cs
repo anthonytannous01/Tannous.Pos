@@ -25,9 +25,11 @@ public class DeleteMenuItemCommandHandler : IRequestHandler<DeleteMenuItemComman
         if (menuItem == null)
             throw new ArgumentException($"Menu item with ID {request.Id} not found");
 
-        // Check if menu item has been used in orders
-        var orders = await _orderRepository.GetAllAsync();
-        var hasOrders = orders.Any(o => o.OrderLines.Any(ol => ol.MenuItemId == request.Id));
+        // Check if menu item has been used in orders.
+        // Must be a direct DB query: the old GetAllAsync() scan never loaded OrderLines
+        // (no Include, no lazy loading), so the check silently always passed and the
+        // hard delete hit the OrderLine->MenuItem FK (Restrict) with a 500.
+        var hasOrders = await _orderRepository.AnyOrderLineForMenuItemAsync(request.Id);
 
         if (hasOrders && !request.Force)
         {
