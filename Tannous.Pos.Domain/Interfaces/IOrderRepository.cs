@@ -12,4 +12,10 @@ public interface IOrderRepository : IRepository<Order>
     Task<IEnumerable<Order>> GetByCustomerAsync(Guid customerId);
     Task<IEnumerable<Order>> GetByShiftAsync(Guid shiftId);
     Task<IEnumerable<Order>> GetPaidOrdersInDateRangeAsync(DateTime from, DateTime to);
+
+    /// <summary>True if any order line references the menu item (order-history guard for deletes).</summary>
+    Task<bool> AnyOrderLineForMenuItemAsync(Guid menuItemId);
+
+    /// <summary>True if any order line add-on references the add-on (order-history guard for deletes).</summary>
+    Task<bool> AnyOrderLineForAddOnAsync(Guid addOnId);
 }

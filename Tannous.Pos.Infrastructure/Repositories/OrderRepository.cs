@@ -106,4 +106,18 @@ public class OrderRepository : Repository<Order>, IOrderRepository
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<bool> AnyOrderLineForMenuItemAsync(Guid menuItemId)
+    {
+        return await _context.OrderLines
+            .AsNoTracking()
+            .AnyAsync(ol => ol.MenuItemId == menuItemId);
+    }
+
+    public async Task<bool> AnyOrderLineForAddOnAsync(Guid addOnId)
+    {
+        return await _context.OrderLineAddOns
+            .AsNoTracking()
+            .AnyAsync(ola => ola.AddOnId == addOnId);
+    }
 }

@@ -55,7 +55,12 @@ interface CatalogService {
     ): MenuItemDto
 
     @DELETE("catalog/menu-items/{id}")
-    suspend fun deleteMenuItem(@Path("id") id: String): Response<Unit>
+    suspend fun deleteMenuItem(
+        @Path("id") id: String,
+        // force=true archives (deactivates) an item that has order history instead of hard-deleting;
+        // without it the server returns 409 Conflict for such items.
+        @Query("force") force: Boolean = false
+    ): Response<Unit>
 
     @GET("catalog/addons")
     suspend fun getAddOns(): List<AddOnDto>

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.tannous.pos.core.data.local.entity.CategoryEntity
 import com.tannous.pos.core.data.local.entity.MenuItemEntity
 import com.tannous.pos.core.data.repository.CatalogRepository
+import com.tannous.pos.core.data.repository.DeleteMenuItemResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,8 +22,13 @@ data class MenuManagementUiState(
     val selectedCategoryId: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    /** Set when a delete was refused because the item has order history;
+     *  the UI should offer to archive instead. */
+    val archivePrompt: ArchivePrompt? = null
 )
+
+data class ArchivePrompt(val itemId: String, val itemName: String)
 
 @HiltViewModel
 class MenuManagementViewModel @Inject constructor(
@@ -177,12 +183,19 @@ class MenuManagementViewModel @Inject constructor(
         }
     }
 
-    fun deleteMenuItem(id: String) {
+    fun deleteMenuItem(id: String, name: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
             try {
-                catalogRepository.deleteMenuItem(id)
-                _uiState.update { it.copy(successMessage = "Item deleted") }
+                when (catalogRepository.deleteMenuItem(id)) {
+                    DeleteMenuItemResult.Deleted ->
+                        _uiState.update { it.copy(successMessage = "Item deleted") }
+                    DeleteMenuItemResult.HasOrderHistory ->
+                        // Hard delete refused — surface the archive option instead of an error.
+                        _uiState.update { it.copy(archivePrompt = ArchivePrompt(id, name)) }
+                    DeleteMenuItemResult.Archived ->
+                        _uiState.update { it.copy(successMessage = "Item archived") }
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to delete menu item")
                 _uiState.update { it.copy(error = "Cannot delete: ${e.message}") }
@@ -190,6 +203,28 @@ class MenuManagementViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
+    }
+
+    /** Confirms the pending archive prompt: retries the delete with force=true,
+     *  which deactivates the item server-side while preserving order history. */
+    fun archiveMenuItem() {
+        val prompt = _uiState.value.archivePrompt ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, archivePrompt = null) }
+            try {
+                catalogRepository.deleteMenuItem(prompt.itemId, force = true)
+                _uiState.update { it.copy(successMessage = "\"${prompt.itemName}\" archived") }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to archive menu item")
+                _uiState.update { it.copy(error = "Cannot archive: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
+    }
+
+    fun dismissArchivePrompt() {
+        _uiState.update { it.copy(archivePrompt = null) }
     }
 
     fun clearMessage() {

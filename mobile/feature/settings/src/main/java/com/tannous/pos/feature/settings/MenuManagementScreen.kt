@@ -286,8 +286,35 @@ fun MenuManagementScreen(
         val displayName = if (isArabic) item.name else item.name
         DeleteConfirmDialog(
             label = displayName,
-            onConfirm = { viewModel.deleteMenuItem(item.id) },
+            onConfirm = { viewModel.deleteMenuItem(item.id, displayName) },
             onDismiss = { deletingItem = null }
+        )
+    }
+
+    // Archive prompt — shown when the server refused a hard delete because the
+    // item appears in past orders (order history must be preserved).
+    uiState.archivePrompt?.let { prompt ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissArchivePrompt() },
+            title = { Text(if (isArabic) "أرشفة العنصر؟" else "Archive item?") },
+            text = {
+                Text(
+                    if (isArabic)
+                        "\"${prompt.itemName}\" موجود في طلبات سابقة ولا يمكن حذفه نهائيًا. الأرشفة تزيله من القائمة مع الاحتفاظ بسجل الطلبات."
+                    else
+                        "\"${prompt.itemName}\" appears in past orders and can't be permanently deleted. Archiving removes it from the menu while keeping order history."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.archiveMenuItem() }) {
+                    Text(if (isArabic) "أرشفة" else "Archive")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissArchivePrompt() }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
+            }
         )
     }
 

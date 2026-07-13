@@ -19,6 +19,14 @@ import java.io.IOException
 import java.math.BigDecimal
 import java.time.Instant
 
+/** Outcome of a menu item delete. HasOrderHistory means the server refused a hard
+ *  delete (409) because the item appears in past orders — archive via force=true. */
+sealed interface DeleteMenuItemResult {
+    object Deleted : DeleteMenuItemResult
+    object Archived : DeleteMenuItemResult
+    object HasOrderHistory : DeleteMenuItemResult
+}
+
 @Singleton
 class CatalogRepository @Inject constructor(
     private val catalogService: CatalogService,
@@ -181,23 +189,34 @@ class CatalogRepository @Inject constructor(
         return entity
     }
 
-    suspend fun deleteMenuItem(id: String) {
-        val response = catalogService.deleteMenuItem(id)
-        if (!response.isSuccessful) {
-            // deleteMenuItem returns Response<Unit> — Retrofit does NOT throw on 4xx/5xx for
-            // Response<T>-typed calls, so this check is required or failures (most commonly a 409
-            // Conflict when the item has order history — DeleteMenuItemCommandHandler blocks a hard
-            // delete unless force=true) get silently swallowed and look like a successful delete.
-            val errorMessage = try {
-                response.errorBody()?.string()?.takeIf { it.isNotBlank() }
-                    ?: "Failed to delete item (HTTP ${response.code()})"
-            } catch (ex: Exception) {
-                "Failed to delete item (HTTP ${response.code()})"
-            }
-            Timber.e("Delete menu item failed: HTTP ${response.code()} - $errorMessage")
-            throw IOException(errorMessage)
+    /**
+     * Deletes a menu item. Items that appear in past orders cannot be hard-deleted
+     * (server returns 409 Conflict); pass [force] = true to archive (deactivate) instead.
+     * Returns a typed result so the UI can offer the archive path — a 409 without force
+     * is an expected outcome, not an error.
+     */
+    suspend fun deleteMenuItem(id: String, force: Boolean = false): DeleteMenuItemResult {
+        val response = catalogService.deleteMenuItem(id, force)
+        if (response.isSuccessful) {
+            refreshMenuItems() // re-sync so Room reflects server state
+            return if (force) DeleteMenuItemResult.Archived else DeleteMenuItemResult.Deleted
         }
-        refreshMenuItems() // re-sync so Room reflects server state
+        if (response.code() == 409 && !force) {
+            // Expected: item has order history; DeleteMenuItemCommandHandler blocks hard delete.
+            Timber.i("Menu item $id has order history; delete refused (409), archive available")
+            return DeleteMenuItemResult.HasOrderHistory
+        }
+        // deleteMenuItem returns Response<Unit> — Retrofit does NOT throw on 4xx/5xx for
+        // Response<T>-typed calls, so this check is required or failures get silently
+        // swallowed and look like a successful delete.
+        val errorMessage = try {
+            response.errorBody()?.string()?.takeIf { it.isNotBlank() }
+                ?: "Failed to delete item (HTTP ${response.code()})"
+        } catch (ex: Exception) {
+            "Failed to delete item (HTTP ${response.code()})"
+        }
+        Timber.e("Delete menu item failed: HTTP ${response.code()} - $errorMessage")
+        throw IOException(errorMessage)
     }
 
     // Add-ons

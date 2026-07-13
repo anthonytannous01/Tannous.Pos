@@ -25,9 +25,9 @@ public class DeleteAddOnCommandHandler : IRequestHandler<DeleteAddOnCommand, boo
         if (addOn == null)
             throw new ArgumentException($"Add-on with ID {request.Id} not found");
 
-        // Check if add-on has been used in orders
-        var orders = await _orderRepository.GetAllAsync();
-        var hasOrders = orders.Any(o => o.OrderLines.Any(ol => ol.OrderLineAddOns.Any(ola => ola.AddOnId == request.Id)));
+        // Check if add-on has been used in orders (direct DB query — see DeleteMenuItemCommandHandler
+        // for why the previous GetAllAsync() in-memory scan was always false).
+        var hasOrders = await _orderRepository.AnyOrderLineForAddOnAsync(request.Id);
 
         if (hasOrders && !request.Force)
         {
