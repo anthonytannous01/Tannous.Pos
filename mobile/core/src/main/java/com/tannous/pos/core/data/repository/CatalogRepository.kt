@@ -55,7 +55,7 @@ class CatalogRepository @Inject constructor(
                     isDeleted = false
                 )
             }
-            categoryDao.upsertAll(entities)
+            categoryDao.replaceAll(entities) // full snapshot from GET — replace is correct here
             Timber.d("Refreshed ${entities.size} categories")
         } catch (e: Exception) {
             Timber.e(e, "Error refreshing categories")
@@ -120,7 +120,9 @@ class CatalogRepository @Inject constructor(
     
     suspend fun refreshMenuItems() {
         try {
-            val menuItems = catalogService.getMenuItems()
+            // includeInactive so archived items are cached locally (manage screen shows them
+            // under "archived"; ordering screens filter to active via getAllActive()).
+            val menuItems = catalogService.getMenuItems(includeInactive = true)
             val entities = menuItems.map { dto ->
                 MenuItemEntity(
                     id = dto.id,
@@ -138,7 +140,7 @@ class CatalogRepository @Inject constructor(
                     version = dto.version
                 )
             }
-            menuItemDao.upsertAll(entities)
+            menuItemDao.replaceAll(entities) // full snapshot from GET — replace is correct here
             Timber.d("Refreshed ${entities.size} menu items")
         } catch (e: Exception) {
             Timber.e(e, "Error refreshing menu items")
@@ -163,7 +165,9 @@ class CatalogRepository @Inject constructor(
             hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
             isDeleted = false, version = dto.version
         )
-        menuItemDao.upsertAll(listOf(entity))
+        // insertAll (REPLACE-on-conflict), NOT replaceAll: a single-entity write must not
+        // wipe the rest of the cached menu.
+        menuItemDao.insertAll(listOf(entity))
         return entity
     }
 
@@ -185,7 +189,47 @@ class CatalogRepository @Inject constructor(
             hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
             isDeleted = false, version = dto.version
         )
-        menuItemDao.upsertAll(listOf(entity))
+        // insertAll (REPLACE-on-conflict), NOT replaceAll — see createMenuItem.
+        menuItemDao.insertAll(listOf(entity))
+        return entity
+    }
+
+    // Archived items (isActive=false, not deleted) — shown in menu management only.
+    fun getArchivedMenuItems(): Flow<List<MenuItemEntity>> {
+        return menuItemDao.getAllArchived()
+    }
+
+    /**
+     * Restores an archived item by re-activating it. Fetches current server state first and
+     * echoes every field back, because PUT is a full replace — sending defaults would stomp
+     * imageUrl/displayOrder/hasIngredients server-side.
+     */
+    suspend fun restoreMenuItem(id: String): MenuItemEntity {
+        val current = catalogService.getMenuItem(id)
+        val dto = catalogService.updateMenuItem(
+            id,
+            UpdateMenuItemRequest(
+                name = current.name,
+                nameAr = current.nameAr,
+                description = current.description,
+                descriptionAr = current.descriptionAr,
+                price = current.price,
+                categoryId = current.categoryId,
+                isActive = true,
+                hasAddOns = current.hasAddOns,
+                displayOrder = current.displayOrder,
+                imageUrl = current.imageUrl,
+                hasIngredients = current.hasIngredients
+            )
+        )
+        val entity = MenuItemEntity(
+            id = dto.id, name = dto.name, nameAr = dto.nameAr,
+            description = dto.description, descriptionAr = dto.descriptionAr, price = dto.price,
+            categoryId = dto.categoryId, imageUrl = dto.imageUrl, isActive = dto.isActive,
+            hasAddOns = dto.hasAddOns, updatedAt = dto.updatedAt?.let { Instant.parse(it) } ?: Instant.now(),
+            isDeleted = false, version = dto.version
+        )
+        menuItemDao.insertAll(listOf(entity))
         return entity
     }
 
@@ -242,7 +286,7 @@ class CatalogRepository @Inject constructor(
                     version = dto.version
                 )
             }
-            addOnDao.upsertAll(entities)
+            addOnDao.replaceAll(entities) // full snapshot from GET — replace is correct here
             Timber.d("Refreshed ${entities.size} add-ons")
         } catch (e: Exception) {
             Timber.e(e, "Error refreshing add-ons")

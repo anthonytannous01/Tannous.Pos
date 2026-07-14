@@ -60,9 +60,15 @@ public class CatalogController : ControllerBase
     }
 
     [HttpGet("menu-items")]
-    public async Task<ActionResult<IEnumerable<MenuItemDto>>> GetMenuItems([FromQuery] Guid? categoryId = null)
+    public async Task<ActionResult<IEnumerable<MenuItemDto>>> GetMenuItems(
+        [FromQuery] Guid? categoryId = null,
+        [FromQuery] bool includeInactive = false)
     {
-        var result = await _mediator.Send(new GetMenuItemsQuery { CategoryId = categoryId });
+        var result = await _mediator.Send(new GetMenuItemsQuery
+        {
+            CategoryId = categoryId,
+            IncludeInactive = includeInactive
+        });
         return Ok(result);
     }
 
