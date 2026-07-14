@@ -17,11 +17,15 @@ public class GetMenuItemsQueryHandler : IRequestHandler<GetMenuItemsQuery, IEnum
     public async Task<IEnumerable<MenuItemDto>> Handle(
         GetMenuItemsQuery query, CancellationToken cancellationToken)
     {
-        // Both repository methods eager-load Category, so Category.Name is safe to access without a null check.
+        // All repository methods eager-load Category, so Category.Name is safe to access without a null check.
         IEnumerable<MenuItem> menuItems;
         if (query.CategoryId.HasValue)
         {
             menuItems = await _menuItemRepository.GetByCategoryAsync(query.CategoryId.Value);
+        }
+        else if (query.IncludeInactive)
+        {
+            menuItems = await _menuItemRepository.GetMenuItemsIncludingInactiveAsync();
         }
         else
         {

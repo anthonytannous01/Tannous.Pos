@@ -22,8 +22,10 @@ interface CategoryDao {
     @Query("DELETE FROM categories")
     suspend fun deleteAll()
     
+    /** FULL-SNAPSHOT ONLY: wipes the table and inserts [categories]. Never call with an
+     *  incremental delta — use [insertAll] (REPLACE-on-conflict upsert) for that. */
     @Transaction
-    suspend fun upsertAll(categories: List<CategoryEntity>) {
+    suspend fun replaceAll(categories: List<CategoryEntity>) {
         deleteAll()
         insertAll(categories)
     }
@@ -34,7 +36,10 @@ interface MenuItemDao {
     
     @Query("SELECT * FROM menu_items WHERE isDeleted = 0 AND isActive = 1 ORDER BY name")
     fun getAllActive(): Flow<List<MenuItemEntity>>
-    
+
+    @Query("SELECT * FROM menu_items WHERE isDeleted = 0 AND isActive = 0 ORDER BY name")
+    fun getAllArchived(): Flow<List<MenuItemEntity>>
+
     @Query("SELECT * FROM menu_items WHERE categoryId = :categoryId AND isDeleted = 0 AND isActive = 1 ORDER BY name")
     fun getByCategory(categoryId: String): Flow<List<MenuItemEntity>>
     
@@ -50,8 +55,10 @@ interface MenuItemDao {
     @Query("UPDATE menu_items SET isDeleted = 1 WHERE id = :id")
     suspend fun markDeleted(id: String)
     
+    /** FULL-SNAPSHOT ONLY: wipes the table and inserts [items]. Never call with an
+     *  incremental delta — use [insertAll] (REPLACE-on-conflict upsert) for that. */
     @Transaction
-    suspend fun upsertAll(items: List<MenuItemEntity>) {
+    suspend fun replaceAll(items: List<MenuItemEntity>) {
         deleteAll()
         insertAll(items)
     }
@@ -72,8 +79,10 @@ interface AddOnDao {
     @Query("DELETE FROM addons")
     suspend fun deleteAll()
     
+    /** FULL-SNAPSHOT ONLY: wipes the table and inserts [addOns]. Never call with an
+     *  incremental delta — use [insertAll] (REPLACE-on-conflict upsert) for that. */
     @Transaction
-    suspend fun upsertAll(addOns: List<AddOnEntity>) {
+    suspend fun replaceAll(addOns: List<AddOnEntity>) {
         deleteAll()
         insertAll(addOns)
     }

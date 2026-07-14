@@ -57,7 +57,9 @@ class PullWorker @AssistedInject constructor(
                             isDeleted = dto.isDeleted ?: false
                         )
                     }
-                    categoryDao.upsertAll(categories)
+                    // insertAll = REPLACE-on-conflict upsert. Never replaceAll here: pull pages
+                    // are incremental deltas and a full table replace would wipe unchanged rows.
+                    categoryDao.insertAll(categories)
                     totalProcessed += categories.size
                 }
 
@@ -79,7 +81,7 @@ class PullWorker @AssistedInject constructor(
                             version = dto.version
                         )
                     }
-                    menuItemDao.upsertAll(menuItems)
+                    menuItemDao.insertAll(menuItems)
                     totalProcessed += menuItems.size
                 }
 
@@ -95,7 +97,7 @@ class PullWorker @AssistedInject constructor(
                             version = dto.version
                         )
                     }
-                    addOnDao.upsertAll(addOns)
+                    addOnDao.insertAll(addOns)
                     totalProcessed += addOns.size
                 }
 
@@ -118,7 +120,7 @@ class PullWorker @AssistedInject constructor(
                             version = dto.version
                         )
                     }
-                    customerDao.upsertAll(customers)
+                    customerDao.insertAll(customers)
                     totalProcessed += customers.size
                 }
 

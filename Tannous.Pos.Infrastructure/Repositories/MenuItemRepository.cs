@@ -20,6 +20,15 @@ public class MenuItemRepository : Repository<MenuItem>, IMenuItemRepository
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<MenuItem>> GetMenuItemsIncludingInactiveAsync()
+    {
+        return await _dbSet
+            .Include(m => m.Category)
+            .Where(m => !m.IsDeleted)
+            .OrderBy(m => m.DisplayOrder)
+            .ToListAsync();
+    }
+
     public async Task<IEnumerable<MenuItem>> GetByCategoryAsync(Guid categoryId)
     {
         return await _dbSet

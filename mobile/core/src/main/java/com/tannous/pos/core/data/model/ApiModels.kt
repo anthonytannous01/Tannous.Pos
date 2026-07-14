@@ -318,6 +318,9 @@ data class MenuItemDto(
     val isActive: Boolean,
     @SerialName("hasAddOns")
     val hasAddOns: Boolean = false,
+    // Needed so restore (PUT echoing current server state) doesn't stomp these fields.
+    val displayOrder: Int = 0,
+    val hasIngredients: Boolean = false,
     val updatedAt: String? = null,
     val isDeleted: Boolean? = null,
     val version: String? = null
@@ -377,7 +380,10 @@ data class UpdateMenuItemRequest(
     val categoryId: String,
     val isActive: Boolean = true,
     val hasAddOns: Boolean = false,
-    val displayOrder: Int = 0
+    val displayOrder: Int = 0,
+    // Echoed on restore so the full-replace PUT doesn't null these server-side.
+    val imageUrl: String? = null,
+    val hasIngredients: Boolean = false
 )
 
 // Customers

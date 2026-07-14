@@ -454,6 +454,12 @@ fun MenuManagementScreen(
                     uiState.menuItems.filter { it.categoryId == uiState.selectedCategoryId }
                 }
 
+                val archivedVisible = if (uiState.selectedCategoryId == null) {
+                    uiState.archivedItems
+                } else {
+                    uiState.archivedItems.filter { it.categoryId == uiState.selectedCategoryId }
+                }
+
                 val selectedCatName = uiState.categories
                     .find { it.id == uiState.selectedCategoryId }?.name
 
@@ -494,6 +500,21 @@ fun MenuManagementScreen(
                         }
                     }
 
+                    // Archived toggle — only rendered when archived items exist at all.
+                    if (uiState.archivedItems.isNotEmpty()) {
+                        TextButton(onClick = { viewModel.toggleShowArchived() }) {
+                            Text(
+                                if (uiState.showArchived) {
+                                    if (isArabic) "إخفاء المؤرشفة" else "Hide archived"
+                                } else {
+                                    if (isArabic) "عرض المؤرشفة (${archivedVisible.size})"
+                                    else "Show archived (${archivedVisible.size})"
+                                },
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (uiState.categories.isEmpty()) {
@@ -513,7 +534,7 @@ fun MenuManagementScreen(
                                 )
                             }
                         }
-                    } else if (visibleItems.isEmpty()) {
+                    } else if (visibleItems.isEmpty() && !(uiState.showArchived && archivedVisible.isNotEmpty())) {
                         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
                                 if (isArabic) "لا توجد عناصر في هذه الفئة"
@@ -536,6 +557,26 @@ fun MenuManagementScreen(
                                     onEdit = { editingItem = item; showItemDialog = true },
                                     onDelete = { deletingItem = item }
                                 )
+                            }
+
+                            if (uiState.showArchived && archivedVisible.isNotEmpty()) {
+                                item(key = "archived-section-header") {
+                                    Text(
+                                        text = if (isArabic) "مؤرشفة" else "Archived",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 12.dp, bottom = 2.dp)
+                                    )
+                                }
+                                items(archivedVisible, key = { "archived-${it.id}" }) { item ->
+                                    val catName = uiState.categories.find { it.id == item.categoryId }?.name ?: ""
+                                    ArchivedItemRow(
+                                        item = item,
+                                        categoryName = catName,
+                                        isArabic = isArabic,
+                                        onRestore = { viewModel.restoreMenuItem(item.id, item.name) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -596,6 +637,51 @@ private fun MenuItemRow(
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete",
                     tint = MaterialTheme.colorScheme.error)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArchivedItemRow(
+    item: MenuItemEntity,
+    categoryName: String,
+    isArabic: Boolean,
+    onRestore: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = if (categoryName.isNotBlank()) categoryName
+                           else if (isArabic) "مؤرشف" else "Archived",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = "$${item.price.toPlainString()}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+            TextButton(onClick = onRestore) {
+                Text(if (isArabic) "استعادة" else "Restore")
             }
         }
     }

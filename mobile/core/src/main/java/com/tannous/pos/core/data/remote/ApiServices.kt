@@ -43,7 +43,14 @@ interface CatalogService {
     suspend fun deleteCategory(@Path("id") id: String): Response<Unit>
 
     @GET("catalog/menu-items")
-    suspend fun getMenuItems(): List<MenuItemDto>
+    suspend fun getMenuItems(
+        // includeInactive=true also returns archived items so the local cache mirrors
+        // the full (non-deleted) catalog; ordering screens filter actives locally.
+        @Query("includeInactive") includeInactive: Boolean = false
+    ): List<MenuItemDto>
+
+    @GET("catalog/menu-items/{id}")
+    suspend fun getMenuItem(@Path("id") id: String): MenuItemDto
 
     @POST("catalog/menu-items")
     suspend fun createMenuItem(@Body request: CreateMenuItemRequest): MenuItemDto

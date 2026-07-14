@@ -35,8 +35,10 @@ interface CustomerDao {
     @Query("UPDATE customers SET isDeleted = 1 WHERE id = :id")
     suspend fun markDeleted(id: String)
     
+    /** FULL-SNAPSHOT ONLY: wipes the table and inserts [customers]. Never call with an
+     *  incremental delta — use [insertAll] (REPLACE-on-conflict upsert) for that. */
     @Transaction
-    suspend fun upsertAll(customers: List<CustomerEntity>) {
+    suspend fun replaceAll(customers: List<CustomerEntity>) {
         deleteAll()
         insertAll(customers)
     }

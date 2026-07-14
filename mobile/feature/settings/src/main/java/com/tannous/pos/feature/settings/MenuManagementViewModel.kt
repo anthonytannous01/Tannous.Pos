@@ -25,7 +25,10 @@ data class MenuManagementUiState(
     val successMessage: String? = null,
     /** Set when a delete was refused because the item has order history;
      *  the UI should offer to archive instead. */
-    val archivePrompt: ArchivePrompt? = null
+    val archivePrompt: ArchivePrompt? = null,
+    /** Archived (inactive, not deleted) items; listed when the user toggles "show archived". */
+    val archivedItems: List<MenuItemEntity> = emptyList(),
+    val showArchived: Boolean = false
 )
 
 data class ArchivePrompt(val itemId: String, val itemName: String)
@@ -58,6 +61,15 @@ class MenuManagementViewModel @Inject constructor(
                 _uiState.update { it.copy(menuItems = items) }
             }
         }
+        viewModelScope.launch {
+            catalogRepository.getArchivedMenuItems().collect { items ->
+                _uiState.update { it.copy(archivedItems = items) }
+            }
+        }
+    }
+
+    fun toggleShowArchived() {
+        _uiState.update { it.copy(showArchived = !it.showArchived) }
     }
 
     fun refresh() {
@@ -225,6 +237,22 @@ class MenuManagementViewModel @Inject constructor(
 
     fun dismissArchivePrompt() {
         _uiState.update { it.copy(archivePrompt = null) }
+    }
+
+    /** Re-activates an archived item so it reappears on the menu. */
+    fun restoreMenuItem(id: String, name: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                catalogRepository.restoreMenuItem(id)
+                _uiState.update { it.copy(successMessage = "\"$name\" restored to menu") }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to restore menu item")
+                _uiState.update { it.copy(error = "Cannot restore: ${e.message}") }
+            } finally {
+                _uiState.update { it.copy(isLoading = false) }
+            }
+        }
     }
 
     fun clearMessage() {
