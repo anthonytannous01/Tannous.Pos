@@ -278,9 +278,38 @@ public class PosDbContext : DbContext
             .Property(s => s.CashDifference)
             .HasColumnType("decimal(18,2)");
 
+        // Dual-currency drawer: LBP figures (large magnitudes, whole-pound amounts).
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.OpeningBalanceLbp)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.ExpectedCashLbp)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.ActualCashLbp)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Shift>()
+            .Property(s => s.CashDifferenceLbp)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.ChangeAmountInCurrency)
+            .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<Order>()
+            .Property(o => o.ChangeCurrency)
+            .HasMaxLength(8);
+
         modelBuilder.Entity<CashDrawerEvent>()
             .Property(cde => cde.Amount)
             .HasColumnType("decimal(18,2)");
+
+        modelBuilder.Entity<CashDrawerEvent>()
+            .Property(cde => cde.Currency)
+            .HasMaxLength(8);
 
         modelBuilder.Entity<InventoryItem>()
             .Property(ii => ii.AverageCost)

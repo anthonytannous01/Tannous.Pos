@@ -1,5 +1,24 @@
 # EF Core Migration Setup Guide
 
+## ⚠️ GOVERNANCE RULE — never hand-write migration files
+
+**All migrations MUST be generated with `dotnet ef migrations add <Name>`. Never write a
+migration `.cs` file by hand (this applies to AI-generated code too).**
+
+Why: every migration from Step 87 (June 2026) through Step 110 was hand-written without a
+`.Designer.cs` file, which means `PosDbContextModelSnapshot.cs` was never updated. The
+database stayed correct, but the snapshot drifted ~20 migrations behind. The first generated
+migration afterwards (`DualCurrencyDrawer`, Aug 2026) diffed against the stale snapshot,
+tried to recreate half the schema, and failed against the live DB. The snapshot was
+re-baselined in that migration — this rule keeps the drift from returning.
+
+How to tell a migration was generated correctly: it has a matching `.Designer.cs` file and
+the same commit touches `PosDbContextModelSnapshot.cs`. A migration commit missing either of
+those is drift in the making — reject it in review.
+
+Optional CI guard (EF Core 8+): `dotnet ef migrations has-pending-model-changes` exits
+non-zero when the model has changes not captured by a migration.
+
 ## Overview
 
 The `PosDbContextFactory` has been created to enable design-time migrations. It loads the connection string from multiple sources in priority order.

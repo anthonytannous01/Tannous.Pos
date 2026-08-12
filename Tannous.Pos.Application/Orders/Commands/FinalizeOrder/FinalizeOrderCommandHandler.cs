@@ -313,8 +313,25 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             }
 
             // Validate payments and settlement (amount owed vs tendered vs change due vs net captured).
+            // All settlement math is in USD: LBP-tendered payments carry raw LBP in Amount and must
+            // be normalized via the configured rate before being compared against the USD total.
+            var exchangeRate = businessSettings?.ExchangeRateLbpPerUsd ?? 0m;
+
+            decimal RequestPaymentUsd(PaymentDto p)
+            {
+                var isLbp = string.Equals(p.TenderedCurrency, "LBP", StringComparison.OrdinalIgnoreCase);
+                if (!isLbp) return p.Amount;
+                if (exchangeRate > 0)
+                    return decimal.Round(p.Amount / exchangeRate, 4, MidpointRounding.AwayFromZero);
+
+                _logger.LogWarning(
+                    "LBP payment received but ExchangeRateLbpPerUsd is not configured; treating raw amount as USD (settlement will be wrong). OrderId={OrderId}",
+                    request.OrderId);
+                return p.Amount;
+            }
+
             var existingPaid = existingPayments.Sum(p => p.AmountInUsd > 0 ? p.AmountInUsd : p.Amount);
-            var requestPaid  = request.Payments.Sum(p => p.Amount);
+            var requestPaid  = request.Payments.Sum(RequestPaymentUsd);
             var totalPayments = existingPaid + requestPaid;
 
             if (totalPayments < totalAmount)
@@ -430,8 +447,7 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 // Generate receipt number (within transaction to ensure uniqueness)
                 var receiptNumber = await _receiptNumberService.GenerateReceiptNumberAsync();
 
-                // Create payments (all within the same transaction)
-                var exchangeRate = businessSettings?.ExchangeRateLbpPerUsd ?? 0m;
+                // Create payments (all within the same transaction); exchangeRate hoisted above.
                 foreach (var paymentDto in request.Payments)
                 {
                     var tenderedCurrency = string.IsNullOrWhiteSpace(paymentDto.TenderedCurrency)
@@ -482,6 +498,21 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
             order.AmountTendered = totalPayments;
             order.ChangeDue = changeDue;
             order.NetCapturedAmount = netCaptured;
+
+            // Change currency (cashier chooses per sale). ChangeDue stays a USD value; the
+            // physical amount handed out is recorded per currency for drawer reconciliation.
+            var changeInLbp = string.Equals(request.ChangeCurrency, "LBP", StringComparison.OrdinalIgnoreCase);
+            if (changeInLbp && changeDue > 0 && exchangeRate <= 0)
+            {
+                _logger.LogWarning(
+                    "LBP change requested but ExchangeRateLbpPerUsd is not configured; falling back to USD change. OrderId={OrderId}",
+                    order.Id);
+                changeInLbp = false;
+            }
+            order.ChangeCurrency = changeInLbp ? "LBP" : "USD";
+            order.ChangeAmountInCurrency = changeInLbp
+                ? decimal.Round(changeDue * exchangeRate, 0, MidpointRounding.AwayFromZero)
+                : changeDue;
             order.ClosedAt = DateTime.UtcNow;
             order.UpdatedAt = DateTime.UtcNow;
 

@@ -75,6 +75,8 @@ public class OpenShiftCommandHandler : IRequestHandler<OpenShiftCommand, ShiftDt
                     StartTime      = DateTime.UtcNow,
                     OpeningBalance = request.OpeningBalance,
                     ExpectedCash   = request.OpeningBalance,
+                    OpeningBalanceLbp = request.OpeningBalanceLbp,
+                    ExpectedCashLbp   = request.OpeningBalanceLbp,
                     Status         = ShiftStatus.Open,
                     Notes          = request.Notes,
                     UserId         = request.UserId,

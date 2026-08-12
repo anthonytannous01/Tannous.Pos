@@ -19,6 +19,13 @@ public class Shift : BaseEntity, IAggregateRoot
     public decimal? ExpectedCash { get; set; }
     public decimal? ActualCash { get; set; }
     public decimal? CashDifference { get; set; }
+
+    // Dual-currency drawer (Lebanon): the same physical drawer holds USD and LBP notes.
+    // Each currency is opened, tracked, and reconciled independently — never converted.
+    public decimal OpeningBalanceLbp { get; set; } = 0;
+    public decimal? ExpectedCashLbp { get; set; }
+    public decimal? ActualCashLbp { get; set; }
+    public decimal? CashDifferenceLbp { get; set; }
     public ShiftStatus Status { get; set; }
     public string? Notes { get; set; }
     

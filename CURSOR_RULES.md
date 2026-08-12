@@ -81,6 +81,13 @@ These rules define how future AI-generated code must align with existing pattern
 - Repository interfaces stay in Domain; implementations in Infrastructure.
 - Use UnitOfWork/transactions for multi-step write operations requiring atomicity.
 - Keep migration and schema changes in Infrastructure migration flow.
+- **NEVER hand-write EF migration `.cs` files.** Migrations must be generated with
+  `dotnet ef migrations add <Name>` so the `.Designer.cs` and `PosDbContextModelSnapshot.cs`
+  stay in sync. Hand-written migrations (Steps 87–110) caused months of snapshot drift that
+  broke the first generated migration in Aug 2026. When a step requires schema changes,
+  modify the entities + `PosDbContext`, then instruct the human to run the EF CLI command —
+  do not emit a migration file. A migration commit without a Designer file and a snapshot
+  update must be rejected in review. See MIGRATION_SETUP.md.
 
 ## 12) Security Rules
 

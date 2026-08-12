@@ -184,7 +184,8 @@ public class OrdersController : ControllerBase
             {
                 OrderId = id,
                 Payments = request.Payments,
-                IdempotencyKey = idempotencyKey
+                IdempotencyKey = idempotencyKey,
+                ChangeCurrency = request.ChangeCurrency
             };
 
             var result = await _mediator.Send(command);
@@ -289,6 +290,9 @@ public class UpdateOrderStatusRequest
 public class FinalizeOrderRequest
 {
     public List<PaymentDto> Payments { get; set; } = new();
+
+    /// <summary>Physical currency change is handed back in ("USD" or "LBP"). Defaults to USD.</summary>
+    public string ChangeCurrency { get; set; } = "USD";
 }
 
 public class VoidOrderRequest
