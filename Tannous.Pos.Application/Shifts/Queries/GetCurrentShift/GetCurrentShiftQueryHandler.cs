@@ -16,12 +16,19 @@ public class GetCurrentShiftQueryHandler : IRequestHandler<GetCurrentShiftQuery,
 
     public async Task<ShiftDto?> Handle(GetCurrentShiftQuery query, CancellationToken cancellationToken)
     {
-        var shift = await _shiftRepository.GetOpenShiftByUserAsync(query.UserId);
-        if (shift == null) return null;
-        return MapToDto(shift);
+        var openShift = await _shiftRepository.GetOpenShiftByUserAsync(query.UserId);
+        if (openShift == null) return null;
+
+        // The stored ExpectedCash is only finalized at CloseShift; while the shift is open
+        // it still holds the opening balance. Reload with orders/payments/drawer events and
+        // compute live so the active-shift screen reflects cash sales as they happen.
+        var shift = await _shiftRepository.GetByIdWithDetailsAsync(openShift.Id) ?? openShift;
+        var liveExpectedCash = ShiftCashCalculator.ComputeExpectedCash(shift);
+
+        return MapToDto(shift, liveExpectedCash);
     }
 
-    private static ShiftDto MapToDto(Shift s) => new()
+    private static ShiftDto MapToDto(Shift s, decimal expectedCash) => new()
     {
         Id             = s.Id,
         ShiftNumber    = s.ShiftNumber,
@@ -29,7 +36,7 @@ public class GetCurrentShiftQueryHandler : IRequestHandler<GetCurrentShiftQuery,
         EndTime        = s.EndTime,
         OpeningBalance = s.OpeningBalance,
         ClosingBalance = s.ClosingBalance,
-        ExpectedCash   = s.ExpectedCash,
+        ExpectedCash   = expectedCash,
         ActualCash     = s.ActualCash,
         CashDifference = s.CashDifference,
         Status         = s.Status.ToString(),
