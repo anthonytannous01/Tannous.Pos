@@ -813,7 +813,8 @@ public class SyncController : ControllerBase
                 PaymentMethod = paymentMethod,
                 Amount = amount,
                 TransactionId = TryReadString(payment, "transactionId"),
-                Notes = TryReadString(payment, "notes")
+                Notes = TryReadString(payment, "notes"),
+                TenderedCurrency = TryReadString(payment, "tenderedCurrency") ?? "USD"
             });
         }
 
@@ -821,7 +822,11 @@ public class SyncController : ControllerBase
         {
             OrderId = orderId,
             Payments = payments,
-            IdempotencyKey = operation.OpId
+            IdempotencyKey = operation.OpId,
+            ChangeCurrency = TryGetJsonElement(operation.Payload, "changeCurrency", out var ccEl) &&
+                             ccEl.ValueKind == JsonValueKind.String
+                ? (ccEl.GetString() ?? "USD")
+                : "USD"
         };
         return true;
     }

@@ -25,8 +25,12 @@ public class Order : BaseEntity, IAggregateRoot
     public decimal TotalAmount { get; set; } = 0;
     /// <summary>Total customer payments received at finalize (amount tendered).</summary>
     public decimal AmountTendered { get; set; } = 0;
-    /// <summary>Change returned to customer: max(AmountTendered - TotalAmount, 0).</summary>
+    /// <summary>Change returned to customer in USD value: max(AmountTendered - TotalAmount, 0).</summary>
     public decimal ChangeDue { get; set; } = 0;
+    /// <summary>Physical currency the change was handed out in ("USD" or "LBP"); cashier chooses per sale.</summary>
+    public string ChangeCurrency { get; set; } = "USD";
+    /// <summary>Physical amount handed out in ChangeCurrency (equals ChangeDue for USD; ChangeDue × rate for LBP).</summary>
+    public decimal ChangeAmountInCurrency { get; set; } = 0;
     /// <summary>Net sale amount retained: AmountTendered - ChangeDue (equals TotalAmount when fully settled).</summary>
     public decimal NetCapturedAmount { get; set; } = 0;
     public string? ReceiptNumber { get; set; }

@@ -8,6 +8,10 @@ public class FinalizeOrderCommand : IRequest<OrderDto>
     public Guid OrderId { get; set; }
     public List<PaymentDto> Payments { get; set; } = new();
     public string IdempotencyKey { get; set; } = string.Empty;
+
+    /// <summary>Physical currency the cashier hands change back in ("USD" or "LBP").
+    /// Cashier chooses per sale; defaults to USD. Drives per-currency drawer math.</summary>
+    public string ChangeCurrency { get; set; } = "USD";
 }
 
 public class PaymentDto

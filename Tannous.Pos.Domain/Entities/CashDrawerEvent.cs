@@ -7,6 +7,8 @@ public class CashDrawerEvent : BaseEntity, IAggregateRoot
 {
     public string EventType { get; set; } = string.Empty; // Open, Close, Drop, Sale, Refund, etc.
     public decimal? Amount { get; set; }
+    /// <summary>Physical currency of Amount ("USD" or "LBP"). Drawer math reconciles each currency separately.</summary>
+    public string Currency { get; set; } = "USD";
     public string? Reference { get; set; }
     public string? Notes { get; set; }
     public DateTime EventDate { get; set; }

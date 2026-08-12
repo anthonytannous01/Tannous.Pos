@@ -30,9 +30,14 @@ public class CloseShiftCommandHandler : IRequestHandler<CloseShiftCommand, Shift
             throw new InvalidOperationException($"Shift {request.ShiftId} is not in Open status");
 
         // Shared formula with GetCurrentShift so the live view and the closing figures agree.
-        var expectedCash = ShiftCashCalculator.ComputeExpectedCash(shift);
-        var actualCash   = request.ClosingCount;
-        var variance     = actualCash - expectedCash;
+        // Each currency reconciles independently — USD and LBP notes share the drawer but are never converted.
+        var expectedCash    = ShiftCashCalculator.ComputeExpectedCash(shift);
+        var actualCash      = request.ClosingCount;
+        var variance        = actualCash - expectedCash;
+
+        var expectedCashLbp = ShiftCashCalculator.ComputeExpectedCashLbp(shift);
+        var actualCashLbp   = request.ClosingCountLbp;
+        var varianceLbp     = actualCashLbp - expectedCashLbp;
 
         // Update shift
         shift.Status         = ShiftStatus.Closed;
@@ -41,6 +46,9 @@ public class CloseShiftCommandHandler : IRequestHandler<CloseShiftCommand, Shift
         shift.ExpectedCash   = expectedCash;
         shift.ActualCash     = actualCash;
         shift.CashDifference = variance;
+        shift.ExpectedCashLbp   = expectedCashLbp;
+        shift.ActualCashLbp     = actualCashLbp;
+        shift.CashDifferenceLbp = varianceLbp;
         shift.Notes          = request.Note;
 
         await _unitOfWork.SaveChangesAsync();
@@ -57,6 +65,10 @@ public class CloseShiftCommandHandler : IRequestHandler<CloseShiftCommand, Shift
             ExpectedCash   = shift.ExpectedCash,
             ActualCash     = shift.ActualCash,
             CashDifference = shift.CashDifference,
+            OpeningBalanceLbp = shift.OpeningBalanceLbp,
+            ExpectedCashLbp   = shift.ExpectedCashLbp,
+            ActualCashLbp     = shift.ActualCashLbp,
+            CashDifferenceLbp = shift.CashDifferenceLbp,
             Notes          = shift.Notes,
             UserId         = shift.UserId,
             CreatedAt      = shift.CreatedAt

@@ -23,12 +23,13 @@ public class GetCurrentShiftQueryHandler : IRequestHandler<GetCurrentShiftQuery,
         // it still holds the opening balance. Reload with orders/payments/drawer events and
         // compute live so the active-shift screen reflects cash sales as they happen.
         var shift = await _shiftRepository.GetByIdWithDetailsAsync(openShift.Id) ?? openShift;
-        var liveExpectedCash = ShiftCashCalculator.ComputeExpectedCash(shift);
+        var liveExpectedCash    = ShiftCashCalculator.ComputeExpectedCash(shift);
+        var liveExpectedCashLbp = ShiftCashCalculator.ComputeExpectedCashLbp(shift);
 
-        return MapToDto(shift, liveExpectedCash);
+        return MapToDto(shift, liveExpectedCash, liveExpectedCashLbp);
     }
 
-    private static ShiftDto MapToDto(Shift s, decimal expectedCash) => new()
+    private static ShiftDto MapToDto(Shift s, decimal expectedCash, decimal expectedCashLbp) => new()
     {
         Id             = s.Id,
         ShiftNumber    = s.ShiftNumber,
@@ -39,6 +40,10 @@ public class GetCurrentShiftQueryHandler : IRequestHandler<GetCurrentShiftQuery,
         ExpectedCash   = expectedCash,
         ActualCash     = s.ActualCash,
         CashDifference = s.CashDifference,
+        OpeningBalanceLbp = s.OpeningBalanceLbp,
+        ExpectedCashLbp   = expectedCashLbp,
+        ActualCashLbp     = s.ActualCashLbp,
+        CashDifferenceLbp = s.CashDifferenceLbp,
         Status         = s.Status.ToString(),
         Notes          = s.Notes,
         UserId         = s.UserId,

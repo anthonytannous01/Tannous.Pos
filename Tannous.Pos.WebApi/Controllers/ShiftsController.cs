@@ -44,10 +44,11 @@ public class ShiftsController : ControllerBase
 
         var command = new OpenShiftCommand
         {
-            OpeningBalance = request.OpeningBalance,
-            UserId         = userId,
-            Notes          = request.Notes,
-            BranchId       = request.BranchId
+            OpeningBalance    = request.OpeningBalance,
+            OpeningBalanceLbp = request.OpeningBalanceLbp,
+            UserId            = userId,
+            Notes             = request.Notes,
+            BranchId          = request.BranchId
         };
 
         var result = await _mediator.Send(command);
@@ -108,10 +109,11 @@ public class ShiftsController : ControllerBase
 
         var command = new CloseShiftCommand
         {
-            ShiftId        = id,
-            ClosingCount   = request.ClosingCount,
-            Note           = request.Note,
-            IdempotencyKey = idempotencyKey
+            ShiftId         = id,
+            ClosingCount    = request.ClosingCount,
+            ClosingCountLbp = request.ClosingCountLbp,
+            Note            = request.Note,
+            IdempotencyKey  = idempotencyKey
         };
 
         var result = await _mediator.Send(command);
@@ -196,6 +198,8 @@ public class ShiftsController : ControllerBase
 public class OpenShiftRequest
 {
     public decimal OpeningBalance { get; set; }
+    /// <summary>Opening LBP float in the same drawer. Defaults to 0 (mobile may omit).</summary>
+    public decimal OpeningBalanceLbp { get; set; }
     public string? Notes { get; set; }
     /// <summary>Optional branch override. Defaults to the system default branch.</summary>
     public Guid? BranchId { get; set; }
@@ -204,6 +208,8 @@ public class OpenShiftRequest
 public class CloseShiftRequest
 {
     public decimal ClosingCount { get; set; }
+    /// <summary>Counted LBP notes at close. Defaults to 0 (mobile may omit).</summary>
+    public decimal ClosingCountLbp { get; set; }
     public string? Note { get; set; }
 }
 

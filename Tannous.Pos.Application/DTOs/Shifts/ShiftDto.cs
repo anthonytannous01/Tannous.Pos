@@ -14,6 +14,12 @@ public class ShiftDto
     public decimal? ExpectedCash { get; set; }
     public decimal? ActualCash { get; set; }
     public decimal? CashDifference { get; set; }
+
+    // Dual-currency drawer: LBP tracked independently, never converted.
+    public decimal OpeningBalanceLbp { get; set; }
+    public decimal? ExpectedCashLbp { get; set; }
+    public decimal? ActualCashLbp { get; set; }
+    public decimal? CashDifferenceLbp { get; set; }
     public string? Notes { get; set; }
     public Guid UserId { get; set; }
     public DateTime CreatedAt { get; set; }
