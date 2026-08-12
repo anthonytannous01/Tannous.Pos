@@ -41,11 +41,29 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
     {
         var orderNumber = await _receiptNumberService.GenerateOrderNumberAsync();
 
+        // Resolve ShiftId: explicit (sync/offline payload) → the caller's open shift.
+        // The online create path (OrdersController POST) supplies no ShiftId, so without this
+        // fallback orders are never linked to a shift and drawer math (expected cash) never
+        // sees their cash payments.
+        var shiftId = request.ShiftId;
+        if (shiftId == null)
+        {
+            var openShift = await _shiftRepository.GetOpenShiftByUserAsync(request.UserId);
+            shiftId = openShift?.Id;
+            if (shiftId == null)
+            {
+                _logger.LogWarning(
+                    "Order created with no shift linkage: no explicit ShiftId and no open shift for user. UserId={UserId}, OrderNumber={OrderNumber}",
+                    request.UserId,
+                    orderNumber);
+            }
+        }
+
         // Resolve BranchId: explicit → from active shift → default branch
         var branchId = request.BranchId;
-        if (branchId == null && request.ShiftId.HasValue)
+        if (branchId == null && shiftId.HasValue)
         {
-            var shift = await _shiftRepository.GetByIdAsync(request.ShiftId.Value);
+            var shift = await _shiftRepository.GetByIdAsync(shiftId.Value);
             branchId = shift?.BranchId;
         }
         if (branchId == null)
@@ -64,7 +82,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
             Notes         = request.Order.Notes,
             CustomerId    = request.Order.CustomerId,
             TableId       = request.Order.TableId,
-            ShiftId       = request.ShiftId,
+            ShiftId       = shiftId,
             UserId        = request.UserId,
             BranchId      = branchId,
             CreatedBy     = request.UserId.ToString()

@@ -29,20 +29,8 @@ public class CloseShiftCommandHandler : IRequestHandler<CloseShiftCommand, Shift
         if (shift.Status != ShiftStatus.Open)
             throw new InvalidOperationException($"Shift {request.ShiftId} is not in Open status");
 
-        // Expected cash = opening float + cash sales only − cash drops removed from drawer.
-        // Card and Other payments never enter the physical drawer and must be excluded,
-        // otherwise every card sale appears as a cash shortage in the variance.
-        var cashSales = shift.Orders
-            .Where(o => o.Status == OrderStatus.Paid)
-            .Sum(o => o.Payments
-                .Where(p => string.Equals(p.PaymentMethod, "CASH", StringComparison.OrdinalIgnoreCase))
-                .Sum(p => p.Amount));
-
-        var cashDrops = shift.CashDrawerEvents
-            .Where(e => e.EventType == "Drop")
-            .Sum(e => e.Amount ?? 0);
-
-        var expectedCash = shift.OpeningBalance + cashSales - cashDrops;
+        // Shared formula with GetCurrentShift so the live view and the closing figures agree.
+        var expectedCash = ShiftCashCalculator.ComputeExpectedCash(shift);
         var actualCash   = request.ClosingCount;
         var variance     = actualCash - expectedCash;
 

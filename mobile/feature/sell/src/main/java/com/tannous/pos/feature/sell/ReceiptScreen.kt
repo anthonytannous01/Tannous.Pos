@@ -1,6 +1,8 @@
 package com.tannous.pos.feature.sell
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Print
@@ -151,7 +153,9 @@ fun ReceiptScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                // Long orders overflow the screen; without scroll the Done button is unreachable.
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -321,7 +325,8 @@ fun ReceiptScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            // Fixed spacer: weight() is not valid inside a scrollable column.
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Action buttons
             Row(

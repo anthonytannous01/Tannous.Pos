@@ -17,6 +17,7 @@ import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.data.repository.ShiftRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -115,6 +116,8 @@ class SellViewModel @Inject constructor(
                             _selectedCategory.value = categories.first()
                         }
                     }
+            } catch (e: CancellationException) {
+                throw e // normal ViewModel teardown — not an error, must propagate
             } catch (e: Exception) {
                 Timber.e(e, "Error loading categories")
                 _uiState.update { it.copy(error = e.message) }
@@ -129,6 +132,8 @@ class SellViewModel @Inject constructor(
                     .collect { menuItems ->
                         _uiState.update { it.copy(menuItems = menuItems) }
                     }
+            } catch (e: CancellationException) {
+                throw e // normal ViewModel teardown — not an error, must propagate
             } catch (e: Exception) {
                 Timber.e(e, "Error loading menu items")
                 _uiState.update { it.copy(error = e.message) }
@@ -143,6 +148,8 @@ class SellViewModel @Inject constructor(
                     .collect { addOns ->
                         _uiState.update { it.copy(availableAddOns = addOns) }
                     }
+            } catch (e: CancellationException) {
+                throw e // normal ViewModel teardown — not an error, must propagate
             } catch (e: Exception) {
                 Timber.e(e, "Error loading add-ons")
             }
