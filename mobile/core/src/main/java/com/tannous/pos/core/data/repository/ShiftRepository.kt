@@ -84,11 +84,13 @@ class ShiftRepository @Inject constructor(
      */
     suspend fun openShift(
         openingBalance: BigDecimal,
+        openingBalanceLbp: BigDecimal = BigDecimal.ZERO,
         notes: String? = null
     ): Result<ShiftDto> {
         return try {
             val request = OpenShiftRequest(
                 openingBalance = openingBalance,
+                openingBalanceLbp = openingBalanceLbp,
                 notes = notes
             )
             val shift = shiftService.openShift(request)
@@ -124,11 +126,13 @@ class ShiftRepository @Inject constructor(
     suspend fun closeShift(
         shiftId: String,
         closingCount: BigDecimal,
+        closingCountLbp: BigDecimal = BigDecimal.ZERO,
         note: String? = null
     ): Result<ShiftDto> {
         return try {
             val request = CloseShiftRequest(
                 closingCount = closingCount,
+                closingCountLbp = closingCountLbp,
                 note = note
             )
             val shift = shiftService.closeShift(shiftId, request)
@@ -278,7 +282,8 @@ class ShiftRepository @Inject constructor(
     /**
      * Reconstructs a ShiftDto from a cached entity for the offline path.
      * userId/createdAt/notes are not persisted locally; they are not read by finalize or the
-     * shift UI, so safe defaults are used.
+     * shift UI, so safe defaults are used. LBP drawer figures are also not cached in Room —
+     * the offline fallback shows USD only (LBP fields fall back to ShiftDto defaults).
      */
     private fun ShiftEntity.toDto(): ShiftDto {
         return ShiftDto(
