@@ -182,6 +182,23 @@ fun ShiftsScreen(
                                         fontWeight = FontWeight.SemiBold
                                     )
                                 }
+
+                                if (shift.openingBalanceLbp.signum() != 0) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(
+                                            text = if (isArabic) "رصيد الافتتاح ل.ل:" else "Opening Balance LBP:",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Text(
+                                            text = formatLbp(shift.openingBalanceLbp),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
                                 
                                 // Live sales summary — computed from paid orders in Room.
                                 // Updates automatically when new orders are finalized.
@@ -224,7 +241,7 @@ fun ShiftsScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Text(
-                                            text = if (isArabic) "النقد المتوقع:" else "Expected Cash:",
+                                            text = if (isArabic) "النقد المتوقع (دولار):" else "Expected Cash (USD):",
                                             style = MaterialTheme.typography.bodyMedium
                                         )
                                         Text(
@@ -232,6 +249,27 @@ fun ShiftsScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = FontWeight.SemiBold
                                         )
+                                    }
+                                }
+
+                                // LBP expected cash — shown only when the LBP side of the
+                                // drawer is in play (opening float or LBP cash activity).
+                                shift.expectedCashLbp?.let { expectedLbp ->
+                                    if (expectedLbp.signum() != 0 || shift.openingBalanceLbp.signum() != 0) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text(
+                                                text = if (isArabic) "النقد المتوقع ل.ل:" else "Expected Cash (LBP):",
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                            Text(
+                                                text = formatLbp(expectedLbp),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
                                 }
                                 
@@ -277,8 +315,8 @@ fun ShiftsScreen(
     // Open Shift Dialog
     if (showOpenShiftDialog) {
         OpenShiftDialog(
-            onConfirm = { openingBalance, notes ->
-                viewModel.openShift(openingBalance, notes)
+            onConfirm = { openingBalance, openingBalanceLbp, notes ->
+                viewModel.openShift(openingBalance, openingBalanceLbp, notes)
                 showOpenShiftDialog = false
             },
             onDismiss = { showOpenShiftDialog = false }
@@ -301,8 +339,10 @@ fun ShiftsScreen(
         CloseShiftDialog(
             shiftId = uiState.activeShift!!.id,
             expectedCash = uiState.activeShift!!.expectedCash ?: uiState.activeShift!!.openingBalance,
-            onConfirm = { closingCount, note ->
-                viewModel.closeShift(uiState.activeShift!!.id, closingCount, note)
+            expectedCashLbp = uiState.activeShift!!.expectedCashLbp
+                ?: uiState.activeShift!!.openingBalanceLbp,
+            onConfirm = { closingCount, closingCountLbp, note ->
+                viewModel.closeShift(uiState.activeShift!!.id, closingCount, closingCountLbp, note)
                 showCloseShiftDialog = false
             },
             onDismiss = { showCloseShiftDialog = false }

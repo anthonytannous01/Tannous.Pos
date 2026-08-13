@@ -656,6 +656,15 @@ data class ShiftDto(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     @SerialName("cashDifference")
     val cashDifference: BigDecimal?,
+    // Dual-currency drawer: LBP figures tracked independently server-side.
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val openingBalanceLbp: BigDecimal = BigDecimal.ZERO,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val expectedCashLbp: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val actualCashLbp: BigDecimal? = null,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val cashDifferenceLbp: BigDecimal? = null,
     val notes: String? = null,
     val userId: String,
     val createdAt: String
@@ -665,6 +674,10 @@ data class ShiftDto(
 data class OpenShiftRequest(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val openingBalance: BigDecimal,
+    // Nullable (not ZERO-defaulted): encodeDefaults=false would omit an explicit ZERO,
+    // but a null default lets an explicitly-set ZERO serialize. Backend defaults to 0.
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val openingBalanceLbp: BigDecimal? = null,
     val notes: String? = null,
     val branchId: String? = null
 )
@@ -682,6 +695,8 @@ data class CloseShiftRequest(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     @SerialName("closingCount")
     val closingCount: BigDecimal,
+    @Serializable(with = BigDecimalAsStringSerializer::class)
+    val closingCountLbp: BigDecimal? = null,
     @SerialName("note")
     val note: String? = null
 )

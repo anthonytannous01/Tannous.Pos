@@ -92,11 +92,11 @@ class ShiftViewModel @Inject constructor(
         }
     }
     
-    fun openShift(openingBalance: BigDecimal, notes: String? = null) {
+    fun openShift(openingBalance: BigDecimal, openingBalanceLbp: BigDecimal = BigDecimal.ZERO, notes: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val result = shiftRepository.openShift(openingBalance, notes)
+                val result = shiftRepository.openShift(openingBalance, openingBalanceLbp, notes)
                 result.fold(
                     onSuccess = { shift ->
                         _uiState.value = _uiState.value.copy(
@@ -124,11 +124,11 @@ class ShiftViewModel @Inject constructor(
         }
     }
     
-    fun closeShift(shiftId: String, closingCount: BigDecimal, note: String? = null) {
+    fun closeShift(shiftId: String, closingCount: BigDecimal, closingCountLbp: BigDecimal = BigDecimal.ZERO, note: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val result = shiftRepository.closeShift(shiftId, closingCount, note)
+                val result = shiftRepository.closeShift(shiftId, closingCount, closingCountLbp, note)
                 result.fold(
                     onSuccess = { shift ->
                         _uiState.value = _uiState.value.copy(
