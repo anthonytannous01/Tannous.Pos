@@ -38,6 +38,8 @@ public class CashDropCommandHandler : IRequestHandler<CashDropCommand, CashDrawe
             ShiftId = request.ShiftId,
             EventType = "Drop",
             Amount = request.Amount,
+            // Normalize: anything other than LBP counts as USD in per-currency drawer math.
+            Currency = string.Equals(request.Currency, "LBP", StringComparison.OrdinalIgnoreCase) ? "LBP" : "USD",
             Notes = request.Note,
             EventDate = DateTime.UtcNow,
             Timestamp = DateTime.UtcNow

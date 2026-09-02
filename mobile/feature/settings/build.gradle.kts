@@ -54,7 +54,6 @@ dependencies {
 
     implementation(libs.timber)
     implementation(libs.zxing.core)
-    implementation("com.github.DantSu:ESCPOS-ThermalPrinter-Android:3.3.0")
 
     // Testing
     testImplementation(libs.androidx.test.ext.junit)

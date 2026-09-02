@@ -550,9 +550,10 @@ fun SellScreen(
             PaymentSelectionDialog(
                 total = BigDecimal.valueOf(uiState.cartTotal),
                 currencyCode = uiState.currencyCode,
-                onConfirm = { payments ->
+                exchangeRateLbpPerUsd = uiState.exchangeRateLbpPerUsd,
+                onConfirm = { payments, changeCurrency ->
                     showPaymentDialog = false
-                    viewModel.finalizeOrder(payments)
+                    viewModel.finalizeOrder(payments, changeCurrency)
                 },
                 onDismiss = { showPaymentDialog = false }
             )

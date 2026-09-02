@@ -8,9 +8,9 @@ import com.tannous.pos.core.data.model.PrinterConfig
 import com.tannous.pos.core.data.model.PrinterConnectionType
 import com.tannous.pos.core.data.model.UpdateSettingsRequest
 import com.tannous.pos.core.data.repository.SettingsRepository
-import com.tannous.pos.feature.settings.printer.PrintResult
-import com.tannous.pos.feature.settings.printer.PrinterService
-import com.tannous.pos.feature.settings.printer.TestReceiptFactory
+import com.tannous.pos.core.printing.PrintResult
+import com.tannous.pos.core.printing.PrinterService
+import com.tannous.pos.core.printing.TestReceiptFactory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -119,7 +119,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(printerPrintState = PrinterPrintState.Printing) }
             val isArabic = settingsRepository.isArabic()
-            val result = printerService.printReceipt(TestReceiptFactory.sample(), isArabic)
+            val result = printerService.printReceipt(TestReceiptFactory.sample())
             _uiState.update {
                 it.copy(
                     printerPrintState = when (result) {

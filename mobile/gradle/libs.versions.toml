@@ -17,6 +17,7 @@ datastore = "1.0.0"
 paging = "3.2.1"
 timber = "5.0.1"
 zxing = "3.5.3"
+escpos = "3.3.0"
 coroutines = "1.7.3"
 navigation-compose = "2.7.5"
 
@@ -66,6 +67,7 @@ paging-runtime = { group = "androidx.paging", name = "paging-runtime-ktx", versi
 # Logging
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+escpos-thermalprinter = { group = "com.github.DantSu", name = "ESCPOS-ThermalPrinter-Android", version.ref = "escpos" }
 
 # Monitoring & Crash Handling
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "32.7.0" }
@@ -82,6 +84,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 androidx-material3 = { group = "com.google.android.material", name = "material", version = "1.11.0" }
 
 # Testing
+junit = { group = "junit", name = "junit", version = "4.13.2" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version = "1.1.5" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version = "3.5.1" }
 androidx-compose-ui-test = { group = "androidx.compose.ui", name = "ui-test-junit4" }

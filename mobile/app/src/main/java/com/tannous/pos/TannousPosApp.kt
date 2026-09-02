@@ -31,7 +31,6 @@ import com.tannous.pos.core.ui.AuthViewModel
 import com.tannous.pos.feature.auth.LoginScreen
 import com.tannous.pos.feature.customers.CustomersScreen
 import com.tannous.pos.feature.customers.LoyaltyCrmScreen
-import com.tannous.pos.feature.printing.PrintingPreviewScreen
 import com.tannous.pos.core.data.repository.toOrderDto
 import com.tannous.pos.feature.sell.OrderHistoryScreen
 import com.tannous.pos.feature.sell.OrderReceiptState
@@ -245,7 +244,6 @@ fun TannousPosApp(
             composable("settings") {
                 SettingsScreen(
                     onNavigateBack = { navController.popBackStack() },
-                    onNavigateToPrintingPreview = { navController.navigate("printing-preview") },
                     onNavigateToReports = { navController.navigate("reports") },
                     onNavigateToOrderHistory = { navController.navigate("order-history") },
                     onNavigateToInventory = { navController.navigate("inventory") },
@@ -360,12 +358,6 @@ fun TannousPosApp(
 
             composable("reports") {
                 ReportsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            
-            composable("printing-preview") {
-                PrintingPreviewScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

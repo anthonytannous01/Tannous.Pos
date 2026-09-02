@@ -144,7 +144,6 @@ dependencies {
     implementation(project(":feature:customers"))
     implementation(project(":feature:reports"))
     implementation(project(":feature:settings"))
-    implementation(project(":feature:printing"))
     implementation(project(":feature:inventory"))
 
     implementation(libs.androidx.core.ktx)

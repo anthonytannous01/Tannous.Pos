@@ -103,6 +103,12 @@ class SellViewModel @Inject constructor(
             } catch (e: Exception) {
                 Timber.w(e, "Could not load currency; using default")
             }
+            try {
+                val rate = settingsRepository.getExchangeRate()
+                _uiState.update { it.copy(exchangeRateLbpPerUsd = rate) }
+            } catch (e: Exception) {
+                Timber.w(e, "Could not load LBP exchange rate; LBP tender disabled")
+            }
         }
     }
     
@@ -247,7 +253,7 @@ class SellViewModel @Inject constructor(
      * Creates an order from cart items and finalizes it with the given payments.
      * Returns Result with finalized OrderDto on success.
      */
-    fun finalizeOrder(payments: List<PaymentDto>) {
+    fun finalizeOrder(payments: List<PaymentDto>, changeCurrency: String = "USD") {
         viewModelScope.launch {
             try {
                 _uiState.update { it.copy(isLoading = true, isFinalizing = true, error = null) }
@@ -326,7 +332,7 @@ class SellViewModel @Inject constructor(
                 }
 
                 // Finalize order
-                val finalizeResult = orderRepository.finalizeOrder(orderId, payments)
+                val finalizeResult = orderRepository.finalizeOrder(orderId, payments, changeCurrency)
                 
                 if (finalizeResult.isFailure) {
                     val error = finalizeResult.exceptionOrNull()
@@ -494,6 +500,8 @@ data class SellUiState(
     val error: String? = null,
     val isFinalizing: Boolean = false,
     val currencyCode: String = "USD",
+    /** LBP per USD from business settings; ZERO disables LBP tender in the payment dialog. */
+    val exchangeRateLbpPerUsd: BigDecimal = BigDecimal.ZERO,
     val activeShiftId: String? = null,
     val shiftOrders: List<OrderEntity> = emptyList(),
     val voidingOrderId: String? = null,

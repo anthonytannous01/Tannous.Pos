@@ -176,10 +176,11 @@ class ShiftRepository @Inject constructor(
     suspend fun cashDrop(
         shiftId: String,
         amount: BigDecimal,
+        currency: String = "USD",
         note: String? = null
     ): Result<ShiftDto> {
         return try {
-            val request = CashDropRequest(amount = amount, note = note)
+            val request = CashDropRequest(amount = amount, currency = currency, note = note)
             val response = shiftService.cashDrop(shiftId, request)
             if (!response.isSuccessful) {
                 val errorMessage = try {

@@ -133,10 +133,11 @@ fun OpenShiftDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CashDropDialog(
-    onConfirm: (BigDecimal, String?) -> Unit,
+    onConfirm: (amount: BigDecimal, currency: String, note: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var amount by remember { mutableStateOf("") }
+    var currency by remember { mutableStateOf("USD") }
     var note by remember { mutableStateOf("") }
     var hasError by remember { mutableStateOf(false) }
     val isArabic = LocalIsArabic.current
@@ -171,7 +172,31 @@ fun CashDropDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Currency of the notes physically removed from the drawer.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (isArabic) "العملة:" else "Currency:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    FilterChip(
+                        selected = currency == "USD",
+                        onClick = { currency = "USD" },
+                        label = { Text("USD") }
+                    )
+                    FilterChip(
+                        selected = currency == "LBP",
+                        onClick = { currency = "LBP" },
+                        label = { Text("LBP") }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = note,
@@ -198,7 +223,7 @@ fun CashDropDialog(
                             try {
                                 val cashAmount = BigDecimal(amount)
                                 if (cashAmount > BigDecimal.ZERO) {
-                                    onConfirm(cashAmount, note.ifEmpty { null })
+                                    onConfirm(cashAmount, currency, note.ifEmpty { null })
                                 } else {
                                     hasError = true
                                 }

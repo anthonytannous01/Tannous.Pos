@@ -27,13 +27,16 @@ ProGuard rules, release keystore, store listing, screenshots.
 
 ---
 
-## Arabic/RTL — Receipt & KDS screens (partial)
+## Arabic/RTL — KDS screen (partial)
 
-**Status:** Partial ✅ — SellScreen + QR menu done. Receipts and KDS not yet Arabic.
+**Status:** Partial ✅ — SellScreen + QR menu done. KDS not yet Arabic.
 
-Receipts (PrintingService) and KDS screen still display English only.
-When operators add Arabic names to menu items, the sell flow and QR menu
-will show them — receipts and KDS are a follow-up.
+**Receipts are English-only by decision, not by omission.** Thermal printers cannot
+shape Arabic text; the previous bitmap-rendering approach was removed deliberately.
+`ReceiptDto` still carries `nameAr`/`footerMessageAr` for the app UI, but the printer
+ignores them. See PRINTING.md. Do not re-add Arabic to receipts.
+
+KDS remains a follow-up.
 
 ---
 

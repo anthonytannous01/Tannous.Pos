@@ -154,6 +154,7 @@ public class ShiftsController : ControllerBase
         {
             ShiftId        = id,
             Amount         = request.Amount,
+            Currency       = request.Currency,
             Note           = request.Note,
             IdempotencyKey = idempotencyKey
         };
@@ -216,6 +217,8 @@ public class CloseShiftRequest
 public class CashDropRequest
 {
     public decimal Amount { get; set; }
+    /// <summary>Physical currency removed from the drawer ("USD" or "LBP"). Defaults to USD.</summary>
+    public string Currency { get; set; } = "USD";
     public string? Note { get; set; }
 }
 

@@ -1,332 +1,124 @@
-# Receipt Printing in Tannous POS
+# Receipt Printing — Tannous POS
 
-This document describes the receipt printing implementation in the Android app, including the current implementation and future extension plans.
+Receipts print to ESC/POS thermal printers over Bluetooth or TCP. There is exactly one
+printing path; the former Android Print Framework path was removed.
 
-## Current Implementation
-
-### Android Print Framework (SystemPrintPrinter)
-
-The app currently uses **Android Print Framework** (`PrintManager`) to print receipts. This implementation:
-
-- ✅ Works on Android emulator (no physical printer required)
-- ✅ Opens system print preview dialog
-- ✅ Allows saving as PDF
-- ✅ Supports printing to physical printers via the system print service
-- ✅ Works with any printer supported by Android
-
-**Implementation Details:**
-- Uses `WebView` to render HTML-formatted receipt
-- Creates `PrintDocumentAdapter` from WebView
-- Opens system print dialog via `PrintManager.print()`
-- Receipt is formatted as HTML with CSS for proper printing
-
-### Architecture
-
-The printing system follows Clean Architecture principles:
+## Architecture
 
 ```
-┌─────────────────────────────────────┐
-│         ReceiptScreen (UI)          │
-│  ┌──────────┐  ┌──────────┐        │
-│  │  Print   │  │  Share   │        │
-│  └────┬─────┘  └────┬─────┘        │
-└───────┼─────────────┼──────────────┘
-        │             │
-┌───────▼─────────────▼──────────────┐
-│      ReceiptViewModel               │
-│  - Handles print/share logic        │
-│  - Manages print state              │
-└───────┬─────────────────────────────┘
+ReceiptScreen (Print / Share)
         │
-┌───────▼─────────────────────────────┐
-│      Printer (Interface)            │
-│  - printReceipt(receipt): Result    │
-└───────┬─────────────────────────────┘
+ReceiptViewModel
+        │  reportsService.getReceipt(orderId) -> ReceiptDto   (server renders receipt content)
+        ▼
+PrinterService                     core/printing/PrinterService.kt
+   ├─ ReceiptRenderer.rows(dto)    → layout-independent List<ReceiptRow>
+   ├─ toEscPos(rows, charsPerLine) → printed via DantSu EscPosPrinter
+   └─ toPlainText(rows, ...)       → text used by Share Receipt
         │
-┌───────▼─────────────────────────────┐
-│   SystemPrintPrinter (Current)      │
-│   - Android Print Framework         │
-│                                     │
-│   Future implementations:           │
-│   - EscPosBluetoothPrinter          │
-│   - EscPosNetworkPrinter            │
-└─────────────────────────────────────┘
+   BluetoothConnection(mac)  |  TcpConnection(host, port, 15s)
 ```
 
-### Key Components
+**Single source of truth.** Receipt *content* comes from the backend as `ReceiptDto`. The client
+never composes its own totals. Print and Share render the same rows, so shared text always matches
+the printed paper — including VAT, discount, stamp duty, and the LBP total.
 
-#### 1. Printer Interface (`Printer.kt`)
+The VAT **rate** shown is derived from the receipt's own subtotal and tax amount, not read from
+current settings. A receipt must stay internally consistent, and a reprint issued after the store
+changes its tax rate must not show the new rate against the old amount. When the rate cannot be
+computed or rounds to zero, the line prints as `VAT` with no percentage — never `VAT (0%)`.
 
-Abstract interface for all printer implementations:
+**Rendering is separated from transport.** `ReceiptRenderer` has no Android or printer dependencies,
+so receipt layout is unit-testable on the JVM. `PrinterService` owns only connection and config.
 
-```kotlin
-interface Printer {
-    suspend fun printReceipt(receipt: ReceiptToPrint): PrintResult
-}
-```
+## Components
 
-#### 2. ReceiptToPrint Model
+| File | Responsibility |
+|---|---|
+| `core/printing/ReceiptRenderer.kt` | `ReceiptDto` → `List<ReceiptRow>` → ESC/POS markup or plain text |
+| `core/printing/PrinterService.kt` | Connection, printer config, `PrintResult` |
+| `core/printing/TestReceiptFactory.kt` | Representative receipt for the Settings test print |
+| `core/data/model/PrinterConfig.kt` | Connection type, BT address, host/port, paper width |
+| `feature/settings/printer/PrinterSettingsSection.kt` | Printer settings UI |
+| `core/src/test/.../ReceiptRendererTest.kt` | Layout regression tests (58mm and 80mm) |
 
-Data class containing all receipt information:
+`PrinterService` lives in `core` because both `feature/sell` and `feature/settings` use it. Do not
+move printing back into a feature module — that reintroduces a feature-to-feature dependency.
 
-```kotlin
-data class ReceiptToPrint(
-    val orderNumber: String?,
-    val receiptNumber: String?,
-    val dateTime: String,
-    val items: List<ReceiptItem>?, // Null if not available (offline)
-    val subtotal: String,
-    val tax: String,
-    val total: String,
-    val payments: List<ReceiptPayment>,
-    val footerText: String? = null
-)
-```
+## Paper width
 
-#### 3. PrintResult
+`ReceiptRenderer.charsPerLine()` maps paper width to characters per line: **58mm → 32**,
+**80mm → 48**. Column placement is delegated to the printer's `[L]` / `[C]` / `[R]` parser rather
+than hardcoded padding, and separator rules are generated at the configured width. Long item names
+are truncated so they cannot collide with the price column on narrow paper.
 
-Sealed class for print operation results:
+Never reintroduce fixed-width padding strings — that was the bug that made the 58mm setting
+non-functional.
 
-```kotlin
-sealed class PrintResult {
-    data object Success : PrintResult()
-    data class Failed(val message: String) : PrintResult()
-}
-```
+`big` (the business name) is double-**width** as well as double-height, so it costs two columns
+per character. `ReceiptRenderer.fitsAtDoubleWidth` drops back to normal width when the name would
+overflow — on 58mm that means names longer than 16 characters. Verified from a byte capture:
+the printer emits no centering padding for a line it cannot fit, so an over-wide name silently
+loses its alignment on paper.
 
-#### 4. ReceiptFormatter
+## Language
 
-Utility for converting `OrderDto` to `ReceiptToPrint`:
+**Receipts are English only.** Thermal printers cannot shape Arabic text; the previous approach
+rendered Arabic as bitmaps, which was removed deliberately. `ReceiptDto` still carries `nameAr`
+and `footerMessageAr` for the app UI, but the printer ignores them. The app UI remains bilingual.
 
-```kotlin
-object ReceiptFormatter {
-    fun formatReceipt(
-        order: OrderDto,
-        items: List<ReceiptItem>?,
-        payments: List<ReceiptPayment>
-    ): ReceiptToPrint
-}
-```
+## Configuration
 
-## Testing on Emulator
+Settings → Receipt Printer:
 
-### Steps to Test Printing
+- **Connection** — Bluetooth, LAN, or USB (not implemented)
+- **Bluetooth** — picker over paired devices, requires `BLUETOOTH_CONNECT` / `BLUETOOTH_SCAN` on API 31+
+- **LAN** — host and port (default **9100**)
+- **Paper width** — 58mm or 80mm
+- **Print Test Receipt** — prints `TestReceiptFactory.sample()` through the real path
 
-1. **Finalize an order** from the Sell screen
-2. **Navigate to ReceiptScreen** (automatically shown after finalization)
-3. **Tap "Print" button**
-4. **System print dialog appears** with:
-   - Print preview
-   - Options to save as PDF
-   - Options to select printer (if available)
-   - Print settings (pages, color, etc.)
+## Testing without a printer
 
-### Expected Behavior
+The LAN path needs no hardware. `printFormattedTextAndCut` writes and flushes without reading a
+response, so a plain socket sink is indistinguishable from a printer.
 
-- ✅ Print dialog opens successfully
-- ✅ Receipt preview shows correctly formatted content
-- ✅ Can save receipt as PDF
-- ✅ Print job can be cancelled
-- ✅ Loading state shows while generating print job
-- ✅ Success/error messages displayed via Snackbar
+1. Run a listener on a machine the device can reach:
 
-### Share Receipt
-
-The "Share" button allows sharing the receipt as plain text:
-
-1. Tap "Share" button on ReceiptScreen
-2. Android share sheet appears
-3. Select app (WhatsApp, Email, etc.)
-4. Receipt text is shared
-
-## Offline Behavior
-
-When an order is finalized offline:
-
-- Receipt can still be printed with available data
-- Items list may be `null` (shows "Minimal receipt" notice)
-- Order number, totals, and payment info are available
-- Full receipt available after sync
-
-## Future Implementation: Thermal Printers (ESC/POS)
-
-### Planned Architecture
-
-The current `Printer` interface is designed to support multiple printer types:
-
-```kotlin
-// Current implementation
-class SystemPrintPrinter : Printer { ... }
-
-// Future implementations
-class EscPosBluetoothPrinter : Printer { ... }
-class EscPosNetworkPrinter : Printer { ... }
-```
-
-### ESC/POS Implementation Plan
-
-1. **Create ESC/POS Printer Implementations**
-
-   ```kotlin
-   class EscPosBluetoothPrinter(
-       private val bluetoothAdapter: BluetoothAdapter
-   ) : Printer {
-       override suspend fun printReceipt(receipt: ReceiptToPrint): PrintResult {
-           // Connect to Bluetooth printer
-           // Send ESC/POS commands
-           // Handle printer responses
-       }
-   }
-   
-   class EscPosNetworkPrinter(
-       private val host: String,
-       private val port: Int
-   ) : Printer {
-       override suspend fun printReceipt(receipt: ReceiptToPrint): PrintResult {
-           // Connect to network printer
-           // Send ESC/POS commands via TCP/IP
-           // Handle printer responses
-       }
-   }
+   ```python
+   import socket
+   s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+   s.bind(("0.0.0.0", 9100)); s.listen(1)
+   c, a = s.accept()
+   with open("receipt.bin", "wb") as f:
+       while (d := c.recv(4096)): f.write(d)
    ```
 
-2. **ESC/POS Command Formatting**
+2. Settings → Connection = **LAN**, Host = `10.0.2.2` (emulator → host machine) or the machine's
+   LAN IP (physical device), Port = `9100`.
+3. **Print Test Receipt**, then repeat from a real finalized order to exercise the full
+   `ReceiptDto` → ESC/POS path.
+4. Render the capture to see the paper output: `esc2html receipt.bin > out.html`
+   (`receipt-print-hq/escpos-tools`).
 
-   - Convert `ReceiptToPrint` to ESC/POS commands
-   - Handle printer initialization
-   - Format text with proper alignment, fonts, sizes
-   - Send paper cut commands
+Layout regressions are cheaper to catch in `ReceiptRendererTest` — it runs on the JVM with no
+emulator and no printer. Add a case there before reaching for hardware.
 
-3. **Printer Selection**
+Bluetooth cannot be meaningfully faked; validate it once on a real device.
 
-   Use Dependency Injection with qualifiers or factory pattern:
+## Known gaps
 
-   ```kotlin
-   @Provides
-   @Singleton
-   @Named("BluetoothPrinter")
-   fun provideBluetoothPrinter(): Printer { ... }
-   
-   @Provides
-   @Singleton
-   @Named("NetworkPrinter")
-   fun provideNetworkPrinter(): Printer { ... }
-   ```
-
-   Or use a factory pattern:
-
-   ```kotlin
-   @Provides
-   @Singleton
-   fun providePrinter(
-       printerType: PrinterType
-   ): Printer {
-       return when (printerType) {
-           PrinterType.SYSTEM -> SystemPrintPrinter(context)
-           PrinterType.BLUETOOTH -> EscPosBluetoothPrinter(...)
-           PrinterType.NETWORK -> EscPosNetworkPrinter(...)
-       }
-   }
-   ```
-
-4. **Printer Configuration**
-
-   Add printer settings in the app:
-   - Printer type selection (System/Bluetooth/Network)
-   - Bluetooth device selection
-   - Network printer IP/port configuration
-   - Printer-specific settings (paper width, character encoding, etc.)
-
-5. **Existing Infrastructure**
-
-   The codebase already has some ESC/POS infrastructure:
-   - `PrintingManager.kt` - Contains ESC/POS command constants
-   - `ReceiptPrintManager.kt` - Has receipt formatting logic
-   - These can be refactored to work with the new `Printer` interface
-
-### Migration Path
-
-1. Keep `SystemPrintPrinter` as default
-2. Add ESC/POS implementations alongside
-3. Add printer selection UI in settings
-4. Allow users to switch between printer types
-5. Deprecate old `PrintingManager`/`ReceiptPrintManager` if needed
-
-## Receipt Format
-
-### Current Format (HTML)
-
-- Header: "TANNOUS POS"
-- Order/Receipt numbers
-- Date/Time
-- Items list (if available)
-- Subtotal, Tax, Total
-- Payment methods
-- Footer message
-
-### Future ESC/POS Format
-
-Will follow similar structure but use ESC/POS commands:
-- ESC/POS initialization
-- Header formatting (double height, bold, center)
-- Item lines with proper alignment
-- Totals section
-- Payment section
-- Paper feed and cut
-
-## Dependencies
-
-### Current
-- Android Print Framework (built-in)
-- WebView (for HTML rendering)
-
-### Future (ESC/POS)
-- Bluetooth permissions and APIs (for Bluetooth printers)
-- Network/TCP sockets (for network printers)
-- ESC/POS command library (optional, can implement manually)
-
-## Error Handling
-
-### Print Errors
-
-- **Print service unavailable**: Shows error message
-- **WebView rendering failure**: Shows error message
-- **User cancellation**: Silently handled
-- **Network errors (future)**: Retry logic for network printers
-
-### Offline Scenarios
-
-- Receipt printing works with available data
-- Shows warning if full receipt data not available
-- Full receipt printed after sync
-
-## Code Locations
-
-- **Printer Interface**: `mobile/core/src/main/java/com/tannous/pos/core/printing/Printer.kt`
-- **SystemPrintPrinter**: `mobile/core/src/main/java/com/tannous/pos/core/printing/SystemPrintPrinter.kt`
-- **ReceiptFormatter**: `mobile/core/src/main/java/com/tannous/pos/core/printing/ReceiptFormatter.kt`
-- **ReceiptViewModel**: `mobile/feature/sell/src/main/java/com/tannous/pos/feature/sell/ReceiptViewModel.kt`
-- **ReceiptScreen**: `mobile/feature/sell/src/main/java/com/tannous/pos/feature/sell/ReceiptScreen.kt`
-- **DI Module**: `mobile/core/src/main/java/com/tannous/pos/core/di/PrintingModule.kt`
+- **USB printing** is not implemented; the settings option is disabled.
+- **No retry** on transport failure — a failed print surfaces the exception message and the
+  cashier retries manually.
+- **Kitchen/prep tickets** are not implemented; only customer receipts print.
+- **No logo printing** — header is text only.
 
 ## Troubleshooting
 
-### Print dialog doesn't open
-
-- Check if PrintManager service is available
-- Ensure app has proper context
-- Check logs for WebView errors
-
-### Receipt formatting issues
-
-- Check HTML generation in `generateReceiptHtml()`
-- Verify CSS styles for print media
-- Test on different screen sizes
-
-### Share not working
-
-- Check if Intent.ACTION_SEND is available
-- Verify receipt text generation
-- Check device share capabilities
-
-
+| Symptom | Check |
+|---|---|
+| "No network printer host configured" | Host field empty in settings |
+| "No Bluetooth printer configured" | No paired device selected, or adapter unavailable |
+| Connection timeout | 15s TCP timeout; verify host/port reachable from the device's network |
+| Text wraps or columns collide | Paper width setting does not match the physical printer |
+| Print succeeds but nothing prints | Printer is not ESC/POS compatible, or expects a different codepage |

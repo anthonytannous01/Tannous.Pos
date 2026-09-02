@@ -551,7 +551,9 @@ data class CreateOrderLineAddOnRequest(
 
 @Serializable
 data class FinalizeOrderRequest(
-    val payments: List<PaymentDto>
+    val payments: List<PaymentDto>,
+    /// Physical currency change is handed back in ("USD" or "LBP"). Omitted → backend defaults USD.
+    val changeCurrency: String? = null
 )
 
 @Serializable
@@ -560,9 +562,11 @@ data class VoidOrderRequest(val reason: String)
 @Serializable
 data class PaymentDto(
     val paymentMethod: String,
-    val amount: Double, // Must be a JSON number — backend decimal field rejects strings
+    val amount: Double, // Must be a JSON number — backend decimal field rejects strings.
+                        // For tenderedCurrency="LBP" this is the RAW LBP amount.
     val transactionId: String? = null,
-    val notes: String? = null
+    val notes: String? = null,
+    val tenderedCurrency: String? = null // omitted → backend defaults "USD"
 )
 
 // Employee scheduling & time tracking (distinct from cash register shifts)
@@ -686,6 +690,7 @@ data class OpenShiftRequest(
 data class CashDropRequest(
     @Serializable(with = BigDecimalAsStringSerializer::class)
     val amount: BigDecimal,
+    val currency: String? = null, // "USD"/"LBP"; omitted → backend defaults "USD"
     @SerialName("note")
     val note: String? = null
 )

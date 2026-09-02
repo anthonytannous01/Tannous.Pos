@@ -63,7 +63,6 @@ private fun LebanonPresetDialog(
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToPrintingPreview: () -> Unit,
     onNavigateToReports: () -> Unit,
     onNavigateToOrderHistory: () -> Unit,
     onNavigateToInventory: () -> Unit,
@@ -313,31 +312,6 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(if (isArabic) "المخزون" else "Inventory")
-                            Spacer(modifier = Modifier.weight(1f))
-                            Icon(
-                                Icons.Default.ArrowForward,
-                                contentDescription = null
-                            )
-                        }
-                    }
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = onNavigateToPrintingPreview
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                Icons.Default.Info,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text(if (isArabic) "معاينة الطباعة" else "Printing Preview")
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(
                                 Icons.Default.ArrowForward,

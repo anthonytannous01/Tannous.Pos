@@ -326,8 +326,8 @@ fun ShiftsScreen(
     // Cash Drop Dialog
     if (showCashDropDialog && uiState.activeShift != null) {
         CashDropDialog(
-            onConfirm = { amount, note ->
-                viewModel.cashDrop(uiState.activeShift!!.id, amount, note)
+            onConfirm = { amount, currency, note ->
+                viewModel.cashDrop(uiState.activeShift!!.id, amount, currency, note)
                 showCashDropDialog = false
             },
             onDismiss = { showCashDropDialog = false }

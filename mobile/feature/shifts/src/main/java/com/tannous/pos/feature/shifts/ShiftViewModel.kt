@@ -155,11 +155,11 @@ class ShiftViewModel @Inject constructor(
         }
     }
     
-    fun cashDrop(shiftId: String, amount: BigDecimal, note: String? = null) {
+    fun cashDrop(shiftId: String, amount: BigDecimal, currency: String = "USD", note: String? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
             try {
-                val result = shiftRepository.cashDrop(shiftId, amount, note)
+                val result = shiftRepository.cashDrop(shiftId, amount, currency, note)
                 result.fold(
                     onSuccess = { shift ->
                         _uiState.value = _uiState.value.copy(

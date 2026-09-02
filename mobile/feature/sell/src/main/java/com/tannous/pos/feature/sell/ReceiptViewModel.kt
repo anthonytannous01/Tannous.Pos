@@ -4,19 +4,13 @@ import android.content.Context
 import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.tannous.pos.core.data.model.OrderDto
 import com.tannous.pos.core.data.remote.OrderService
 import com.tannous.pos.core.data.remote.ReportsService
 import com.tannous.pos.core.data.repository.CatalogRepository
 import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
-import com.tannous.pos.core.printing.ReceiptFormatter
-import com.tannous.pos.core.printing.ReceiptItem
-import com.tannous.pos.core.printing.ReceiptPayment
-import com.tannous.pos.core.printing.ReceiptToPrint
-import com.tannous.pos.core.util.currencyFormatterFor
-import com.tannous.pos.feature.settings.printer.PrintResult
-import com.tannous.pos.feature.settings.printer.PrinterService
+import com.tannous.pos.core.printing.PrintResult
+import com.tannous.pos.core.printing.PrinterService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +46,9 @@ class ReceiptViewModel @Inject constructor(
 
     private val _isArabic = MutableStateFlow(false)
     val isArabic: StateFlow<Boolean> = _isArabic.asStateFlow()
+
+    private val _shareError = MutableStateFlow<String?>(null)
+    val shareError: StateFlow<String?> = _shareError.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -99,26 +96,12 @@ class ReceiptViewModel @Inject constructor(
         }
     }
 
-    private fun currentReceiptItems(): List<ReceiptItem>? {
-        val lines = _orderLines.value
-        if (lines.isEmpty()) return null
-        return lines.map { line ->
-            ReceiptItem(
-                name       = line.name,
-                nameAr     = line.nameAr,
-                quantity   = line.quantity,
-                unitPrice  = formatCurrency(line.unitPrice),
-                totalPrice = formatCurrency(line.totalPrice)
-            )
-        }
-    }
-    
     fun printReceipt(orderId: String) {
         viewModelScope.launch {
             try {
                 _printState.value = PrintState.Printing
                 val receipt = reportsService.getReceipt(orderId)
-                val result = printerService.printReceipt(receipt, settingsRepository.isArabic())
+                val result = printerService.printReceipt(receipt)
                 _printState.value = when (result) {
                     is PrintResult.Success -> PrintState.Success
                     is PrintResult.Failure -> PrintState.Error(result.message)
@@ -130,47 +113,39 @@ class ReceiptViewModel @Inject constructor(
         }
     }
     
-    fun shareReceipt(order: OrderDto) {
+    /**
+     * Shares the receipt as plain text. Uses the same server-rendered receipt the printer
+     * uses, so shared text matches the printed paper exactly (VAT, stamp duty, LBP total).
+     */
+    fun shareReceipt(orderId: String) {
         viewModelScope.launch {
             try {
-                // Create receipt payments (same as print)
-                val payments = listOf(
-                    ReceiptPayment(
-                        method = "PAID",
-                        amount = formatCurrency(order.total)
-                    )
-                )
-                
-                // Format receipt with resolved line items when available (null degrades gracefully)
-                val receipt = ReceiptFormatter.formatReceipt(
-                    order = order,
-                    items = currentReceiptItems(),
-                    payments = payments
-                )
-                
-                // Generate text receipt (bilingual: use Arabic labels + names when language = ar)
-                val receiptText = ReceiptFormatter.formatReceiptText(receipt, isArabic = _isArabic.value)
-                
-                // Create share intent
+                val receipt = reportsService.getReceipt(orderId)
+                val receiptText = printerService.renderShareText(receipt)
+
                 val shareIntent = Intent().apply {
                     action = Intent.ACTION_SEND
                     putExtra(Intent.EXTRA_TEXT, receiptText)
-                    putExtra(Intent.EXTRA_SUBJECT, "Receipt ${order.receiptNumber ?: order.orderNumber ?: ""}")
+                    putExtra(Intent.EXTRA_SUBJECT, "Receipt ${receipt.orderNumber}")
                     type = "text/plain"
                 }
-                
-                // Launch share dialog
+
                 val chooserIntent = Intent.createChooser(shareIntent, "Share Receipt")
                 chooserIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(chooserIntent)
-                
+
                 Timber.d("Receipt share intent launched")
             } catch (e: Exception) {
+                _shareError.value = e.message ?: "Could not load receipt to share"
                 Timber.e(e, "Error sharing receipt")
             }
         }
     }
-    
+
+    fun clearShareError() {
+        _shareError.value = null
+    }
+
     fun clearPrintState() {
         _printState.value = PrintState.Idle
     }
@@ -190,9 +165,6 @@ class ReceiptViewModel @Inject constructor(
         _voidState.value = VoidState.Idle
     }
     
-    private fun formatCurrency(amount: java.math.BigDecimal): String {
-        return currencyFormatterFor(_currencyCode.value).format(amount)
-    }
 }
 
 sealed class PrintState {

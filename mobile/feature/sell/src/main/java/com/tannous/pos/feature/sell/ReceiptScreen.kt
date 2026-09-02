@@ -39,6 +39,7 @@ fun ReceiptScreen(
     val voidState by viewModel.voidState.collectAsStateWithLifecycle()
     val orderLines by viewModel.orderLines.collectAsStateWithLifecycle()
     val currencyCode by viewModel.currencyCode.collectAsStateWithLifecycle()
+    val shareError by viewModel.shareError.collectAsStateWithLifecycle()
     val currencyFormatter = remember(currencyCode) { currencyFormatterFor(currencyCode) }
     val isArabic = LocalIsArabic.current
 
@@ -56,6 +57,16 @@ fun ReceiptScreen(
     // Best-effort fetch of line items for this order (never blocks the receipt)
     LaunchedEffect(order.id) {
         viewModel.loadOrderLines(order.id)
+    }
+
+    LaunchedEffect(shareError) {
+        shareError?.let { message ->
+            snackbarHostState.showSnackbar(
+                message = if (isArabic) "تعذرت مشاركة الفاتورة: $message" else "Could not share receipt: $message",
+                withDismissAction = true
+            )
+            viewModel.clearShareError()
+        }
     }
 
     // Show snackbar for print results
@@ -335,7 +346,7 @@ fun ReceiptScreen(
             ) {
                 // Share button
                 OutlinedButton(
-                    onClick = { viewModel.shareReceipt(order) },
+                    onClick = { viewModel.shareReceipt(order.id) },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(

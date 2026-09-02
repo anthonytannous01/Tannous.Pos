@@ -1,7 +1,7 @@
 # Governance Report — Architecture, Technical Debt & Long-Term Maintainability
 
 **Role:** Staff-level governance assessment (no rewrites, no new frameworks, no broad refactors).  
-**Authoritative baseline:** `.cursorrules`, `ARCHITECTURE_SUMMARY.md`, `CURSOR_RULES.md`, `IMPROVEMENT_REPORT.md`.  
+**Authoritative baseline:** `ARCHITECTURE_RULES.md`, `ARCHITECTURE_SUMMARY.md`, `IMPROVEMENT_REPORT.md`.  
 **Stack constraint (preserved):** ASP.NET Core, PostgreSQL, Android (Kotlin), Docker Compose, CQRS/MediatR, EF Core.
 
 ---
@@ -43,7 +43,7 @@ Without explicit enforcement (reviews, lint/architecture tests, and incremental 
 
 **Evidence:** WebApi controllers inject `PosDbContext` directly: `SyncController`, `SettingsController`, `CustomersController`, `ReportsController`, `AdminController`, `InventoryController`, `SuppliersController`; `ShiftsController` mixes MediatR + context.
 
-**Why dangerous long-term:** Business rules and query shapes become **copy/paste across actions**, bypass FluentValidation pipeline consistency, and **cannot be unit-tested** at the same granularity as handlers. New engineers ship “controller-sized features” that violate `.cursorrules` §2 without noticing.
+**Why dangerous long-term:** Business rules and query shapes become **copy/paste across actions**, bypass FluentValidation pipeline consistency, and **cannot be unit-tested** at the same granularity as handlers. New engineers ship “controller-sized features” that violate `ARCHITECTURE_RULES.md` §2 without noticing.
 
 **Risk:** **High**  
 **Future maintenance cost:** **High** (every change needs full-stack reasoning; refactors touch HTTP + EF together).
@@ -168,7 +168,7 @@ Without explicit enforcement (reviews, lint/architecture tests, and incremental 
 
 ## Recommended Priorities (Governance, Not Rewrites)
 
-1. **PR / AI checklist** literally derived from `.cursorrules` (one page): “new business logic → Application handler”, “no new direct DbContext in controllers”, “versioning rule for touched controller”.
+1. **PR / AI checklist** literally derived from `ARCHITECTURE_RULES.md` (one page): “new business logic → Application handler”, “no new direct DbContext in controllers”, “versioning rule for touched controller”.
 2. **Contract tests** for **sync** and **pagination** (golden JSON or consumer-driven fixtures) — highest ROI anti-drift.
 3. **Incremental extraction** of highest-risk controller-EF modules (**Sync**, **Customers**, **Reports**) into Application commands/queries **one endpoint cluster at a time**.
 4. **Single source of truth** for **tax/totals** (shared calculator or explicit “server authoritative” rule documented and enforced).
@@ -220,7 +220,7 @@ Without explicit enforcement (reviews, lint/architecture tests, and incremental 
 ## Important Constraints (Non-Negotiables for This Codebase)
 
 - Preserve **layer intent** even when migrating: `WebApi` = transport, `Application` = use cases, `Domain` = model/contracts, `Infrastructure` = persistence.  
-- **No new architectural styles** beyond established hybrid (per `.cursorrules`).  
+- **No new architectural styles** beyond established hybrid (per `ARCHITECTURE_RULES.md`).  
 - **CQRS for new business logic** — treat as default law for AI and humans.  
 - **Do not weaken** idempotency, device validation, or rate limiting on sensitive writes without explicit risk acceptance.  
 - **Mobile + Docker Compose** remain first-class; governance must include **cross-tier contracts**.  
@@ -230,4 +230,4 @@ Without explicit enforcement (reviews, lint/architecture tests, and incremental 
 
 ## Closing
 
-This system is **not architecturally broken** — it is **governance-sensitive**: the gap between **documented ideals** (`.cursorrules`, architecture summaries) and **allowed shortcuts in code** is wide enough that **entropy is the default outcome** unless enforcement becomes as boring and automatic as CI compilation. The highest leverage investments are **contract tests**, **freezing drift** (checklist + optional arch tests), and **incremental relocation** of the worst boundary violations—**especially sync and money paths**—without changing the stack or delivery model.
+This system is **not architecturally broken** — it is **governance-sensitive**: the gap between **documented ideals** (`ARCHITECTURE_RULES.md`, architecture summaries) and **allowed shortcuts in code** is wide enough that **entropy is the default outcome** unless enforcement becomes as boring and automatic as CI compilation. The highest leverage investments are **contract tests**, **freezing drift** (checklist + optional arch tests), and **incremental relocation** of the worst boundary violations—**especially sync and money paths**—without changing the stack or delivery model.

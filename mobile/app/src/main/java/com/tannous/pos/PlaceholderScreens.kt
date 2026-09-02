@@ -101,8 +101,7 @@ fun CustomersScreen(onNavigateBack: () -> Unit) {
 
 @Composable
 fun SettingsScreen(
-    onNavigateBack: () -> Unit,
-    onNavigateToPrintingPreview: () -> Unit
+    onNavigateBack: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -116,32 +115,9 @@ fun SettingsScreen(
             style = MaterialTheme.typography.headlineMedium
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onNavigateToPrintingPreview) {
-            Text("Go to Printing Preview")
-        }
-        Spacer(modifier = Modifier.height(8.dp))
         Button(onClick = onNavigateBack) {
             Text("Back")
         }
     }
 }
 
-@Composable
-fun PrintingPreviewScreen(onNavigateBack: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Printing Preview Screen",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onNavigateBack) {
-            Text("Back")
-        }
-    }
-}

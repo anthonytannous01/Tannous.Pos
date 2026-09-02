@@ -126,6 +126,9 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
+
+    // ESC/POS thermal receipt printing
+    implementation(libs.escpos.thermalprinter)
     
     // Firebase
     implementation(platform(libs.firebase.bom))
@@ -142,6 +145,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // Testing
+    testImplementation(libs.junit)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.mockwebserver)
     androidTestImplementation(libs.androidx.test.espresso.core)

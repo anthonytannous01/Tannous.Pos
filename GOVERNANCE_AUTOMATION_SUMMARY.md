@@ -1,6 +1,6 @@
 # Governance automation — implementation summary
 
-This summarizes **low-risk** guardrails added to enforce existing layering, naming, sync/pagination JSON contracts, observability anchors, OpenAPI surface, financial math drift prevention, and CI gates. It aligns with `.cursorrules`, `ARCHITECTURE_SUMMARY.md`, `CURSOR_RULES.md`, `IMPROVEMENT_REPORT.md`, `GOVERNANCE_REPORT.md`, and `ARCHITECTURE_DEBT_REPORT.md`.
+This summarizes **low-risk** guardrails added to enforce existing layering, naming, sync/pagination JSON contracts, observability anchors, OpenAPI surface, financial math drift prevention, and CI gates. It aligns with `ARCHITECTURE_RULES.md`, `ARCHITECTURE_SUMMARY.md`, `IMPROVEMENT_REPORT.md`, `GOVERNANCE_REPORT.md`, and `ARCHITECTURE_DEBT_REPORT.md`.
 
 ## 1. Implementation summary
 

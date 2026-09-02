@@ -102,7 +102,8 @@ class OrderRepository @Inject constructor(
      */
     suspend fun finalizeOrder(
         orderId: String,
-        payments: List<PaymentDto>
+        payments: List<PaymentDto>,
+        changeCurrency: String = "USD"
     ): Result<OrderDto> {
         return try {
             // orderId is the server UUID after createOrderFromCart re-keys the local row
@@ -117,7 +118,7 @@ class OrderRepository @Inject constructor(
             
             // Try to finalize via API first
             try {
-                val finalizeRequest = FinalizeOrderRequest(payments = payments)
+                val finalizeRequest = FinalizeOrderRequest(payments = payments, changeCurrency = changeCurrency)
                 val finalizedOrder = orderService.finalizeOrder(orderId, finalizeRequest)
                 
                 // Update local order with server response
@@ -138,8 +139,8 @@ class OrderRepository @Inject constructor(
                 orderDao.updateStatus(orderId, "PAID")
                 orderDao.updateReceiptNumber(orderId, "PENDING#${orderId.take(8)}")
                 
-                // Enqueue to outbox
-                val finalizeRequest = FinalizeOrderRequest(payments = payments)
+                // Enqueue to outbox (changeCurrency rides in the payload; SyncController reads it)
+                val finalizeRequest = FinalizeOrderRequest(payments = payments, changeCurrency = changeCurrency)
                 outboxManager.enqueueOperation(
                     type = "FinalizeOrder",
                     payload = finalizeRequest,

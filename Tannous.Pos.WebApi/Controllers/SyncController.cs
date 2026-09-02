@@ -861,6 +861,9 @@ public class SyncController : ControllerBase
         {
             ShiftId = shiftId,
             Amount = amount,
+            Currency = payload.TryGetValue("currency", out var currencyObj)
+                ? (currencyObj?.ToString() ?? "USD")
+                : "USD",
             Note = note,
             IdempotencyKey = operationId
         };
