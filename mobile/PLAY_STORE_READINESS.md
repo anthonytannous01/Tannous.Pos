@@ -191,8 +191,19 @@ pos,point of sale,restaurant pos,retail pos,cash register,inventory management,s
 ```
 
 ### Signing Setup
-1. Create keystore: `keytool -genkey -v -keystore tannous-pos.keystore -alias tannous-pos -keyalg RSA -keysize 2048 -validity 10000`
-2. Add to `local.properties`:
+
+**The release keystore is deliberately not in this repository.** `mobile/keystore/` and every
+`*.jks` / `*.keystore` file are gitignored, and the keystore was purged from git history after
+being committed by mistake in step-101. A fresh clone will not build a signed release until the
+keystore is copied in by hand from its offline backup.
+
+Losing the keystore means losing the ability to update the app on Play Store — there is no
+recovery. Keep at least one backup outside this machine (password manager or encrypted storage),
+and never place it inside the working tree of a repository.
+
+1. Create keystore (first time only): `keytool -genkey -v -keystore tannous-pos.keystore -alias tannous-pos -keyalg RSA -keysize 2048 -validity 10000`
+2. Place it at `mobile/keystore/` (gitignored) or anywhere outside the repo.
+3. Add to `local.properties` (also gitignored — never commit it):
    ```
    RELEASE_STORE_FILE=path/to/tannous-pos.keystore
    RELEASE_STORE_PASSWORD=your_password

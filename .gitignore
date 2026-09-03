@@ -12,15 +12,23 @@ mobile/.gradle/
 mobile/**/build/
 mobile/**/.transforms/
 mobile/local.properties
-mobile/*.keystore
-mobile/*.jks
 mobile/app/google-services.json
 
 # Secrets / environment
-.env
+# Signing material must never be committed. These patterns are recursive on purpose:
+# the previous 'mobile/*.jks' only matched the mobile/ directory itself, so the release
+# keystore in mobile/keystore/ was tracked despite looking ignored.
+*.jks
+*.keystore
 *.pfx
 *.p12
+*.jceks
+mobile/keystore/
+.env
 secrets/
+
+# Scratch
+commit-msg.txt
 
 # OS
 .DS_Store
