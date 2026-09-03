@@ -1,0 +1,65 @@
+# Line-ending policy for Tannous POS.
+#
+# Without this file, line endings depend on each machine's git config. The repo is
+# edited from Windows, from Android Studio, and occasionally through a Linux bridge
+# where core.autocrlf is unset — in that last case git reported every .cs file as
+# fully modified, because it compared a CRLF working tree against LF blobs. Pinning
+# the policy here makes the stored form deterministic regardless of who clones it.
+#
+# `text=auto` stores text files with LF in the repository and checks them out with
+# each platform's native endings. Files below override that where a tool demands a
+# specific ending, or where the content must never be touched at all.
+
+* text=auto
+
+# Source and config — normal text handling
+*.cs      text diff=csharp
+*.kt      text
+*.kts     text
+*.java    text
+*.gradle  text
+*.xml     text
+*.json    text
+*.yml     text
+*.yaml    text
+*.md      text
+*.txt     text
+*.sql     text
+*.properties text
+*.pro     text
+*.cfg     text
+*.toml    text
+
+# Windows scripts must have CRLF on disk or cmd.exe misparses them
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.ps1     text eol=crlf
+
+# Unix scripts must have LF on disk or the shebang line breaks
+*.sh      text eol=lf
+gradlew   text eol=lf
+
+# Binary — never transform, never diff as text
+*.jks     binary
+*.keystore binary
+*.p12     binary
+*.pfx     binary
+*.jar     binary
+*.aar     binary
+*.apk     binary
+*.aab     binary
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.webp    binary
+*.pdf     binary
+*.docx    binary
+*.xlsx    binary
+*.pptx    binary
+*.zip     binary
+*.7z      binary
+*.bin     binary
+*.ttf     binary
+*.otf     binary
