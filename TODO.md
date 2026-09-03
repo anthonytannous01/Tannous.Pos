@@ -27,16 +27,30 @@ ProGuard rules, release keystore, store listing, screenshots.
 
 ---
 
-## Arabic/RTL — KDS screen (partial)
+## Arabic/RTL — settled, no work pending
 
-**Status:** Partial ✅ — SellScreen + QR menu done. KDS not yet Arabic.
+**Status:** Done ✅ — closed 2026-09-04.
 
-**Receipts are English-only by decision, not by omission.** Thermal printers cannot
-shape Arabic text; the previous bitmap-rendering approach was removed deliberately.
-`ReceiptDto` still carries `nameAr`/`footerMessageAr` for the app UI, but the printer
-ignores them. See PRINTING.md. Do not re-add Arabic to receipts.
+**KDS is localized.** Titles, column headers, action buttons, empty state, elapsed-time
+labels, station chips (`stationNameAr`) and item names (`menuItemNameAr`) all switch with
+the language setting, and RTL mirroring is handled app-wide by `LocalLayoutDirection` in
+`TannousPosApp`. An earlier note here claiming KDS was "not yet Arabic" was out of date.
 
-KDS remains a follow-up.
+**Add-on names stay English by decision.** `AddOn` has no `NameAr` in the domain model,
+and adding one would need an entity change, a generated migration, DTO changes on both
+sides, an admin UI field, and sync handling — all so operators could type Arabic that the
+kitchen reads more slowly. Kitchen staff are comfortable in English, and add-on names are
+free text, so Latin-script Lebanese ("bala toum") covers the need with no code at all. The
+same applies to the order notes field. Do not build `AddOn.NameAr` without a new reason.
+
+**Receipts are English-only by decision.** Thermal printers cannot shape Arabic text; the
+bitmap-rendering workaround was removed deliberately. `ReceiptDto` still carries
+`nameAr`/`footerMessageAr` for the app UI, but the printer ignores them. See PRINTING.md.
+
+Known cosmetic gap, deliberately not fixed: the KDS order-type badge renders the raw
+backend string (`DINE-IN`, `TAKEAWAY`) untranslated, and `DashboardScreen` duplicates its
+own inline Arabic labels for the same values. Worth folding into a shared helper in `core`
+if order-type labels are ever touched for another reason.
 
 ---
 
