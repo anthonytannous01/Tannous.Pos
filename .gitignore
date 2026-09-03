@@ -30,6 +30,9 @@ secrets/
 # Scratch
 commit-msg.txt
 
+# Receipt captures from scripts/fake-printer.ps1 (regenerate as needed)
+captures/
+
 # OS
 .DS_Store
 Thumbs.db
