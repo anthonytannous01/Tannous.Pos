@@ -92,6 +92,28 @@ class SettingsRepository @Inject constructor(
         }
     }
 
+    /** Cached tax on/off switch. Defaults to true so a missing cache behaves as before. */
+    suspend fun isTaxEnabled(): Boolean {
+        return try {
+            keyValueDao.get(KEY_TAX_ENABLED)?.toBooleanStrictOrNull() ?: true
+        } catch (e: Exception) {
+            Timber.e(e, "Error reading cached tax enabled flag")
+            true
+        }
+    }
+
+    /**
+     * Tax fraction to apply to a cart, or zero when tax is switched off.
+     *
+     * Mirrors the server's `BusinessSettings.TaxApplies` rule (enabled AND rate above zero) so the
+     * cart total shown to a cashier matches what finalize will charge. If these two ever disagree,
+     * the cashier collects the wrong amount and finalize rejects the payment.
+     */
+    suspend fun getEffectiveTaxFraction(): BigDecimal {
+        val rate = getTaxRate()
+        return if (isTaxEnabled() && rate > BigDecimal.ZERO) rate else BigDecimal.ZERO
+    }
+
     /** Cached ISO 4217 currency code (e.g. "USD", "LBP"). Defaults to [DEFAULT_CURRENCY]. */
     suspend fun getCurrency(): String {
         return try {
@@ -118,6 +140,7 @@ class SettingsRepository @Inject constructor(
 
     private suspend fun cacheSettings(dto: com.tannous.pos.core.data.model.BusinessSettingsDto) {
         cacheTaxAndCurrency(dto.taxRate, dto.currency)
+        keyValueDao.set(KeyValueEntity(KEY_TAX_ENABLED, dto.taxEnabled.toString()))
         keyValueDao.set(KeyValueEntity(KEY_EXCHANGE_RATE, dto.exchangeRateLbpPerUsd.toPlainString()))
     }
 
@@ -160,12 +183,13 @@ class SettingsRepository @Inject constructor(
             storeName = "",
             taxRate = percent,
             currency = getCurrency(),
-            taxEnabled = percent > BigDecimal.ZERO
+            taxEnabled = isTaxEnabled()
         )
     }
 
     companion object {
         const val KEY_TAX_RATE    = "settings_tax_rate"
+        const val KEY_TAX_ENABLED = "settings_tax_enabled"
         const val KEY_CURRENCY    = "settings_currency"
         const val KEY_EXCHANGE_RATE = "settings_exchange_rate"
         const val KEY_LANGUAGE    = "settings_language"

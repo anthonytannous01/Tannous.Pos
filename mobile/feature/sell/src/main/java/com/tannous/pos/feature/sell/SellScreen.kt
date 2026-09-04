@@ -131,6 +131,26 @@ fun SellScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
+                            // Show the subtotal and tax separately whenever tax applies, so the
+                            // cashier can see how the amount owed is made up before collecting it.
+                            if (uiState.cartTax > 0.0) {
+                                Text(
+                                    text = if (isArabic)
+                                        "المجموع الفرعي: ${currencyFormatter.format(uiState.cartSubtotal)}"
+                                    else
+                                        "Subtotal: ${currencyFormatter.format(uiState.cartSubtotal)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = if (isArabic)
+                                        "الضريبة: ${currencyFormatter.format(uiState.cartTax)}"
+                                    else
+                                        "Tax: ${currencyFormatter.format(uiState.cartTax)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                             Text(
                                 text = if (isArabic) "الإجمالي: ${currencyFormatter.format(uiState.cartTotal)}" else "Total: ${currencyFormatter.format(uiState.cartTotal)}",
                                 style = MaterialTheme.typography.headlineSmall,

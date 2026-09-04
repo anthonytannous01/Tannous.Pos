@@ -48,6 +48,12 @@ class SellViewModel @Inject constructor(
     private val deliveryService: DeliveryService
 ) : ViewModel() {
     
+    /**
+     * Effective tax fraction from cached settings, refreshed with the catalog. Zero when tax is
+     * switched off. Held here so cart math never blocks a sale on a network call.
+     */
+    private var taxFraction: java.math.BigDecimal = java.math.BigDecimal.ZERO
+
     private val _uiState = MutableStateFlow(SellUiState())
     val uiState: StateFlow<SellUiState> = _uiState.asStateFlow()
     
@@ -94,6 +100,8 @@ class SellViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 settingsRepository.getSettings() // warm the tax-rate/currency cache (best-effort)
+                taxFraction = settingsRepository.getEffectiveTaxFraction()
+                updateCartTotal()
             } catch (e: Exception) {
                 Timber.w(e, "Settings warm-up failed — using defaults")
             }
@@ -205,15 +213,51 @@ class SellViewModel @Inject constructor(
         updateCartTotal()
     }
     
+    /**
+     * Recomputes the cart breakdown.
+     *
+     * Tax must be applied here, using the same rule and rounding as the server
+     * (OrderFinancialGovernance.ComputeTaxOnSubtotal): round to two decimals, half away from zero.
+     * Previously the cart showed the pre-tax subtotal and handed that to the payment dialog, so a
+     * cashier collecting the displayed amount was rejected by finalize as underpayment.
+     */
     private fun updateCartTotal() {
-        val total = _cartItems.value.sumOf { item ->
-            val itemTotal = item.menuItem.price.toDouble() * item.quantity
-            val addOnsTotal = item.addOns.sumOf { addOn -> 
-                addOn.price.toDouble() * addOn.quantity
+        val subtotal = _cartItems.value.fold(java.math.BigDecimal.ZERO) { acc, item ->
+            val lineTotal = item.menuItem.price.multiply(java.math.BigDecimal(item.quantity))
+            val addOnsTotal = item.addOns.fold(java.math.BigDecimal.ZERO) { a, addOn ->
+                // CartAddOn.price is a Double; go through valueOf so the decimal string is used
+                // rather than the binary expansion.
+                a.add(java.math.BigDecimal.valueOf(addOn.price).multiply(java.math.BigDecimal(addOn.quantity)))
             }
-            itemTotal + addOnsTotal
+            acc.add(lineTotal).add(addOnsTotal)
+        }.setScale(CURRENCY_SCALE, java.math.RoundingMode.HALF_UP)
+
+        val tax = subtotal
+            .multiply(taxFraction)
+            .setScale(CURRENCY_SCALE, java.math.RoundingMode.HALF_UP)
+
+        val total = subtotal.add(tax)
+
+        _uiState.update {
+            it.copy(
+                cartSubtotal = subtotal.toDouble(),
+                cartTax = tax.toDouble(),
+                cartTotal = total.toDouble()
+            )
         }
-        _uiState.update { it.copy(cartTotal = total) }
+    }
+
+    /** Reloads the effective tax rate from cached settings and refreshes the cart breakdown. */
+    private fun refreshTaxFraction() {
+        viewModelScope.launch {
+            taxFraction = try {
+                settingsRepository.getEffectiveTaxFraction()
+            } catch (e: Exception) {
+                Timber.w(e, "Could not read tax rate; treating cart as untaxed")
+                java.math.BigDecimal.ZERO
+            }
+            updateCartTotal()
+        }
     }
     
     fun refreshCatalogData() {
@@ -221,6 +265,8 @@ class SellViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 catalogRepository.refreshAllCatalogData()
+                settingsRepository.getSettings() // refresh the cached tax rate too
+                refreshTaxFraction()
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
                 Timber.e(e, "Error refreshing catalog data")
@@ -345,6 +391,12 @@ class SellViewModel @Inject constructor(
                         }
                         error?.message?.contains("403") == true -> {
                             "You don't have permission to finalize orders."
+                        }
+                        // Finalize rejects underpayment with a 409, same status as a genuine
+                        // concurrency conflict. Telling a cashier to "try again" on a payment that
+                        // is short by design sends them round the same loop forever.
+                        error?.message?.contains("Insufficient payment", ignoreCase = true) == true -> {
+                            "Amount is less than the order total. Check the total and re-enter."
                         }
                         error?.message?.contains("409") == true -> {
                             "Order conflict. Please try again."
@@ -491,10 +543,18 @@ class SellViewModel @Inject constructor(
     }
 }
 
+/** Money rounds to cents; a total that cannot be tendered cannot be paid. */
+private const val CURRENCY_SCALE = 2
+
 data class SellUiState(
     val categories: List<CategoryEntity> = emptyList(),
     val menuItems: List<MenuItemEntity> = emptyList(),
     val availableAddOns: List<AddOnEntity> = emptyList(),
+    /** Sum of line prices before tax. */
+    val cartSubtotal: Double = 0.0,
+    /** Tax on the current cart, already rounded to currency precision. Zero when tax is off. */
+    val cartTax: Double = 0.0,
+    /** Amount actually owed: subtotal + tax. This is what the payment dialog must collect. */
     val cartTotal: Double = 0.0,
     val isLoading: Boolean = false,
     val error: String? = null,
