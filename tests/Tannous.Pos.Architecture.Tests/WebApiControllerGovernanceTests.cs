@@ -67,8 +67,32 @@ public class WebApiControllerGovernanceTests
                 continue;
 
             var hasAuthorize = type.GetCustomAttribute<AuthorizeAttribute>() != null;
-            if (!hasAuthorize)
-                violations.Add($"{type.FullName} missing [Authorize] on controller class (AuthController exempt).");
+            if (hasAuthorize)
+                continue;
+
+            // A controller may omit the class-level attribute only if every action carries its own.
+            // CustomersController does this deliberately: ASP.NET Core combines class- and
+            // method-level [Authorize] with AND, so a class-level policy would break its
+            // read-only API-key path while still leaving every action protected.
+            var actions = type
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                .Where(m => !m.IsSpecialName && m.GetCustomAttribute<NonActionAttribute>() == null)
+                .ToList();
+
+            var unprotected = actions
+                .Where(m => m.GetCustomAttribute<AuthorizeAttribute>() == null
+                         && m.GetCustomAttribute<AllowAnonymousAttribute>() == null)
+                .Select(m => m.Name)
+                .ToList();
+
+            if (actions.Count == 0 || unprotected.Count > 0)
+            {
+                var detail = unprotected.Count > 0
+                    ? $" Unprotected actions: {string.Join(", ", unprotected)}."
+                    : " Controller exposes no actions to protect.";
+                violations.Add(
+                    $"{type.FullName} has no class-level [Authorize] and does not protect every action individually.{detail} (AuthController exempt.)");
+            }
         }
 
         Assert.True(violations.Count == 0, string.Join(Environment.NewLine, violations));
