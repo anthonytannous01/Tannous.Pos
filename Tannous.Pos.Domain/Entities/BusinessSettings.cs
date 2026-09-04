@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 using Tannous.Pos.Domain.Common;
 using Tannous.Pos.Domain.Common.ValueObjects;
 
@@ -13,7 +14,22 @@ public class BusinessSettings : BaseEntity, IAggregateRoot
     public string? Email { get; set; }
     public string? Website { get; set; }
     public string? TaxNumber { get; set; }
+    /// <summary>
+    /// Master switch for sales tax. When false, no tax is applied on any order path and the
+    /// receipt omits the tax line entirely, regardless of <see cref="TaxRate"/>.
+    /// The rate is deliberately preserved while disabled so it survives a toggle off and on.
+    /// </summary>
+    public bool TaxEnabled { get; set; } = true;
+
+    /// <summary>Tax rate as a whole-number percentage, e.g. 11 for 11%. Only applied when <see cref="TaxEnabled"/>.</summary>
     public decimal TaxRate { get; set; } = 0.0m;
+
+    /// <summary>
+    /// The single rule for whether tax applies. Use this everywhere rather than testing
+    /// <see cref="TaxRate"/> directly — a rate above zero means nothing while tax is switched off.
+    /// </summary>
+    [NotMapped]
+    public bool TaxApplies => TaxEnabled && TaxRate > 0m;
     public string Currency { get; set; } = "USD";
     public string? ReceiptHeader { get; set; }
     public string? ReceiptFooter { get; set; }

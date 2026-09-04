@@ -3,7 +3,8 @@ using Xunit;
 namespace Tannous.Pos.Architecture.Tests;
 
 /// <summary>
-/// Anchors intentional order-tax vs receipt-tax divergence (no unification in this phase).
+/// Anchors the tax path. The order-row vs receipt divergence was closed in Step 119: order
+/// create, finalize and kiosk all resolve tax from BusinessSettings through one helper.
 /// </summary>
 public class TaxDivergenceGovernanceTests
 {
@@ -21,12 +22,16 @@ public class TaxDivergenceGovernanceTests
     }
 
     [Fact]
-    public void OrderFinancialGovernance_documents_receipt_tax_divergence_risk()
+    public void OrderFinancialGovernance_documents_configuration_driven_tax()
     {
         var path = Path.Combine(RepoRoot(), "Tannous.Pos.Application", "Orders", "OrderFinancialGovernance.cs");
         var text = File.ReadAllText(path);
-        Assert.Contains("GOVERNANCE / RISK", text, StringComparison.Ordinal);
-        Assert.Contains("OrderFinancialTaxGovernance", text, StringComparison.Ordinal);
+
+        // Tax is resolved from settings, gated by TaxApplies, with the fixed-rate helper kept
+        // only for the first boot before BusinessSettings exists.
+        Assert.Contains("ComputeTaxOnSubtotal", text, StringComparison.Ordinal);
+        Assert.Contains("TaxApplies", text, StringComparison.Ordinal);
+        Assert.Contains("first-boot fallback", text, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -29,14 +29,29 @@ public class OrderFinancialInvariantGovernanceSourceTests
     }
 
     [Fact]
-    public void OrderFinancialGovernance_legacy_tax_referenced_from_create_and_finalize_handlers()
+    public void Order_tax_is_computed_only_through_OrderFinancialGovernance()
     {
         var root = ObservabilitySourceGovernanceTests.RepoRoot();
-        foreach (var rel in new[] { "Commands\\CreateOrder\\CreateOrderCommandHandler.cs", "Commands\\FinalizeOrder\\FinalizeOrderCommandHandler.cs" })
+
+        // Every path that creates or settles an order, including kiosk. Before Step 119 the tax
+        // rule existed in four places and two of them ignored BusinessSettings entirely, so an
+        // open order showed tax the receipt would not charge.
+        var handlers = new[]
         {
-            var path = Path.Combine(root, "Tannous.Pos.Application", "Orders", rel);
+            Path.Combine(root, "Tannous.Pos.Application", "Orders", "Commands", "CreateOrder", "CreateOrderCommandHandler.cs"),
+            Path.Combine(root, "Tannous.Pos.Application", "Orders", "Commands", "FinalizeOrder", "FinalizeOrderCommandHandler.cs"),
+            Path.Combine(root, "Tannous.Pos.Application", "Kiosk", "Commands", "CreateKioskOrder", "CreateKioskOrderCommandHandler.cs"),
+        };
+
+        foreach (var path in handlers)
+        {
+            Assert.True(File.Exists(path), $"Missing {path}");
             var text = File.ReadAllText(path);
-            Assert.Contains("OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal", text, StringComparison.Ordinal);
+
+            Assert.Contains("OrderFinancialGovernance.ComputeTaxOnSubtotal", text, StringComparison.Ordinal);
+
+            // An inline percentage calculation means a fifth copy of the rule has appeared.
+            Assert.DoesNotContain("TaxRate / 100m", text, StringComparison.Ordinal);
         }
     }
 

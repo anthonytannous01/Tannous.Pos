@@ -2,6 +2,7 @@ using MediatR;
 using Tannous.Pos.Domain.Entities;
 using Tannous.Pos.Domain.Enums;
 using Tannous.Pos.Domain.Interfaces;
+using Tannous.Pos.Application.Orders;
 
 namespace Tannous.Pos.Application.Kiosk.Commands.CreateKioskOrder;
 
@@ -44,10 +45,9 @@ public class CreateKioskOrderCommandHandler
 
         var subTotal = request.Lines.Sum(l => l.UnitPrice * l.Quantity);
 
-        // Apply tax from settings (or 0 if not configured)
-        var taxAmount = settings?.TaxRate > 0
-            ? decimal.Round(subTotal * (settings.TaxRate / 100m), 2, MidpointRounding.AwayFromZero)
-            : 0m;
+        // Shared with CreateOrder and FinalizeOrder so every order path agrees on tax.
+        // Kiosk orders have no settings-null fallback case in practice, but the helper covers it.
+        var taxAmount = OrderFinancialGovernance.ComputeTaxOnSubtotal(subTotal, settings);
 
         var total = subTotal + taxAmount;
 

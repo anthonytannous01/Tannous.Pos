@@ -159,6 +159,13 @@ public class PosDbContext : DbContext
             .HasColumnType("decimal(18,2)")
             .HasDefaultValue(0m);
 
+        // Existing installations must keep taxing after this column is introduced, so the
+        // backfill default is true. A fresh install still charges nothing until a rate is set,
+        // because TaxApplies also requires TaxRate > 0.
+        modelBuilder.Entity<BusinessSettings>()
+            .Property(bs => bs.TaxEnabled)
+            .HasDefaultValue(true);
+
         modelBuilder.Entity<BusinessSettings>()
             .Property(bs => bs.ExchangeRateLbpPerUsd)
             .HasColumnType("decimal(18,2)")

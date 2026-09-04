@@ -45,7 +45,7 @@ public class GetSettingsQueryHandler : IRequestHandler<GetSettingsQuery, Setting
         TaxNumber                = settings.TaxNumber,
         TaxRate                  = settings.TaxRate,
         Currency                 = settings.Currency,
-        TaxEnabled               = settings.TaxRate > 0,
+        TaxEnabled               = settings.TaxApplies,
         ReceiptHeader            = settings.ReceiptHeader,
         ReceiptFooter            = settings.ReceiptFooter,
         RequireCustomerInfo      = settings.RequireCustomerInfo,

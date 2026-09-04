@@ -29,6 +29,7 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         settings.Email                 = dto.Email;
         settings.Website               = dto.Website;
         settings.TaxNumber             = dto.TaxNumber;
+        settings.TaxEnabled            = dto.TaxEnabled;
         settings.TaxRate               = dto.TaxRate;
         settings.Currency              = dto.Currency;
         settings.ReceiptHeader         = dto.ReceiptHeader;
@@ -67,7 +68,7 @@ public class UpdateSettingsCommandHandler : IRequestHandler<UpdateSettingsComman
         TaxNumber                = settings.TaxNumber,
         TaxRate                  = settings.TaxRate,
         Currency                 = settings.Currency,
-        TaxEnabled               = settings.TaxRate > 0,
+        TaxEnabled               = settings.TaxApplies,
         ReceiptHeader            = settings.ReceiptHeader,
         ReceiptFooter            = settings.ReceiptFooter,
         RequireCustomerInfo      = settings.RequireCustomerInfo,

@@ -28,7 +28,7 @@ public class PrintingService : IPrintingService
             Address = settings?.Address,
             Phone = settings?.Phone,
             Currency = settings?.Currency ?? "USD",
-            TaxEnabled = settings?.TaxRate > 0,
+            TaxEnabled = settings?.TaxApplies == true,
             Footer = settings?.ReceiptFooter,
             ExchangeRateLbpPerUsd = settings?.ExchangeRateLbpPerUsd ?? 0m,
             ShowLbpOnReceipt = settings?.ShowLbpOnReceipt ?? false,
@@ -117,7 +117,7 @@ public class PrintingService : IPrintingService
         // split; the stored TaxAmount is the authoritative value for receipt display. Do not recompute here.
         if (order.TaxAmount > 0)
         {
-            var taxLabel = settings?.TaxRate > 0
+            var taxLabel = settings?.TaxApplies == true
                 ? $"VAT ({settings.TaxRate}%)"
                 : "VAT";
             receipt.AppendLine(AlignText(taxLabel, order.TaxAmount.ToString("N2"), lineWidth));

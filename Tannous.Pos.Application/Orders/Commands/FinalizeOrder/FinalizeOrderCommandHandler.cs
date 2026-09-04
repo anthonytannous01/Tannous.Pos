@@ -268,16 +268,14 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 .Where(p => p.OrderId == order.Id && p.IsSuccessful)
                 .ToListAsync(cancellationToken);
 
-            // Tax computation:
-            //   - Settings unavailable (null)  → legacy 10% fallback (first-boot safety net)
-            //   - Settings present, TaxRate > 0 → apply configured rate
-            //   - Settings present, TaxRate = 0 → no tax (zero TaxRate is an explicit "no tax" signal;
-            //     applying the 10% legacy fallback here would silently override the operator's intent)
+            // Tax computation (shared with CreateOrder via OrderFinancialGovernance):
+            //   - Settings unavailable (null)     → legacy fallback (first-boot safety net)
+            //   - TaxEnabled false, or rate zero  → no tax; the operator switched tax off and the
+            //     stored rate must not override that intent
+            //   - Otherwise                       → configured percentage of subtotal
             var taxAmount = businessSettings == null
                 ? OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal)
-                : businessSettings.TaxRate > 0
-                    ? decimal.Round(subTotal * (businessSettings.TaxRate / 100m), 28, MidpointRounding.AwayFromZero)
-                    : 0m;
+                : OrderFinancialGovernance.ComputeTaxOnSubtotal(subTotal, businessSettings);
 
             // Stamp duty (Lebanon 2025 Budget Law): $2 USD on USD-denominated receipts.
             // Applied only when StampDutyEnabled = true in BusinessSettings.

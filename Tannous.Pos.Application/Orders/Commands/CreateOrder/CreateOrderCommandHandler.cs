@@ -18,6 +18,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
     private readonly ILogger<CreateOrderCommandHandler> _logger;
     private readonly IShiftRepository _shiftRepository;
     private readonly IBranchRepository _branchRepository;
+    private readonly IBusinessSettingsRepository _businessSettingsRepository;
 
     public CreateOrderCommandHandler(
         IOrderRepository orderRepository,
@@ -26,7 +27,8 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
         IUnitOfWork unitOfWork,
         ILogger<CreateOrderCommandHandler> logger,
         IShiftRepository shiftRepository,
-        IBranchRepository branchRepository)
+        IBranchRepository branchRepository,
+        IBusinessSettingsRepository businessSettingsRepository)
     {
         _orderRepository   = orderRepository;
         _menuItemRepository = menuItemRepository;
@@ -35,6 +37,7 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
         _logger             = logger;
         _shiftRepository    = shiftRepository;
         _branchRepository   = branchRepository;
+        _businessSettingsRepository = businessSettingsRepository;
     }
 
     public async Task<OrderDto> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -110,7 +113,12 @@ public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, Ord
         }
 
         order.SubTotal = subTotal;
-        order.TaxAmount = OrderFinancialGovernance.ComputeLegacyTaxOnSubtotal(subTotal);
+
+        // Tax must come from configuration here, not a fixed rate. Finalize already computes
+        // from BusinessSettings, so a hardcoded value at create time makes an open order display
+        // tax that vanishes when the order is finalized.
+        var businessSettings = await _businessSettingsRepository.GetAsync(cancellationToken);
+        order.TaxAmount = OrderFinancialGovernance.ComputeTaxOnSubtotal(subTotal, businessSettings);
         order.TotalAmount = order.SubTotal + order.TaxAmount - order.DiscountAmount;
 
         OrderFinancialSnapshotGovernance.LogIfSnapshotViolatesInvariants(
