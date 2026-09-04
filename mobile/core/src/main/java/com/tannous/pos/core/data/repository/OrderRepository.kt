@@ -103,14 +103,18 @@ class OrderRepository @Inject constructor(
     suspend fun finalizeOrder(
         orderId: String,
         payments: List<PaymentDto>,
-        changeCurrency: String = "USD"
+        changeCurrency: String = "USD",
+        settleRecordedPayments: Boolean = false
     ): Result<OrderDto> {
         return try {
             // orderId is the server UUID after createOrderFromCart re-keys the local row
             // Local totals for display only; the server total is authoritative online
             val lines = orderLineDao.getByOrderId(orderId)
             val subTotal = lines.sumOf { it.totalPrice }
-            val tax = subTotal * settingsRepository.getTaxRate()
+            // Effective rate honours the tax on/off switch; getTaxRate() alone would apply a stored
+            // rate that the server will not charge, so local display totals would exceed the receipt.
+            val tax = (subTotal * settingsRepository.getEffectiveTaxFraction())
+                .setScale(2, java.math.RoundingMode.HALF_UP)
             val total = subTotal + tax
             
             // Update order with final totals locally
@@ -118,7 +122,11 @@ class OrderRepository @Inject constructor(
             
             // Try to finalize via API first
             try {
-                val finalizeRequest = FinalizeOrderRequest(payments = payments, changeCurrency = changeCurrency)
+                val finalizeRequest = FinalizeOrderRequest(
+                    payments = payments,
+                    changeCurrency = changeCurrency,
+                    settleRecordedPayments = settleRecordedPayments
+                )
                 val finalizedOrder = orderService.finalizeOrder(orderId, finalizeRequest)
                 
                 // Update local order with server response
@@ -265,7 +273,10 @@ class OrderRepository @Inject constructor(
     private suspend fun updateOrderTotals(orderId: String) {
         val lines = orderLineDao.getByOrderId(orderId)
         val subTotal = lines.sumOf { it.totalPrice }
-        val tax = subTotal * settingsRepository.getTaxRate()
+        // Effective rate honours the tax on/off switch; getTaxRate() alone would apply a stored
+            // rate that the server will not charge, so local display totals would exceed the receipt.
+            val tax = (subTotal * settingsRepository.getEffectiveTaxFraction())
+                .setScale(2, java.math.RoundingMode.HALF_UP)
         val total = subTotal + tax
         
         orderDao.updateTotals(orderId, subTotal, tax, total)

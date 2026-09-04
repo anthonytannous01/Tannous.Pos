@@ -185,7 +185,8 @@ public class OrdersController : ControllerBase
                 OrderId = id,
                 Payments = request.Payments,
                 IdempotencyKey = idempotencyKey,
-                ChangeCurrency = request.ChangeCurrency
+                ChangeCurrency = request.ChangeCurrency,
+                SettleRecordedPayments = request.SettleRecordedPayments
             };
 
             var result = await _mediator.Send(command);
@@ -293,6 +294,12 @@ public class FinalizeOrderRequest
 
     /// <summary>Physical currency change is handed back in ("USD" or "LBP"). Defaults to USD.</summary>
     public string ChangeCurrency { get; set; } = "USD";
+
+    /// <summary>
+    /// Settle an order whose payments were already recorded individually, as the split-bill flow
+    /// does. Payments is then legitimately empty. Settlement is still enforced server-side.
+    /// </summary>
+    public bool SettleRecordedPayments { get; set; }
 }
 
 public class VoidOrderRequest

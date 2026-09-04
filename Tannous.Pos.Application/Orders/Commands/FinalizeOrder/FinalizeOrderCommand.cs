@@ -12,6 +12,15 @@ public class FinalizeOrderCommand : IRequest<OrderDto>
     /// <summary>Physical currency the cashier hands change back in ("USD" or "LBP").
     /// Cashier chooses per sale; defaults to USD. Drives per-currency drawer math.</summary>
     public string ChangeCurrency { get; set; } = "USD";
+
+    /// <summary>
+    /// Settle an order whose payments were already recorded, rather than supplying them now.
+    /// The split-bill flow records each person's payment as it is collected, so by the time the
+    /// order is fully paid there is nothing left to send and <see cref="Payments"/> is empty.
+    /// The handler still sums existing payments and rejects underpayment, so this relaxes the
+    /// "send at least one payment" request rule without weakening settlement.
+    /// </summary>
+    public bool SettleRecordedPayments { get; set; }
 }
 
 public class PaymentDto

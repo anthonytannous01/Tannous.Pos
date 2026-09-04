@@ -11,8 +11,12 @@ public class FinalizeOrderCommandValidator : AbstractValidator<FinalizeOrderComm
             .NotEmpty()
             .WithMessage("Order ID is required");
 
+        // An ordinary finalize must carry its payments. A split-bill settlement must not: those
+        // payments are already rows on the order, and resending them would double-count. The
+        // handler enforces full settlement either way, so this rule only governs request shape.
         RuleFor(x => x.Payments)
             .NotEmpty()
+            .When(x => !x.SettleRecordedPayments)
             .WithMessage("At least one payment is required");
 
         RuleForEach(x => x.Payments)

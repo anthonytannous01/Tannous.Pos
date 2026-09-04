@@ -169,7 +169,15 @@ class SplitBillViewModel @Inject constructor(
     }
 
     private suspend fun finalizeSplitOrder() {
-        val result = orderRepository.finalizeOrder(orderId, emptyList())
+        // Every person's payment is already a row on the order, so there is nothing to send.
+        // settleRecordedPayments tells the server that an empty list is intentional; without it
+        // the request validator rejected this call as "At least one payment is required" and the
+        // final person's payment appeared to fail with a 400.
+        val result = orderRepository.finalizeOrder(
+            orderId = orderId,
+            payments = emptyList(),
+            settleRecordedPayments = true
+        )
         result.fold(
             onSuccess = { order ->
                 _uiState.update {

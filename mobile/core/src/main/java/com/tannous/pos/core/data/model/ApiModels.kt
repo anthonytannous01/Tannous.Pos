@@ -553,7 +553,10 @@ data class CreateOrderLineAddOnRequest(
 data class FinalizeOrderRequest(
     val payments: List<PaymentDto>,
     /// Physical currency change is handed back in ("USD" or "LBP"). Omitted → backend defaults USD.
-    val changeCurrency: String? = null
+    val changeCurrency: String? = null,
+    /// Settle an order whose payments were already recorded one by one, as split bill does.
+    /// [payments] is then legitimately empty; the server still verifies full settlement.
+    val settleRecordedPayments: Boolean = false
 )
 
 @Serializable
