@@ -147,7 +147,8 @@ fun TannousPosApp(
                         navController.navigate("receipt/${order.id}") {
                             popUpTo("sell") { inclusive = false }
                         }
-                    }
+                    },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

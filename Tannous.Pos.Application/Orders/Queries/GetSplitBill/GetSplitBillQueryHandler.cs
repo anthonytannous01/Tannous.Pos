@@ -23,10 +23,12 @@ public class GetSplitBillQueryHandler : IRequestHandler<GetSplitBillQuery, Split
         if (order == null)
             return null;
 
-        if (order.Status != OrderStatus.Open)
+        // Orders are created as Pending, never Open, so testing for Open alone rejected
+        // every order this endpoint would ever be asked about.
+        if (!order.Status.IsUnsettled())
         {
             throw new ValidationException(
-                $"Split bill is only available for open orders. Current status: {order.Status}.");
+                $"Split bill is only available for unsettled orders. Current status: {order.Status}.");
         }
 
         return SplitBillCalculator.Build(order, request.Ways);

@@ -49,7 +49,7 @@ public class VoidOrderCommandHandler : IRequestHandler<VoidOrderCommand, OrderDt
         if (order == null)
             throw new InvalidOperationException($"Order {request.OrderId} not found");
 
-        if (order.Status != OrderStatus.Open && order.Status != OrderStatus.Paid)
+        if (!order.Status.IsUnsettled() && order.Status != OrderStatus.Paid)
         {
             await _syncConflictRecorder.RecordAsync(
                 new SyncConflictRecordRequest
@@ -104,7 +104,7 @@ public class VoidOrderCommandHandler : IRequestHandler<VoidOrderCommand, OrderDt
                     return;
                 }
 
-                if (order.Status != OrderStatus.Open && order.Status != OrderStatus.Paid)
+                if (!order.Status.IsUnsettled() && order.Status != OrderStatus.Paid)
                 {
                     throw new InvalidOperationException(
                         $"Order {request.OrderId} cannot be voided in current status: {order.Status}");

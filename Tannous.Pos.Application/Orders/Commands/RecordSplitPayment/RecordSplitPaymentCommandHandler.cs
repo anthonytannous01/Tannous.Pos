@@ -30,10 +30,10 @@ public class RecordSplitPaymentCommandHandler : IRequestHandler<RecordSplitPayme
         if (order == null)
             throw new ValidationException("Order not found.");
 
-        if (order.Status != OrderStatus.Open)
+        if (!order.Status.IsUnsettled())
         {
             throw new ValidationException(
-                $"Split payments can only be recorded on open orders. Current status: {order.Status}.");
+                $"Split payments can only be recorded on unsettled orders. Current status: {order.Status}.");
         }
 
         var alreadyPaid = order.Payments.Where(p => p.IsSuccessful).Sum(PaymentAmountUsd);

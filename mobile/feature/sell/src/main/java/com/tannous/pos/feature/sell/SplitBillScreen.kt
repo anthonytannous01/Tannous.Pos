@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -32,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,12 +51,22 @@ import java.math.BigDecimal
 fun SplitBillScreen(
     orderId: String,
     onComplete: (com.tannous.pos.core.data.model.OrderDto) -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: SplitBillViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val currencyFormatter = currencyFormatterFor("USD")
+
+    // Leaving is safe until money has been taken. Any recorded split payments stay on the order,
+    // which remains unsettled in the shift and can be finalized or voided later.
+    val hasRecordedPayments = uiState.splitData?.portions?.any { it.isPaid } == true
+    var showLeaveConfirm by remember { mutableStateOf(false) }
+
+    fun requestLeave() {
+        if (hasRecordedPayments) showLeaveConfirm = true else onNavigateBack()
+    }
 
     LaunchedEffect(orderId) {
         viewModel.initialize(orderId)
@@ -71,7 +83,9 @@ fun SplitBillScreen(
         uiState.finalizedOrder?.let { onComplete(it) }
     }
 
-    BackHandler(enabled = true) { /* disabled during split flow */ }
+    // Previously this swallowed the system back button while the toolbar arrow was also
+    // disabled, so an error on this screen left the user with no way out but killing the app.
+    BackHandler(enabled = true) { requestLeave() }
 
     Scaffold(
         topBar = {
@@ -80,16 +94,45 @@ fun SplitBillScreen(
                     Text(if (isArabic) "تقسيم الفاتورة" else "Split Bill")
                 },
                 navigationIcon = {
-                    if (uiState.step == SplitBillStep.ChooseSplit) {
-                        IconButton(onClick = { /* back disabled */ }, enabled = false) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = null)
-                        }
+                    IconButton(onClick = { requestLeave() }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = if (isArabic) "رجوع" else "Back"
+                        )
                     }
                 }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        if (showLeaveConfirm) {
+            AlertDialog(
+                onDismissRequest = { showLeaveConfirm = false },
+                title = { Text(if (isArabic) "إنهاء التقسيم؟" else "Leave split bill?") },
+                text = {
+                    Text(
+                        if (isArabic)
+                            "الدفعات المسجّلة تبقى على الطلب، ويمكن إتمامه أو إلغاؤه لاحقاً."
+                        else
+                            "Payments already recorded stay on the order. You can finish or void it later from the shift."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showLeaveConfirm = false
+                        onNavigateBack()
+                    }) {
+                        Text(if (isArabic) "خروج" else "Leave")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLeaveConfirm = false }) {
+                        Text(if (isArabic) "متابعة" else "Stay")
+                    }
+                }
+            )
+        }
+
         when (uiState.step) {
             SplitBillStep.ChooseSplit -> SplitChooseStep(
                 modifier = Modifier.padding(padding),
