@@ -128,14 +128,47 @@ The following are **not** fully automated yet (see roadmap in `GOVERNANCE_AUTOMA
 
 **Operational guidance:** Treat duplicate finalize and sync retries as normal; use **correlation id** + **idempotency key** logs for incident triage. Run integration tests in an environment with **Docker** for finalize/inventory assertions.
 
-## 12. Package advisory visibility (two open advisories)
+## 12. Package advisories — **CLOSED, and the mechanism fixed**
 
-- **`AutoMapper` 12.0.1** — **NU1903** ([GHSA-rvv3-g6hj-g44x](https://github.com/advisories/GHSA-rvv3-g6hj-g44x)).
-- **`Microsoft.Extensions.Caching.Memory` 8.0.0** — **NU1903** ([GHSA-qj66-m88j-hmgj](https://github.com/advisories/GHSA-qj66-m88j-hmgj)). Not previously recorded here; it appears only in build output, and `scan-debt.ps1` counts the AutoMapper one but not this. Both are high severity.
+Five high-severity advisories were open as of 2026-09-05. All are resolved.
 
-  Accepted for now in governance-only workstreams: no silent package bump without coordinated regression and mobile impact review.
-- **Visibility:** `governance/scan-debt.ps1` emits **`knownNugetAutoMapperAdvisoryCount: 1`** in `debt-report.json` and the grouped CI summary calls it out under **Advisory visibility** so the count is not “invisible noise” only in build logs.
-- **Future:** Plan an explicit upgrade + transitive dependency review; until then treat the warning as known operational debt.
+| Package | Advisory | Resolution |
+|---|---|---|
+| `AutoMapper` 12.0.1 | CVE-2026-32933, uncontrolled recursion, CVSS 7.5 | **Removed.** Entirely unused: one `AddAutoMapper` registration, zero `IMapper` injections, zero `Profile` classes, zero `CreateMap` calls. This codebase maps manually. Removal drops a dependency rather than adopting a newer one. |
+| `Microsoft.Extensions.Caching.Memory` 8.0.0 | CVE-2024-43483, hash-flooding DoS, CVSS 8.8 | Pinned to **8.0.1**. Used by `OperationalDiagnosticsCacheService`; also arrives via EF Core. |
+| `Npgsql` 8.0.0 | CVE-2024-32655, integer overflow in `WriteBind` enabling **SQL injection**, CVSS 8.1 | Pinned to **8.0.3**. |
+| `System.Text.Json` 8.0.0 | CVE-2024-30105, deserialization DoS, CVSS 8.7 | Pinned to **8.0.5**. |
+| `System.Text.Json` 8.0.0 | CVE-2024-43485, `[JsonExtensionData]` DoS, CVSS 8.8 | Same pin. |
+
+**Only two of these were ever visible.** `Npgsql` and both `System.Text.Json` advisories appeared
+the moment `NuGetAuditMode` was set to `all`: the default audits direct references only, and all
+three arrive transitively through EF Core and the Npgsql provider. The SQL injection one is the
+serious entry — it sits in the database driver, on every query path, and nothing had reported it.
+
+**Why the visible two persisted:** they printed as `NU1903` in every build for months. A warning
+that always appears is a warning nobody reads. CI's only vulnerability gate was Trivy scanning the
+Docker image, which does not inspect NuGet packages. The debt scan's advisory counter was a
+hardcoded `1` — it would have stayed 1 after a fix and never counted the others.
+
+**Fixed at the mechanism level:**
+
+- `Directory.Build.props` enables `NuGetAudit` with `NuGetAuditMode=all`. Under
+  `ContinuousIntegrationBuild=true` (which CI passes), `NU1902`–`NU1904` are errors, so a
+  vulnerable package fails the build. Locally they stay warnings, so an advisory published
+  mid-task cannot block work in progress.
+- CI runs `dotnet list package --vulnerable --include-transitive` so the summary names the package.
+- `scan-debt.ps1` counts vulnerable pins in `.csproj` files instead of asserting a constant.
+
+**Where the pins live matters.** They are in `Tannous.Pos.Infrastructure` and
+`Tannous.Pos.Application`, not solution-wide. `WebApi` and the architecture tests pull
+`Serilog.AspNetCore` 9.0.0, whose chain resolves `System.Text.Json` and
+`DependencyInjection.Abstractions` at 9.0.0 — already past every affected range. A blanket 8.0.x
+pin downgrades those projects and fails restore with `NU1605`. `Application` also needed
+`Microsoft.Extensions.Logging.Abstractions` raised to 8.0.2, the floor required by
+`Caching.Memory` 8.0.1.
+
+EF Core and the Npgsql provider were deliberately **not** bumped: only the vulnerable leaf
+packages moved, so the application keeps the EF stack it has been tested against.
 
 ---
 

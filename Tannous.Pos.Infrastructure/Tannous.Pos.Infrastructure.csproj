@@ -20,9 +20,24 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
+
+    <!--
+      Security pins. These arrive transitively through EF Core and the Npgsql provider, which
+      still resolve vulnerable 8.0.0 versions. Pinned here rather than solution-wide: WebApi and
+      the test project pull Serilog 9.0.0, which legitimately resolves these at 9.0.0, and a
+      blanket 8.0.x pin downgrades them (NU1605). Remove a pin once its parent package resolves
+      a patched version on its own.
+
+        Npgsql 8.0.3            CVE-2024-32655, integer overflow in WriteBind enabling SQL injection
+        System.Text.Json 8.0.5  CVE-2024-30105 and CVE-2024-43485, deserialization DoS
+        Caching.Memory 8.0.1    CVE-2024-43483, hash flooding DoS
+        DI.Abstractions 8.0.2   required by Caching.Memory 8.0.1
+    -->
+    <PackageReference Include="Npgsql" Version="8.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.4.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>

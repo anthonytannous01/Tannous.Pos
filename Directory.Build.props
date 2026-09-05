@@ -1,0 +1,27 @@
+<Project>
+
+  <!--
+    NuGet vulnerability auditing.
+
+    Five advisories were open when this was added, all high severity, all printing as NU1903 in
+    every build for months and acted on by nobody: a warning that always appears is a warning
+    nobody reads. Two were visible (AutoMapper, Caching.Memory); the other three (Npgsql and two
+    in System.Text.Json) only appeared once NuGetAuditMode was set to 'all', because the default
+    audits direct references only and most real exposure arrives transitively.
+
+    Locally these stay warnings, so an advisory published mid-task cannot block work in progress.
+    CI passes ContinuousIntegrationBuild=true, which promotes them to errors.
+  -->
+  <PropertyGroup>
+    <NuGetAudit>true</NuGetAudit>
+    <!-- Audit transitive packages too; most real exposure arrives that way. -->
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ContinuousIntegrationBuild)' == 'true'">
+    <!-- NU1902 through NU1904: moderate, high and critical advisories on referenced packages. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1902;NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

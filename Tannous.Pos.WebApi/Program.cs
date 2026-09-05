@@ -235,8 +235,6 @@ builder.Services.AddAuthorization(options =>
 // Configure MediatR
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Tannous.Pos.Application.Orders.Commands.CreateOrder.CreateOrderCommand).Assembly));
 
-// Configure AutoMapper
-builder.Services.AddAutoMapper(typeof(Tannous.Pos.Application.Orders.Commands.CreateOrder.CreateOrderCommand).Assembly);
 
 // Configure FluentValidation
 builder.Services.AddValidatorsFromAssembly(typeof(Tannous.Pos.Application.Orders.Commands.CreateOrder.CreateOrderCommand).Assembly);

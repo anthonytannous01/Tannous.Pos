@@ -207,8 +207,26 @@ if (Test-Path $readinessPath) {
     }
 }
 
-# Visibility only: known AutoMapper NU1903 advisory (do not upgrade in governance-only PRs).
-$knownNugetAutoMapperAdvisoryCount = 1
+# Was a hardcoded 1. A constant is not a measurement: it stayed 1 after the package was fixed,
+# and never counted the second advisory (Microsoft.Extensions.Caching.Memory CVE-2024-43483)
+# that had been in every build log for months. Now counts pinned packages known to carry an
+# open advisory. The authoritative gate is `dotnet list package --vulnerable` plus NuGetAudit
+# promoted to an error in CI (see Directory.Build.props); this stays as a visibility signal.
+$vulnerablePinnedPackages = @(
+    'Include="AutoMapper" Version="12.',
+    'Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0"'
+)
+$csprojFiles = @(Get-ChildItem -Path $root -Filter '*.csproj' -File -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\(obj|bin)\\' } |
+    ForEach-Object { $_.FullName })
+$knownNugetAutoMapperAdvisoryCount = 0
+foreach ($proj in $csprojFiles) {
+    $projText = Get-Content -Path $proj -Raw -ErrorAction SilentlyContinue
+    if (-not $projText) { continue }
+    foreach ($needle in $vulnerablePinnedPackages) {
+        if ($projText.Contains($needle)) { $knownNugetAutoMapperAdvisoryCount++ }
+    }
+}
 
 # --- Sync replay / partial-batch observability counts (warning/reporting only; not hard budgets) ---
 $moneyReplayRiskProcessorCount = 0
@@ -2410,7 +2428,7 @@ Write-Host "EF snapshot SyncOperationReceipt unique (DeviceId, OperationId) inde
 Write-Host "GlobalExceptionHandler Status409Conflict lines: $conflictProblemDetailsCount"
 Write-Host "Optimistic concurrency governance log templates (finalize/void/global): $concurrencyWarningLogCount"
 Write-Host "Optimistic concurrency entity rows (entity baseline JSON): $optimisticConcurrencyEntityCount"
-Write-Host "Known NU1903 AutoMapper advisory (visibility count): $knownNugetAutoMapperAdvisoryCount"
+Write-Host "Pinned packages with open advisories (visibility count): $knownNugetAutoMapperAdvisoryCount"
 Write-Host "Money replay risk Process* (money|inv + replay wording + placeholder/governance): $moneyReplayRiskProcessorCount"
 Write-Host "Money-path replay|idempotency token matches (Create/Finalize/OpenShift/CashDrop bodies): $moneyPathReplayRiskCount"
 Write-Host "Missing durable idempotency / replay persistence comment tokens (Orders + SyncController): $missingDurableIdempotencyCommentCount"

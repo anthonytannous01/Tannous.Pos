@@ -1,6 +1,6 @@
 # Tannous POS — Project Status
 
-_Assessed 2026-09-05, after Step 124._
+_Assessed 2026-09-05, after Step 125._
 
 A snapshot of what is built, what is genuinely outstanding, and what is merely stale
 documentation. Update this when the picture changes; do not let it rot like the reports
@@ -63,15 +63,16 @@ The scan was re-run and the report rewritten. Findings:
 
 Controllers grew 14 → 29 over the same period while coupling went to zero.
 
-### 3. Two known security advisories accepted but never revisited
+### 3. Security advisories — **closed 2026-09-05**
 
-- **AutoMapper 12.0.1** — NU1903, GHSA-rvv3-g6hj-g44x. Documented as accepted debt in §12
-  with an upgrade "planned". Still 12.0.1.
-- **Microsoft.Extensions.Caching.Memory 8.0.0** — NU1903, GHSA-qj66-m88j-hmgj. Not recorded
-  anywhere; it surfaces only in build output. The stale debt report tracks the first and not
-  the second.
+Five, not the two that were visible. `AutoMapper` (removed, entirely unused),
+`Microsoft.Extensions.Caching.Memory` 8.0.1, `Npgsql` 8.0.3, and `System.Text.Json` 8.0.5 covering
+two CVEs. The Npgsql one was an integer overflow enabling SQL injection in the database driver.
 
-Both are high severity. Worth one dependency-upgrade step with a regression pass.
+Three of the five were invisible until `NuGetAuditMode` was set to `all`, because NuGet audits
+only direct references by default and all three arrived transitively. `NuGetAudit` now fails CI
+builds on moderate-and-above advisories; the previous only gate was Trivy on the Docker image,
+which does not inspect NuGet packages.
 
 ### 4. Four controllers outside the versioning convention
 

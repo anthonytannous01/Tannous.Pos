@@ -25,7 +25,14 @@ jobs:
       run: dotnet restore
 
     - name: Build (Release)
-      run: dotnet build --no-restore --configuration Release --verbosity minimal
+      # ContinuousIntegrationBuild promotes NuGet audit warnings (NU1902-NU1904) to errors via
+      # Directory.Build.props, so a vulnerable package fails the build instead of scrolling past.
+      run: dotnet build --no-restore --configuration Release --verbosity minimal -p:ContinuousIntegrationBuild=true
+
+    - name: NuGet vulnerability report
+      # Informational listing so the job summary names the packages, not just the error codes.
+      if: always()
+      run: dotnet list package --vulnerable --include-transitive
 
     - name: Format check
       run: dotnet format --verify-no-changes
