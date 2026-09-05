@@ -22,16 +22,21 @@ the code was fixed — a reminder that a debt report is only as good as its last
 
 **Direction (unchanged):** repositories stay behind Application handlers for new features.
 
-## 3. Unversioned controllers — **one remaining**
+## 3. Unversioned controllers — **CLOSED**
 
-| Area | Detail |
-|------|--------|
-| `DevicesController` | `api/[controller]` only, no `v{version:apiVersion}` route. The last unversioned controller; allowlisted in `ControllerVersioningGovernanceTests`. |
-| Dual `api/...` + `api/v{version}/...` | Several controllers expose both patterns deliberately, for mobile clients that predate versioned routes. Not debt; removing either side breaks a shipped client. |
+**`unversionedControllerCount: 0`.** `DevicesController` was the last one; it now carries both
+`api/[controller]` and `api/v{version:apiVersion}/[controller]`. The legacy route is kept because
+device registration is performed by hand when provisioning a tablet and may exist in a saved
+request — no code in this repository calls either form.
 
-**`unversionedControllerCount: 1`**, budget tightened from 4 to **1** so a second one cannot
-appear unnoticed. Versioning `Devices` closes this section; the only cost is that any client
-calling `api/Devices` must be updated or a dual route kept.
+The `UnversionedRouteAllowlist` in `ControllerVersioningGovernanceTests` is now **empty**. It had
+held four entries; three of them (`Inventory`, `Suppliers`, `Reports`) had been versioned long
+before, so the allowlist was granting exemptions nobody needed and would have silently permitted
+a regression on any of the three. The budget ceiling is 0, so a new unversioned controller fails
+CI twice: once on the governance test, once on the budget.
+
+Dual `api/...` plus `api/v{version}/...` routes on several controllers are deliberate, for mobile
+clients that predate versioned routes. Not debt; removing either side breaks a shipped client.
 
 ## 3a. Unauthenticated endpoints and rate limiting
 

@@ -68,12 +68,12 @@ $rules = @(
         Detail = "allowAnonymousCount=$($report.allowAnonymousCount) (threshold: >9 fails)"
     }
     @{
-        # Tightened from 4 to 1 on 2026-09-05: the scan reports 1, so a ceiling of 4 allowed
-        # three more unversioned controllers to appear unnoticed. Lower this again as the last
-        # one is versioned; raise it only with a reason recorded here.
-        Name   = 'unversionedControllerCount (must be <= 1)'
-        Pass   = ([int]$report.unversionedControllerCount -le 1)
-        Detail = "unversionedControllerCount=$($report.unversionedControllerCount) (threshold: >1 fails)"
+        # 4 -> 1 -> 0 on 2026-09-05. Every controller now carries a versioned route, and the
+        # governance test's allowlist is empty, so a new unversioned controller fails CI twice.
+        # Raise this only with a reason recorded here.
+        Name   = 'unversionedControllerCount (must be 0)'
+        Pass   = ([int]$report.unversionedControllerCount -le 0)
+        Detail = "unversionedControllerCount=$($report.unversionedControllerCount) (threshold: >0 fails)"
     }
     @{
         Name   = 'posDbContextInjectionCount (must be <= baseline max)'

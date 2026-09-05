@@ -12,14 +12,16 @@ public class ControllerVersioningGovernanceTests
 {
     private const string VersionToken = "v{version:apiVersion}";
 
-    /// <summary>Controllers without any versioned route template (legacy).</summary>
-    private static readonly HashSet<string> UnversionedRouteAllowlist = new(StringComparer.Ordinal)
-    {
-        nameof(Tannous.Pos.WebApi.Controllers.DevicesController),
-        nameof(Tannous.Pos.WebApi.Controllers.InventoryController),
-        nameof(Tannous.Pos.WebApi.Controllers.SuppliersController),
-        nameof(Tannous.Pos.WebApi.Controllers.ReportsController),
-    };
+    /// <summary>
+    /// Controllers permitted to have no versioned route template. Empty as of 2026-09-05.
+    ///
+    /// It previously held four entries. Three of them (Inventory, Suppliers, Reports) had been
+    /// versioned long before, so the allowlist was granting exemptions nobody needed and would
+    /// have silently permitted a regression on any of them. DevicesController was versioned in
+    /// Step 126. An entry here is an exemption from a rule, so it should be removed the moment
+    /// it stops being true.
+    /// </summary>
+    private static readonly HashSet<string> UnversionedRouteAllowlist = new(StringComparer.Ordinal);
 
     private static IEnumerable<Type> ControllerTypes() =>
         typeof(Tannous.Pos.WebApi.Controllers.AuthController).Assembly

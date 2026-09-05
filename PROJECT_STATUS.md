@@ -74,11 +74,14 @@ only direct references by default and all three arrived transitively. `NuGetAudi
 builds on moderate-and-above advisories; the previous only gate was Trivy on the Docker image,
 which does not inspect NuGet packages.
 
-### 4. Four controllers outside the versioning convention
+### 4. Controller versioning — **closed 2026-09-05**
 
-`Suppliers`, `Inventory`, `Reports` and `Devices` expose unversioned routes only. A client
-assuming `/api/v1.0/` breaks against them. Allowlisted in
-`ControllerVersioningGovernanceTests`, so CI will not catch drift here.
+`DevicesController` was the last unversioned controller and now carries both routes. The
+governance allowlist is empty and the budget ceiling is 0.
+
+Worth noting how it was found: the allowlist named four controllers, but three had been versioned
+long ago. A stale exemption is indistinguishable from a live one, and would have let any of those
+three regress unnoticed.
 
 ### 5. Two sync processors are placeholders
 

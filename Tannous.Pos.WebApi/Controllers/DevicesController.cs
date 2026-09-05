@@ -6,7 +6,12 @@ using Tannous.Pos.WebApi.Constants;
 namespace Tannous.Pos.WebApi.Controllers;
 
 [ApiController]
+// Dual route: the versioned form is the convention for new clients, and the unversioned form is
+// retained because device registration is done by hand when provisioning a tablet and may exist
+// in someone's saved request. No code in this repository calls either form.
 [Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 [Authorize(Policy = PolicyConstants.CanManageUsers)]
 public class DevicesController : ControllerBase
 {
