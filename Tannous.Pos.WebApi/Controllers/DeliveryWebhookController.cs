@@ -2,6 +2,7 @@ using System.Text;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Tannous.Pos.Application.Delivery.Channels;
 using Tannous.Pos.Application.Delivery.Commands.IngestChannelOrder;
@@ -19,6 +20,7 @@ namespace Tannous.Pos.WebApi.Controllers;
 [Route("api/v{version:apiVersion}/delivery/channels")]
 [ApiVersion("1.0")]
 [AllowAnonymous]
+[EnableRateLimiting("PublicWebhook")]
 public class DeliveryWebhookController : ControllerBase
 {
     private readonly IMediator _mediator;

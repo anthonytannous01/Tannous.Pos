@@ -2,48 +2,59 @@
 
 This document tracks **known** architectural drift and risky areas. It complements automated checks in `tests/Tannous.Pos.Architecture.Tests` and CI (`.github/workflows/ci.yml`). Update it when allowlists shrink or when new debt is accepted intentionally.
 
-_Last reviewed: 2026-05-16 (payment settlement + change due consistency)_
+_Last reviewed: 2026-09-05 (debt scan refresh; anonymous endpoint rate limiting)_
 
-## 1. WebApi direct `PosDbContext` usage
+## 1. WebApi direct `PosDbContext` usage — **CLOSED**
 
-Controllers that still construct or use `PosDbContext` directly (temporary allowlist in `WebApiControllerGovernanceTests`):
+**`posDbContextInjectionCount: 0`** (scan 2026-09-05). The allowlist in
+`WebApiControllerGovernanceTests` is empty and `governance/debt-baseline.json` now caps this at
+**0**, so any reintroduction fails CI rather than being absorbed by slack in the budget.
 
-| Controller | Notes |
-|------------|--------|
-| `SyncController` | Large pull/push surface; highest coupling. |
-| `SettingsController` | Reads/writes `BusinessSettings` inline. |
-| `CustomersController` | ETag + audit paths mixed with EF. |
-| `ReportsController` | Reporting queries inline. |
-| `AdminController` | Admin operations + printing. |
-| `InventoryController` | Inventory + repositories + `PosDbContext`. |
-| `SuppliersController` | PO / goods receipt flows + repositories. |
-| `ShiftsController` | Shift lifecycle + idempotency + `PosDbContext`. |
+This section previously listed eight controllers (`Sync`, `Settings`, `Customers`, `Reports`,
+`Admin`, `Inventory`, `Suppliers`, `Shifts`). All were migrated behind MediatR; the last,
+`SyncController`, completed at Step 61 (Direction A). The list survived here for months after
+the code was fixed — a reminder that a debt report is only as good as its last scan.
 
-**Direction:** Move orchestration behind MediatR commands/queries over time; keep allowlist as the shrink list.
+## 2. WebApi direct domain repository usage — **CLOSED**
 
-**Counts & drift:** Run `powershell -NoProfile -ExecutionPolicy Bypass -File governance/scan-debt.ps1` for console output and **`governance/debt-report.json`**. CI runs **`governance/check-debt-budget.ps1`** afterward; committed ceilings live in **`governance/debt-baseline.json`** (PosDbContext / repository injection counts must not exceed those maxima without deliberate baseline update).
+**`repositoryInjectionCount: 0`** (scan 2026-09-05). Previously `CatalogController`,
+`InventoryController`, `SuppliersController` and `ShiftsController`. Baseline capped at **0**.
 
-## 2. WebApi direct domain repository usage
+**Direction (unchanged):** repositories stay behind Application handlers for new features.
 
-Allowlisted controllers injecting `*Repository` from `Tannous.Pos.Domain.Interfaces` (see `WebApiRepositoryInjectionGovernanceTests`):
-
-- `CatalogController`
-- `InventoryController`
-- `SuppliersController`
-- `ShiftsController`
-
-**Direction:** Prefer Application handlers + unit of work; repositories stay behind Application for new features.
-
-## 3. Unversioned or dual-route controllers
+## 3. Unversioned controllers — **one remaining**
 
 | Area | Detail |
 |------|--------|
-| Dual `api/...` + `api/v{version}/...` | `SyncController`, `CatalogController`, `PrintingController`, `ShiftsController`, `SettingsController`, `CustomersController` expose both patterns (mobile compatibility). |
-| Versioned only | `OrdersController`, `AuthController`, `UsersController`, `AdminController`. |
-| Unversioned route prefix only | `SuppliersController`, `InventoryController`, `ReportsController` use `api/[controller]` without `api/v{version:apiVersion}/[controller]` (historical risk for clients that assume `/api/v1.0/`). |
-| `DevicesController` | `api/Devices` only (no version segment). |
+| `DevicesController` | `api/[controller]` only, no `v{version:apiVersion}` route. The last unversioned controller; allowlisted in `ControllerVersioningGovernanceTests`. |
+| Dual `api/...` + `api/v{version}/...` | Several controllers expose both patterns deliberately, for mobile clients that predate versioned routes. Not debt; removing either side breaks a shipped client. |
 
-**Governance test:** `ControllerVersioningGovernanceTests` — new controllers must include `v{version:apiVersion}` in a route unless explicitly allowlisted (`Devices`, `Inventory`, `Suppliers`, `Reports`).
+**`unversionedControllerCount: 1`**, budget tightened from 4 to **1** so a second one cannot
+appear unnoticed. Versioning `Devices` closes this section; the only cost is that any client
+calling `api/Devices` must be updated or a dual route kept.
+
+## 3a. Unauthenticated endpoints and rate limiting
+
+**`allowAnonymousCount: 9`.** Every one was audited on 2026-09-05 and is anonymous by design:
+`Auth` login and refresh, the QuickBooks OAuth callback, the HMAC-verified delivery webhook,
+customer feedback submission, the kiosk controller, and the public QR menu controller.
+
+Until that audit **none of them had a rate limit.** Rate limiting was applied only to
+authenticated mutations, so `POST /kiosk/orders` would accept unlimited orders from any caller
+that could reach the API, and those orders appear directly on the kitchen display. The
+`MutationsPerDevice` policy would not have helped: it partitions on the `Device-Id` header,
+which anonymous callers do not send, so they would have shared one `"unknown"` bucket that a
+single client could exhaust for everyone.
+
+Three IP-partitioned policies now cover them — `PublicRead` (120/min), `PublicWrite` (30/min),
+`PublicWebhook` (300/min) — configurable under `RateLimiting` in `appsettings.json`.
+**`AnonymousEndpointRateLimitGovernanceTests`** fails the build if any anonymous endpoint lacks
+a policy; that test, not the count, is the protection. The budget threshold was raised 2 → 9
+with the audit recorded in `check-debt-budget.ps1`.
+
+Related fix: the `RateLimiting` configuration section was previously dead. Limits were hardcoded
+and `appsettings.json` advertised an auth limit of 5 while the code enforced 10. Values are now
+read from configuration with defaults equal to what was actually enforced.
 
 ## 4. Sync contract drift (documented)
 
@@ -55,9 +66,11 @@ Allowlisted controllers injecting `*Repository` from `Tannous.Pos.Domain.Interfa
 
 Inline role policies (`Owner`, `Cashier`, `Admin`, etc.) remain registered in `Program.cs` alongside `AuthorizationExtensions` (`PolicyConstants` / `RoleConstants`). New code should prefer **policy constants**, not new inline `RequireRole("...")` strings in controllers.
 
-## 6. CQRS bypass hotspots
+## 6. CQRS bypass hotspots — **CLOSED**
 
-Heavy EF / repository usage inside WebApi for the controllers listed in sections 1–2. New endpoints should default to **MediatR** + Application validators.
+Sections 1 and 2 are both at zero, so there are no remaining EF or repository hotspots in WebApi.
+New endpoints default to **MediatR** + Application validators, and the baselines now fail CI on
+any reintroduction rather than tolerating a budget of 16 and 46.
 
 ## 7. ProblemDetails vs ad-hoc JSON
 
@@ -115,9 +128,12 @@ The following are **not** fully automated yet (see roadmap in `GOVERNANCE_AUTOMA
 
 **Operational guidance:** Treat duplicate finalize and sync retries as normal; use **correlation id** + **idempotency key** logs for incident triage. Run integration tests in an environment with **Docker** for finalize/inventory assertions.
 
-## 12. Package advisory visibility (AutoMapper NU1903)
+## 12. Package advisory visibility (two open advisories)
 
-- **Restore/build** surfaces **NU1903** for `AutoMapper` 12.0.1 ([GHSA-rvv3-g6hj-g44x](https://github.com/advisories/GHSA-rvv3-g6hj-g44x)). This is **accepted for now** in governance-only workstreams: no silent package bump without coordinated regression and mobile impact review.
+- **`AutoMapper` 12.0.1** — **NU1903** ([GHSA-rvv3-g6hj-g44x](https://github.com/advisories/GHSA-rvv3-g6hj-g44x)).
+- **`Microsoft.Extensions.Caching.Memory` 8.0.0** — **NU1903** ([GHSA-qj66-m88j-hmgj](https://github.com/advisories/GHSA-qj66-m88j-hmgj)). Not previously recorded here; it appears only in build output, and `scan-debt.ps1` counts the AutoMapper one but not this. Both are high severity.
+
+  Accepted for now in governance-only workstreams: no silent package bump without coordinated regression and mobile impact review.
 - **Visibility:** `governance/scan-debt.ps1` emits **`knownNugetAutoMapperAdvisoryCount: 1`** in `debt-report.json` and the grouped CI summary calls it out under **Advisory visibility** so the count is not “invisible noise” only in build logs.
 - **Future:** Plan an explicit upgrade + transitive dependency review; until then treat the warning as known operational debt.
 

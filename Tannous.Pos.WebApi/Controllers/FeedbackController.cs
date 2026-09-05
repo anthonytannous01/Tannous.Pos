@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Tannous.Pos.Application.DTOs.Feedback;
 using Tannous.Pos.Application.Feedback.Commands.SubmitFeedback;
 using Tannous.Pos.Application.Feedback.Queries.GetFeedbackSummary;
@@ -24,6 +25,7 @@ public class FeedbackController : ControllerBase
     /// </summary>
     [HttpPost]
     [AllowAnonymous]
+    [EnableRateLimiting("PublicWrite")]
     public async Task<ActionResult<FeedbackDto>> Submit(
         [FromBody] SubmitFeedbackCommand command, CancellationToken ct)
     {

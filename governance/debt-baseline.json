@@ -1,4 +1,5 @@
 {
-  "posDbContextInjectionCountMax": 16,
-  "repositoryInjectionCountMax": 46
+  "_comment": "Hard ceilings for check-debt-budget.ps1. Re-baselined 2026-09-05: the scan reported 0 and 0 against ceilings of 16 and 46, so the caps were decoration - a controller could have taken on eight new PosDbContext injections with CI still green. Both migrations are complete (IMPROVEMENT_REPORT Step 61, Direction A). Zero means any reintroduction fails the build; raise deliberately if a controller genuinely needs one.",
+  "posDbContextInjectionCountMax": 0,
+  "repositoryInjectionCountMax": 0
 }

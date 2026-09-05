@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Tannous.Pos.Application.Accounting.Commands.CompleteQuickBooksOAuth;
 using Tannous.Pos.Application.Accounting.Commands.DisconnectAccounting;
@@ -53,6 +54,7 @@ public class AccountingController : ControllerBase
 
     [HttpGet("quickbooks/callback")]
     [AllowAnonymous]
+    [EnableRateLimiting("PublicWrite")]
     public async Task<ActionResult<object>> QuickBooksCallback(
         [FromQuery] string code,
         [FromQuery] string? state,

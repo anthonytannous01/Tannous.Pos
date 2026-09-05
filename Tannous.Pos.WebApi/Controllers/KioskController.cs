@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Tannous.Pos.Application.DTOs.Menu;
 using Tannous.Pos.Application.Kiosk.Commands.CreateKioskOrder;
 using Tannous.Pos.Application.Menu.Queries.GetPublicMenu;
@@ -16,6 +17,7 @@ namespace Tannous.Pos.WebApi.Controllers;
 [Route("api/v{version:apiVersion}/kiosk")]
 [ApiVersion("1.0")]
 [AllowAnonymous]
+[EnableRateLimiting("PublicRead")]
 public class KioskController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -32,6 +34,7 @@ public class KioskController : ControllerBase
     /// Returns the order number for the customer to show at the counter.
     /// </summary>
     [HttpPost("orders")]
+    [EnableRateLimiting("PublicWrite")]
     public async Task<ActionResult<KioskOrderResultDto>> PlaceOrder(
         [FromBody] CreateKioskOrderCommand command, CancellationToken ct)
     {

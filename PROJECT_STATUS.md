@@ -1,6 +1,6 @@
 # Tannous POS — Project Status
 
-_Assessed 2026-09-04, after Step 123._
+_Assessed 2026-09-05, after Step 124._
 
 A snapshot of what is built, what is genuinely outstanding, and what is merely stale
 documentation. Update this when the picture changes; do not let it rot like the reports
@@ -48,16 +48,20 @@ The rate is preserved while the switch is off, so toggling back on restores it.
 will not build against the database. `ARCHITECTURE_DEBT_REPORT.md` §8 still describes the old
 split and needs correcting on the next debt review.
 
-### 2. Governance tooling has gone stale
+### 2. Governance tooling — **refreshed 2026-09-05**
 
-`governance/debt-report.json` was generated **2026-05-29**; `ARCHITECTURE_DEBT_REPORT.md`
-was last reviewed **2026-05-16**. Kiosk, dual-currency drawer, delivery, loyalty and the
-printing rework all landed after that. §1 of the debt report lists eight controllers with
-direct `PosDbContext` access; the scan reports 2 and `IMPROVEMENT_REPORT` records the
-allowlist reaching zero at Step 61.
+The scan was re-run and the report rewritten. Findings:
 
-`syncReplayRiskCommentCount` is 36 against a soft baseline of 27, so CI is emitting
-warnings nobody is reading. Re-run `governance/scan-debt.ps1` and re-baseline.
+- `posDbContextInjectionCount` and `repositoryInjectionCount` are both **0**; the report had been
+  listing eight and four controllers respectively. Ceilings were 16 and 46 — decoration rather
+  than guardrails — and are now 0, so any reintroduction fails CI.
+- `unversionedControllerCount` is **1** (`DevicesController`); ceiling tightened 4 → 1.
+- `allowAnonymousCount` is **9**, all legitimate, but **none had a rate limit**. Fixed; see §3a
+  of the debt report.
+- Trend baselines dated from May and had been exceeded for months, so CI printed warnings nobody
+  read. Re-anchored to the current scan.
+
+Controllers grew 14 → 29 over the same period while coupling went to zero.
 
 ### 3. Two known security advisories accepted but never revisited
 

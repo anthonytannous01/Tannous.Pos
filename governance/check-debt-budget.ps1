@@ -57,14 +57,23 @@ else {
 
 $rules = @(
     @{
-        Name   = 'allowAnonymousCount (must be <= 2)'
-        Pass   = ([int]$report.allowAnonymousCount -le 2)
-        Detail = "allowAnonymousCount=$($report.allowAnonymousCount) (threshold: >2 fails)"
+        # Raised from 2 to 9 on 2026-09-05 after auditing every anonymous endpoint:
+        # auth login + refresh, QuickBooks OAuth callback, HMAC-verified delivery webhook,
+        # customer feedback submit, kiosk controller, public QR menu controller. All are
+        # unauthenticated by design. The real protection is not this count but
+        # AnonymousEndpointRateLimitGovernanceTests, which fails the build if any anonymous
+        # endpoint lacks a rate limit policy. Raise this only after the same audit.
+        Name   = 'allowAnonymousCount (must be <= 9)'
+        Pass   = ([int]$report.allowAnonymousCount -le 9)
+        Detail = "allowAnonymousCount=$($report.allowAnonymousCount) (threshold: >9 fails)"
     }
     @{
-        Name   = 'unversionedControllerCount (must be <= 4)'
-        Pass   = ([int]$report.unversionedControllerCount -le 4)
-        Detail = "unversionedControllerCount=$($report.unversionedControllerCount) (threshold: >4 fails)"
+        # Tightened from 4 to 1 on 2026-09-05: the scan reports 1, so a ceiling of 4 allowed
+        # three more unversioned controllers to appear unnoticed. Lower this again as the last
+        # one is versioned; raise it only with a reason recorded here.
+        Name   = 'unversionedControllerCount (must be <= 1)'
+        Pass   = ([int]$report.unversionedControllerCount -le 1)
+        Detail = "unversionedControllerCount=$($report.unversionedControllerCount) (threshold: >1 fails)"
     }
     @{
         Name   = 'posDbContextInjectionCount (must be <= baseline max)'

@@ -1,8 +1,8 @@
 {
-  "_comment": "Soft baselines for non-failing trend warnings in check-debt-budget.ps1. If the live scan exceeds these values, CI prints [WARN] only (exit code still 0 unless hard budget rules fail). Bump intentionally when accepting new debt.",
+  "_comment": "Soft baselines for non-failing trend warnings in check-debt-budget.ps1. If the live scan exceeds these values, CI prints [WARN] only (exit code still 0 unless hard budget rules fail). Re-baselined 2026-09-05: the previous values dated from May and had been exceeded for months, so every run printed warnings nobody read. These counts track observability and documentation density, not defects - governanceWarningLogCount is warning-level log statements, syncReplayRiskCommentCount is comments marking replay-risk code - and both grew because kiosk, delivery, loyalty and dual-currency landed after the old baseline. Bump intentionally when accepting new growth; do not bump to silence a warning you have not looked at.",
   "FIXMECount": 0,
   "governanceRiskCommentCount": 14,
-  "governanceWarningLogCount": 13,
+  "governanceWarningLogCount": 21,
   "placeholderProcessorCount": 5,
-  "syncReplayRiskCommentCount": 27
+  "syncReplayRiskCommentCount": 36
 }

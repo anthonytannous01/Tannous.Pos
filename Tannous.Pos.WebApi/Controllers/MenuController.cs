@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using System.Text;
 using Tannous.Pos.Application.DTOs.Menu;
 using Tannous.Pos.Application.Menu.Queries.GetPublicMenu;
@@ -14,6 +15,7 @@ namespace Tannous.Pos.WebApi.Controllers;
 [Route("api/v{version:apiVersion}/menu")]
 [ApiVersion("1.0")]
 [AllowAnonymous]
+[EnableRateLimiting("PublicRead")]
 public class MenuController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -400,27 +400,59 @@ builder.Services.AddHealthChecks()
     .AddCheck<DatabaseHealthCheck>("database");
 
 // Configure Rate Limiting
+//
+// The RateLimiting configuration section used to be dead: the values below were hardcoded and
+// appsettings advertised an auth limit of 5 while the code enforced 10. Limits are now read from
+// configuration, with defaults equal to the previously enforced values so behaviour is unchanged.
+var rateLimitSection = builder.Configuration.GetSection("RateLimiting");
+
+int PermitLimitFor(string name, int fallback) =>
+    rateLimitSection.GetValue<int?>($"{name}:PermitLimit") ?? fallback;
+
+TimeSpan WindowFor(string name) =>
+    rateLimitSection.GetValue<TimeSpan?>($"{name}:Window") ?? TimeSpan.FromMinutes(1);
+
+// Anonymous endpoints cannot be partitioned by device or user, so they are partitioned by IP.
+// Without this, kiosk order placement and feedback submission were unlimited to any caller that
+// could reach the API, and the device-based policy would have lumped them into one shared
+// "unknown" bucket that a single client could exhaust for everyone.
+static RateLimitPartition<string> PerIpFixedWindow(HttpContext ctx, int permitLimit, TimeSpan window) =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit          = permitLimit,
+            Window               = window,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit           = 0
+        });
+
 builder.Services.AddRateLimiter(options =>
 {
     // Return 429 instead of the default 503 so clients can distinguish
     // rate-limiting from actual service unavailability.
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    // Auth endpoints: 10 attempts per minute per IP address.
-    // Uses a partitioned limiter so one client can't block others.
-    options.AddPolicy("AuthBurst", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit             = 10,
-                Window                  = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder    = QueueProcessingOrder.OldestFirst,
-                QueueLimit              = 0
-            }));
+    // Auth endpoints, per IP address, so one client cannot block others.
+    options.AddPolicy("AuthBurst", ctx =>
+        PerIpFixedWindow(ctx, PermitLimitFor("AuthEndpoints", 10), WindowFor("AuthEndpoints")));
 
-    // Device-based rate limiting for mutations
+    // Device-based rate limiting for authenticated mutations.
     options.AddPolicy<string, DeviceIdRateLimiterPolicy>("MutationsPerDevice");
+
+    // Unauthenticated reads: public QR menu and kiosk menu browsing.
+    options.AddPolicy("PublicRead", ctx =>
+        PerIpFixedWindow(ctx, PermitLimitFor("PublicRead", 120), WindowFor("PublicRead")));
+
+    // Unauthenticated writes: kiosk order placement, customer feedback, OAuth callback.
+    // Tighter, because these create rows and reach the kitchen display.
+    options.AddPolicy("PublicWrite", ctx =>
+        PerIpFixedWindow(ctx, PermitLimitFor("PublicWrite", 30), WindowFor("PublicWrite")));
+
+    // Delivery platform webhooks are HMAC-verified but still unauthenticated at the transport
+    // level; platforms legitimately burst, so this is looser than other public writes.
+    options.AddPolicy("PublicWebhook", ctx =>
+        PerIpFixedWindow(ctx, PermitLimitFor("PublicWebhook", 300), WindowFor("PublicWebhook")));
 });
 
 // Configure CORS
