@@ -456,11 +456,15 @@ public class SyncController : ControllerBase
         OutboxOperationDto operation,
         CancellationToken cancellationToken)
     {
-        // GOVERNANCE / RISK: Placeholder success — processor has no EF customer persistence; durable SyncOperationReceipt at push wrapper suppresses duplicate replay.
+        // GOVERNANCE / RISK: this processor has no EF customer persistence. "Placeholder success" is
+        // deliberately NOT returned: reporting success for work that was never done makes the client
+        // clear the operation from its outbox, and the customer disappears with no trace anywhere.
+        // No shipped client enqueues CreateCustomer — CustomerRepository calls the API directly and
+        // surfaces a network error when offline — so this path is currently unreachable. It fails
+        // loudly so that stays true: anyone wiring the client to queue this type gets an immediate,
+        // visible failure instead of silent data loss.
         // Replay sensitivity classification: placeholder-only (receipt-protected at coordinator).
-        // Operational impact: mobile may assume customer exists server-side; ServerId echoes OpId until a real command exists.
-        // Direction: route through Application command + outbox idempotency store keyed by operationId (see push handler).
-        // Simplified implementation - would need proper validation and mapping
+        // Direction: route through an Application command with operationId idempotency, then return success.
         _logger.LogWarning(
             "Sync replay visibility: placeholder-only processor (CreateCustomer); durable SyncOperationReceipt at push wrapper. OperationType={OperationType}, OpId={OpId}, ReplayClass=placeholder-only",
             operation.Type,
@@ -475,8 +479,8 @@ public class SyncController : ControllerBase
                 DeviceId = deviceId,
                 OperationId = operation.OpId,
                 CorrelationId = operation.OpId,
-                Severity = OperationalAuditSeverity.Information,
-                Summary = "Placeholder CreateCustomer processor executed",
+                Severity = OperationalAuditSeverity.Warning,
+                Summary = "CreateCustomer sync operation rejected: no server-side processor",
                 DedupeByDeviceOperationAndAction = true,
                 Metadata = new Dictionary<string, object?> { ["operationType"] = operation.Type }
             },
@@ -485,9 +489,8 @@ public class SyncController : ControllerBase
         return new OpResultDto
         {
             OpId = operation.OpId,
-            Success = true,
-            ServerId = operation.OpId,
-            Message = "Customer created successfully"
+            Success = false,
+            Message = "CreateCustomer is not supported over sync. Create the customer while online."
         };
     }
 
@@ -603,9 +606,15 @@ public class SyncController : ControllerBase
         OutboxOperationDto operation,
         CancellationToken cancellationToken)
     {
-        // GOVERNANCE / RISK: Placeholder success — shift/cash mutations not applied server-side via this path; durable SyncOperationReceipt at push wrapper suppresses duplicate replay.
+        // GOVERNANCE / RISK: shift and cash mutations are not applied server-side via this path.
+        // "Placeholder success" is deliberately NOT returned. A shift that the device believes is
+        // open but the server has no record of is the worst failure available here: orders attach to
+        // a shift that does not exist, and the day's cash reconciles against nothing.
+        // No shipped client enqueues OpenShift — ShiftRepository calls the API directly and returns
+        // "Shift actions require internet connection" when offline — so this path is unreachable
+        // today. It fails loudly to keep it that way.
         // Replay sensitivity classification: placeholder-only (receipt-protected at coordinator).
-        // Direction: dispatch OpenShiftCommand with operationId idempotency.
+        // Direction: dispatch OpenShiftCommand with operationId idempotency, then return success.
         _logger.LogWarning(
             "Sync replay visibility: placeholder-only processor (OpenShift); durable SyncOperationReceipt at push wrapper. OperationType={OperationType}, OpId={OpId}, ReplayClass=placeholder-only",
             operation.Type,
@@ -620,8 +629,8 @@ public class SyncController : ControllerBase
                 DeviceId = deviceId,
                 OperationId = operation.OpId,
                 CorrelationId = operation.OpId,
-                Severity = OperationalAuditSeverity.Information,
-                Summary = "Placeholder OpenShift processor executed",
+                Severity = OperationalAuditSeverity.Warning,
+                Summary = "OpenShift sync operation rejected: no server-side processor",
                 DedupeByDeviceOperationAndAction = true,
                 Metadata = new Dictionary<string, object?> { ["operationType"] = operation.Type }
             },
@@ -630,9 +639,8 @@ public class SyncController : ControllerBase
         return new OpResultDto
         {
             OpId = operation.OpId,
-            Success = true,
-            ServerId = operation.OpId,
-            Message = "Shift opened successfully"
+            Success = false,
+            Message = "OpenShift is not supported over sync. Open the shift while online."
         };
     }
 
