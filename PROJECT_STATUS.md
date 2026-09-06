@@ -1,6 +1,6 @@
 # Tannous POS — Project Status
 
-_Assessed 2026-09-05, after Step 125._
+_Assessed 2026-09-05, after Step 128._
 
 A snapshot of what is built, what is genuinely outstanding, and what is merely stale
 documentation. Update this when the picture changes; do not let it rot like the reports
@@ -25,7 +25,7 @@ code.
 | TODO / FIXME / HACK in mobile (116 `.kt` files) | **0** |
 | `posDbContextInjectionCount` | 2 (budget 16) |
 | `repositoryInjectionCount` | 10 (budget 46) |
-| Unit tests in the mobile project | 12 (all in `ReceiptRendererTest`) |
+| Unit tests in the mobile project | 21 (`ReceiptRendererTest` 12, `LogFileWriterTest` 9) |
 
 Essentially no debt is hiding in comments. The governance discipline worked.
 
@@ -33,7 +33,7 @@ Essentially no debt is hiding in comments. The governance discipline worked.
 
 ## What is actually outstanding
 
-### 1. Tax configuration — **fixed in Step 119, pending migration**
+### 1. Tax configuration — **closed 2026-09-05**
 
 Was: the Android **Enable Tax** toggle was ignored by the backend, order creation applied a
 hardcoded 10%, and the kiosk path had a third copy of the tax rule. Finalize was already
@@ -44,9 +44,11 @@ Now: `BusinessSettings.TaxEnabled` is a real persisted column and `BusinessSetti
 kiosk, and the receipt label — go through `OrderFinancialGovernance.ComputeTaxOnSubtotal`.
 The rate is preserved while the switch is off, so toggling back on restores it.
 
-**Outstanding:** the EF migration has not been generated or applied. Until it is, the backend
-will not build against the database. `ARCHITECTURE_DEBT_REPORT.md` §8 still describes the old
-split and needs correcting on the next debt review.
+The migration `20260903235611_AddTaxEnabledToBusinessSettings` is generated and applied.
+Verified by use: the cart, the receipt and finalize now agree on the same figure.
+
+**Outstanding:** `ARCHITECTURE_DEBT_REPORT.md` §8 still describes the old split and needs
+correcting on the next debt review.
 
 ### 2. Governance tooling — **refreshed 2026-09-05**
 
@@ -83,13 +85,39 @@ Worth noting how it was found: the allowlist named four controllers, but three h
 long ago. A stale exemption is indistinguishable from a live one, and would have let any of those
 three regress unnoticed.
 
-### 5. Two sync processors are placeholders
+### 5. Two sync processors are placeholders — **closed 2026-09-05 (Step 127)**
 
-`OpenShift` and `CreateCustomer` return placeholder success in the sync push path. Durable
-replay protects them from duplicate application, but confirm they actually apply the
-operation rather than silently accepting it.
+`ProcessOpenShift` and `ProcessCreateCustomer` persisted nothing and returned `Success = true`
+with "Shift opened successfully" and "Customer created successfully". A client receiving that
+clears the operation from its outbox: nothing written server-side, nothing left client-side.
 
-### 6. Built but never tested against reality
+It was never live. The shipped Android client enqueues only `AdjustInventory`, `RecordWastage`
+and `FinalizeOrder`; shift and customer actions go straight to the API and are refused honestly
+when offline. So this was a trap for whoever next tried to make shifts work offline, not a defect
+in service today.
+
+Both now return `Success = false` naming the cause, and audit at Warning rather than Information.
+`PlaceholderProcessorGovernanceTests` fails the build if either claims success again. The real
+`OpenShiftCommand` dispatch was deliberately not written: no client needs it, and failing loudly
+removes the risk class at no cost.
+
+### 6. Release builds logged nothing — **closed 2026-09-05 (Step 128)**
+
+`TannousPosApplication` planted a Timber tree only under `BuildConfig.DEBUG`, so in production
+every `Timber.w` and `Timber.e` was discarded. A tablet failing mid-service left no trace, which
+is why the Step 121-123 defects needed someone watching the screen.
+
+Release builds now plant `FileLogTree`: WARN and above to `Android/data/com.tannous.pos/files/logs`,
+one file per day, 7-day retention, 2 MB cap per file. A file rather than an endpoint on purpose —
+the failures worth diagnosing are offline sync and printer faults, and a sink that needs an API
+call cannot report that it could not reach the API.
+
+Crashlytics was evaluated and rejected for one restaurant with one tablet. Firebase was then
+removed from the project entirely: two dead Kotlin files that imported it and were referenced
+nowhere, three SDKs compiled into the APK doing nothing, and six version-catalog entries. It had
+been inert since the initial commit and looked configured.
+
+### 7. Built but never tested against reality
 
 - **WhatsApp / SMS notifications** (Step 96): built, never tested against a real device.
 - **Play Store**: nothing done. ~25 unchecked items — screenshots, feature graphic, privacy
@@ -136,10 +164,14 @@ use over more analysis.
 
 ## Suggested order
 
-1. **Finish tax configuration.** It is small, it is money, and it blocks selling to any
-   business with different tax rules.
-2. **Re-run the debt scan** and correct `ARCHITECTURE_DEBT_REPORT.md`. Cheap, and it
-   re-anchors every other judgement on this list.
-3. **Play Store preparation.** Start early; screenshots, policy pages and review cycles are
-   slow in a way code is not.
-4. AutoMapper upgrade, controller versioning, placeholder processors — real but not urgent.
+Items 1 through 5 above are closed. What is left is the part that was never about code.
+
+1. **Run a real service on it.** Every defect worth having found so far came from operating the
+   till, not from reading it. Nothing on this list will teach as much as one full evening.
+2. **Play Store preparation.** Start early; screenshots, policy pages and review cycles are slow
+   in a way code is not. Internal testing skips the data safety form, so the privacy policy is the
+   long pole, and the allergies field makes it a real one.
+3. **Test WhatsApp / SMS against a real device** (Step 96). Built, never once exercised.
+4. **Move the release keystore out of the working tree.** `local.properties` points at
+   `Tannous.Pos/keystore/`; both are gitignored, but a `git clean -xdf` would take the signing key
+   with it and there is no recovery from that.

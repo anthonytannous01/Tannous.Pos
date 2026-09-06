@@ -69,11 +69,6 @@ timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "tim
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 escpos-thermalprinter = { group = "com.github.DantSu", name = "ESCPOS-ThermalPrinter-Android", version.ref = "escpos" }
 
-# Monitoring & Crash Handling
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version = "32.7.0" }
-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
-
 # Coroutines
 kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
 
@@ -103,7 +98,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version = "1.9.22-1.0.18" }
-firebase-crashlytics = { id = "com.google.firebase.crashlytics", version = "2.9.9" }
-google-services = { id = "com.google.gms.google-services", version = "4.4.0" }
 gradle-play-publisher = { id = "com.github.triplet.play", version = "3.10.1" }
-firebase-app-distribution = { id = "com.google.firebase.appdistribution", version = "5.1.1" }

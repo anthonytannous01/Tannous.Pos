@@ -1,5 +1,14 @@
 # Android Phase 5 - CI/CD Pipeline Implementation Summary
 
+> **Status: not active.** This document describes a pipeline that was written but never turned on.
+> The Gradle Play Publisher plugin is commented out in `app/build.gradle.kts`, and Firebase App
+> Distribution was removed entirely in Step 128 - there is no Firebase in this project any more, by
+> decision, not by omission (see `mobile/PLAY_STORE_READINESS.md` under Diagnostic Logs). Releases
+> today are built locally and installed by hand. Treat everything below as a design for a pipeline
+> to revive, not a description of one that runs, and delete the Firebase parts if it is revived:
+> distribution is Play Store internal testing.
+
+
 ## 🎯 Objective Completed
 
 **Android Phase 5 (CI/CD to Play Store + QA Distribution)** has been successfully implemented with a complete automated pipeline that:

@@ -130,10 +130,6 @@ dependencies {
     // ESC/POS thermal receipt printing
     implementation(libs.escpos.thermalprinter)
     
-    // Firebase
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.crashlytics)
-    implementation(libs.firebase.analytics)
     
     // Compose
     implementation(platform(libs.androidx.compose.bom))

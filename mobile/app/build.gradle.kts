@@ -4,11 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-    // Temporarily commented out for basic build
-    // alias(libs.plugins.firebase.crashlytics)
-    // alias(libs.plugins.google.services)
     // alias(libs.plugins.gradle.play.publisher)
-    // alias(libs.plugins.firebase.app.distribution)
 }
 
 android {
@@ -129,13 +125,6 @@ android {
 //     releaseStatus.set("completed")
 // }
 
-// Firebase App Distribution Configuration - Commented out for now
-// firebaseAppDistribution {
-//     serviceCredentialsFile = "${rootDir}/ci/firebase-service-account.json"
-//     groups = "qa" // or set testers via CI
-//     releaseNotesFile = "${rootDir}/ci/release-notes.txt"
-// }
-
 dependencies {
     implementation(project(":core"))
     implementation(project(":feature:auth"))
@@ -176,12 +165,7 @@ dependencies {
 
     // Logging
     implementation(libs.timber)
-    
-    // Firebase - Temporarily commented out for basic build
-    // implementation(platform(libs.firebase.bom))
-    // implementation(libs.firebase.crashlytics)
-    // implementation(libs.firebase.analytics)
-    
+
     // Testing
     testImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)

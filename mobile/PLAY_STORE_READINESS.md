@@ -67,7 +67,7 @@
 ### Privacy Policy
 - [ ] **Privacy Policy URL**: Required
 - [ ] **Data Collection**: Document what data is collected
-- [ ] **Third-party Services**: Firebase Analytics, Crashlytics
+- [ ] **Third-party Services**: none. No analytics or crash-reporting SDK ships in the app.
 - [ ] **Data Usage**: How data is used and stored
 
 ### Terms of Service
@@ -159,8 +159,8 @@ pos,point of sale,restaurant pos,retail pos,cash register,inventory management,s
 ## ✅ Post-Launch
 
 ### Monitoring
-- [ ] **Crash Reports**: Monitor Firebase Crashlytics
-- [ ] **Analytics**: Track user engagement with Firebase Analytics
+- [ ] **Crash Reports**: no remote reporting. Pull `pos-*.log` off the tablet (see Diagnostic Logs).
+- [ ] **Analytics**: none shipped. Reports come from the POS's own data, not an SDK.
 - [ ] **Reviews**: Monitor user reviews and ratings
 - [ ] **Performance**: Monitor app performance metrics
 
@@ -211,11 +211,30 @@ and never place it inside the working tree of a repository.
    RELEASE_KEY_PASSWORD=your_password
    ```
 
-### Firebase Setup
-1. Create Firebase project
-2. Add `google-services.json` to `app/` directory
-3. Enable Crashlytics and Analytics
-4. Test crash reporting
+### Diagnostic Logs
+
+There is no crash reporting service. Release builds write warnings and errors to a file on the
+tablet instead, via `FileLogTree`. Crashlytics was considered and dropped: it would mean a Firebase
+project, a `google-services.json` that must never be committed, and a privacy disclosure covering
+uploaded breadcrumbs - for one restaurant whose tablet is within arm's reach.
+
+- Location: app-scoped external storage, `Android/data/com.tannous.pos/files/logs/`.
+- One file per day, `pos-YYYY-MM-DD.log`; 7-day retention; capped at 2 MB per file so a log storm
+  cannot fill the tablet during service.
+- WARN and above only. Debug builds keep Timber's `DebugTree` and write nothing to disk.
+- Pull them over USB (`adb pull /sdcard/Android/data/com.tannous.pos/files/logs`) or through the
+  device's own file manager. No root needed. Uninstalling the app removes them.
+
+Naming, rotation and retention live in `LogFileWriter`, which is plain JVM code covered by
+`LogFileWriterTest`. That matters because `FileLogTree` swallows every exception on purpose - a
+logger writing nothing would otherwise look exactly like a logger with nothing to write.
+
+**Do not log customer data.** These files sit on a tablet in a restaurant and can be read by anyone
+with physical access. The app's log statements use identifiers - order id, device id - rather than
+names, phone numbers, or the allergies field on a customer record. Keep it that way.
+
+If crash reporting is ever wanted (selling this to another restaurant would be the reason), it is
+an additive change: add the SDK and plant a second tree beside this one.
 
 ## 📱 App Store Assets Checklist
 
