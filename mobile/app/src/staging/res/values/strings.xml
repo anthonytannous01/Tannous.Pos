@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- See dev/res/values/strings.xml. Flavour source sets override main; prod keeps the plain name. -->
+<resources>
+    <string name="app_name">Tannous POS (staging)</string>
+</resources>

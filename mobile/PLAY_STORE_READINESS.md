@@ -233,6 +233,21 @@ USB.
 - The same keystore signs every build. An APK signed with a different key cannot update an
   installed one; Android rejects it and the only way through is uninstall, which loses the
   database.
+- **Keep `app/build/outputs/mapping/prodRelease/mapping.txt` for every build you install.** Release
+  builds are minified, so library frames in a crash trace are renamed. App classes are kept
+  readable by `-keep class com.tannous.pos.**`, but without the mapping file the frames underneath
+  them are unreadable, and each build overwrites the previous mapping.
+
+**Set `API_BASE_URL` in `mobile/local.properties` to the server's LAN address**, e.g.
+`http://192.168.0.121:7000/api/v1.0/`. This is the only place the base URL comes from: NetworkModule
+reads `com.tannous.pos.core.BuildConfig.BASE_URL`, which core/build.gradle.kts fills from this
+property. `localhost` works only over `adb reverse` on USB; a tablet on Wi-Fi needs the real
+address, and it must not move (give the server machine a static IP or a reserved DHCP lease).
+
+Release builds run R8, and R8 has never run on this code before Step 130. A release build can crash
+on a screen that works in debug, because R8 removes what no keep rule protects. `proguard-rules.pro`
+documents why each block exists; read it before adding a rule, and prefer narrowing an existing one
+to pasting a new keep-everything line.
 
 ### Signing Setup
 
@@ -255,21 +270,35 @@ recovery. Keep at least one backup outside this machine (password manager or enc
 and never place it inside the working tree of a repository. It currently sits under
 `mobile/keystore/`, which is inside the tree: gitignored, but a `git clean -xdf` would delete it.
 
-`app/build.gradle.kts` also declares a second signing config, `ciRelease`, pointing at
-`ci/keystore.jks` with passwords from environment variables. That file does not exist and the CI
-pipeline is not active (see `CI_CD_SUMMARY.md`). If CI is ever revived, point `ciRelease` at this
-same keystore rather than generating a new one - a second key would produce APKs that cannot update
-the installed app.
+The `ciRelease` signing config was deleted in Step 130. It pointed at a `ci/keystore.jks` that has
+never existed, took its passwords from environment variables nothing sets, and was referenced by no
+build type or flavour. If CI is ever revived, wire it to **this** keystore through the same
+properties below rather than generating a new key: a second key produces APKs that cannot update
+any installed copy of the app.
 
 1. Create keystore (first time only): `keytool -genkey -v -keystore tannous-pos.keystore -alias tannous-pos -keyalg RSA -keysize 2048 -validity 10000`
 2. Place it at `mobile/keystore/` (gitignored) or anywhere outside the repo.
-3. Add to `local.properties` (also gitignored — never commit it):
+3. Add to `mobile/local.properties` (gitignored — never commit it):
    ```
-   RELEASE_STORE_FILE=path/to/tannous-pos.keystore
+   RELEASE_STORE_FILE=keystore/tannous-pos-release.jks
    RELEASE_STORE_PASSWORD=your_password
-   RELEASE_KEY_ALIAS=tannous-pos
+   RELEASE_KEY_ALIAS=tannous-pos-key
    RELEASE_KEY_PASSWORD=your_password
    ```
+   A relative `RELEASE_STORE_FILE` resolves against `mobile/`; an absolute path is used as given,
+   which is what you want once the keystore lives outside the repository.
+
+   Until Step 130 this instruction did not work. `app/build.gradle.kts` read the values with
+   `project.findProperty`, and Gradle does not load `local.properties` into project properties -
+   only `sdk.dir` is read from it, by the Android plugin. The build was silently taking its signing
+   config from `~/.gradle/gradle.properties` instead, and the mismatch stayed invisible because no
+   release build had ever been run. The app module now parses `local.properties` explicitly, the
+   way `core/build.gradle.kts` already did for `API_BASE_URL`.
+
+   A Gradle property still wins over `local.properties`, so `-PRELEASE_STORE_FILE=...` and CI
+   overrides keep working. If a build reports a keystore path you did not expect, check
+   `~/.gradle/gradle.properties` for stale entries - the error message names the resolved path
+   precisely so this is one step, not a hunt.
 
 ### Diagnostic Logs
 

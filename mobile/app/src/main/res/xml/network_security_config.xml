@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext HTTP is permitted in both build types (@bool/cleartext_permitted is true for debug and
+  release alike), because the POS talks to a server on the restaurant's own LAN over http and that
+  server has no certificate.
+
+  This is a real weakening, not a formality: traffic between the tablets and the server is
+  unencrypted and includes staff login credentials, readable by anyone on the same Wi-Fi. Narrowing
+  the exception to a single host would not change that, so it is stated here rather than dressed up.
+  The fix is HTTPS on the backend. Until then, keep the POS devices and the server on a network
+  separate from the guest Wi-Fi.
+
+  When the backend does get a certificate: set cleartext_permitted back to false for release in
+  app/build.gradle.kts and point API_BASE_URL at the https address in local.properties. Nothing
+  else needs to change.
+-->
 <network-security-config>
-    <!-- Production/release: HTTPS only. Debug build type sets @bool/cleartext_permitted via Gradle. -->
     <base-config cleartextTrafficPermitted="@bool/cleartext_permitted">
         <trust-anchors>
             <certificates src="system" />

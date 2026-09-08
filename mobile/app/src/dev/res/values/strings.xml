@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Overrides app_name for the dev flavour only. Flavour source sets take precedence over main, so
+  prod keeps the plain name from main/res/values/strings.xml.
+
+  Without this, dev, staging and prod all install as "Tannous POS" with the same icon. They have
+  different application IDs, so they sit side by side on the same tablet, indistinguishable. Opening
+  the wrong one during service means orders going to a database nobody is reading.
+-->
+<resources>
+    <string name="app_name">Tannous POS (dev)</string>
+</resources>

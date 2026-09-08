@@ -117,9 +117,31 @@ removed from the project entirely: two dead Kotlin files that imported it and we
 nowhere, three SDKs compiled into the APK doing nothing, and six version-catalog entries. It had
 been inert since the initial commit and looked configured.
 
-### 7. Built but never tested against reality
+### 7. The release build had never been made — **closed 2026-09-08 (Step 130)**
+
+Every APK this project had produced was a debug build, while `isMinifyEnabled` was true for
+release. R8 had never run on this code, and four configurations turned out to be read by nothing:
+the signing config (the app module used `project.findProperty`, and Gradle does not load
+`local.properties`), the flavour `BASE_URL` fields (NetworkModule reads core's BuildConfig), the
+`ciRelease` signing config, and `-keep` rules for Firebase, Gson and framework classes. Release
+also blocked cleartext HTTP while the backend is plain HTTP on the LAN, and the API had only ever
+listened on localhost — every device test until now went through `adb reverse` over USB.
+
+All of it was invisible for one reason: nobody had built a release. R8 itself was the least of it
+and produced no missing rules.
+
+A signed, minified release APK now runs on the tablet against the LAN backend: opens, logs in,
+syncs the catalogue, finalizes a sale, prints. Cleartext is permitted in release with the cost
+written down in two places — traffic including staff credentials is unencrypted on the Wi-Fi, and
+HTTPS on the backend is the real fix.
+
+### 8. Built but never tested against reality
 
 - **WhatsApp / SMS notifications** (Step 96): built, never tested against a real device.
+- **The prod Room migration path**: `MIGRATION_5_6` still has not run. The release build installed
+  as a new application ID beside the dev app, so it built a fresh v6 database. The migration runs
+  the first time the prod app is upgraded in place, which is also the first time a bug in it could
+  cost real data.
 - **Play Store**: deferred by decision on 2026-09-05, not outstanding. The app is installed
   as a signed APK on tablets the restaurant owns, so the store's screenshots, privacy policy,
   data-safety disclosure and review cycles buy nothing yet. The developer account is paid for
@@ -175,7 +197,8 @@ Items 1 through 5 above are closed. What is left is the part that was never abou
    out of the working tree. It is gitignored, but it sits inside the repo where a `git clean -xdf`
    would delete it. This is the only unrecoverable mistake currently available.
 2. **Run a real service on it.** Every defect worth having found so far came from operating the
-   till, not from reading it. Nothing on this list will teach as much as one full evening.
+   till, not from reading it. Nothing on this list will teach as much as one full evening. Use the
+   release build, not dev: it is the one that writes a log file when something goes wrong.
 3. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
    template-approval note in `TODO.md` first, because a passing sandbox test proves less than it
    looks like it does.

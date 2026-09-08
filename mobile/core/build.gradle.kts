@@ -30,8 +30,9 @@ android {
             localProperties.load(FileInputStream(localPropertiesFile))
         }
         val apiBaseUrl = localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:7000/api/v1.0/")
+        // BASE_URL is the one the app actually uses: NetworkModule reads it from this module's
+        // BuildConfig. The app module's flavours do not define it.
         buildConfigField("String", "BASE_URL", "\"$apiBaseUrl\"")
-        buildConfigField("String", "ENVIRONMENT", "\"development\"")
     }
     
     // KSP configuration for Room
@@ -115,7 +116,6 @@ dependencies {
 
     // Network
     implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.json)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
