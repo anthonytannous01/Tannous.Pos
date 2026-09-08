@@ -111,7 +111,6 @@ class PullWorker @AssistedInject constructor(
                             phone = dto.phone,
                             address = dto.address,
                             notes = dto.notes,
-                            allergies = dto.allergies,
                             isActive = dto.isActive,
                             lastVisitDate = dto.lastVisitDate?.let { Instant.parse(it) },
                             totalOrders = dto.totalOrders,

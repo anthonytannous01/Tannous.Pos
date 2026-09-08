@@ -396,7 +396,6 @@ data class CustomerDto(
     val phone: String?,
     val address: String?,
     val notes: String?,
-    val allergies: String?,
     val isActive: Boolean,
     val lastVisitDate: String? = null,
     val totalOrders: Int,
@@ -412,8 +411,7 @@ data class CreateCustomerRequest(
     val email: String?,
     val phone: String?,
     val address: String?,
-    val notes: String?,
-    val allergies: String?
+    val notes: String?
 )
 
 @Serializable
@@ -424,7 +422,6 @@ data class UpdateCustomerRequest(
     val phone: String?,
     val address: String?,
     val notes: String?,
-    val allergies: String?,
     val version: String
 )
 

@@ -400,11 +400,13 @@ fun ReceiptScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // SMS confirmation indicator (shown when customer had a phone number)
+            // Whether the WhatsApp confirmation actually left the server is not reported back
+            // to the app, so this says what is true - the order carries a phone number - and
+            // does not claim delivery. See TODO.md under WhatsApp Notifications.
             if (!order.customerPhone.isNullOrBlank() && !isPendingSync &&
                 !order.status.isAlreadyVoidedStatus()) {
                 Text(
-                    text = "📱 ${if (isArabic) "تم إرسال تأكيد إلى ${order.customerPhone}" else "Confirmation sent to ${order.customerPhone}"}",
+                    text = "📱 ${if (isArabic) "تأكيد واتساب إلى ${order.customerPhone}" else "WhatsApp confirmation to ${order.customerPhone}"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

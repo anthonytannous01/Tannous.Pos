@@ -4,9 +4,7 @@ public class NotificationSettings
 {
     public const string Section = "Notifications";
 
-    public bool   Enabled  { get; set; } = false;
-    /// <summary>Sms or WhatsApp</summary>
-    public string Provider { get; set; } = "Sms";
+    public bool Enabled { get; set; } = false;
 
     public TwilioSettings Twilio { get; set; } = new();
 }
@@ -14,10 +12,12 @@ public class NotificationSettings
 public class TwilioSettings
 {
     public string AccountSid { get; set; } = string.Empty;
-    public string AuthToken   { get; set; } = string.Empty;
+    public string AuthToken  { get; set; } = string.Empty;
+
     /// <summary>
-    /// For SMS: a Twilio phone number (e.g. +12345678900).
-    /// For WhatsApp: whatsapp:+14155238886 (Twilio sandbox or registered number).
+    /// The WhatsApp sender in E.164 form, e.g. +14155238886 (Twilio's shared sandbox number) or
+    /// your own approved WhatsApp Business sender. The "whatsapp:" prefix Twilio's API expects is
+    /// added by the service; write the bare number here.
     /// </summary>
-    public string FromNumber  { get; set; } = string.Empty;
+    public string FromNumber { get; set; } = string.Empty;
 }

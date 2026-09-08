@@ -87,6 +87,15 @@ android {
     }
 }
 
+// Room exports its schema to one directory shared by every variant, so with
+// org.gradle.parallel=true the debug and release KSP tasks can write and read the same
+// <version>.json at the same moment. The loser reads zero bytes and the build dies with
+// "IllegalStateException: Empty schema file" from SchemaBundle.deserialize - intermittently, which
+// is worse than always. Ordering these two tasks removes the overlap; nothing else is serialised.
+tasks.matching { it.name == "kspReleaseKotlin" }.configureEach {
+    mustRunAfter("kspDebugKotlin")
+}
+
 dependencies {
     // Android
     implementation(libs.androidx.core.ktx)

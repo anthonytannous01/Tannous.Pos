@@ -64,7 +64,6 @@ data class CustomerEntity(
     val phone: String?,
     val address: String?,
     val notes: String?,
-    val allergies: String?,
     val isActive: Boolean,
     val lastVisitDate: Instant?,
     val totalOrders: Int,

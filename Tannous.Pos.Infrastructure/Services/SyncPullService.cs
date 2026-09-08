@@ -151,7 +151,6 @@ public class SyncPullService : ISyncPullService
                 Phone         = c.Phone,
                 Address       = c.Address,
                 Notes         = c.Notes,
-                Allergies     = c.Allergies,
                 IsActive      = c.IsActive,
                 LastVisitDate = c.LastVisitDate,
                 TotalOrders   = c.TotalOrders,

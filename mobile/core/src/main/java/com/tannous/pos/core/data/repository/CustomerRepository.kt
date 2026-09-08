@@ -33,8 +33,7 @@ class CustomerRepository @Inject constructor(
         email: String?,
         phone: String?,
         address: String?,
-        notes: String?,
-        allergies: String?
+        notes: String?
     ): Result<CustomerEntity> {
         return try {
             val request = CreateCustomerRequest(
@@ -43,8 +42,7 @@ class CustomerRepository @Inject constructor(
                 email = email?.trim()?.takeIf { it.isNotBlank() },
                 phone = phone?.trim()?.takeIf { it.isNotBlank() },
                 address = address?.trim()?.takeIf { it.isNotBlank() },
-                notes = notes?.trim()?.takeIf { it.isNotBlank() },
-                allergies = allergies?.trim()?.takeIf { it.isNotBlank() }
+                notes = notes?.trim()?.takeIf { it.isNotBlank() }
             )
             val dto = customerService.createCustomer(request)
             val entity = dto.toEntity()
@@ -68,7 +66,6 @@ class CustomerRepository @Inject constructor(
         phone: String?,
         address: String?,
         notes: String?,
-        allergies: String?,
         version: String
     ): Result<CustomerEntity> {
         return try {
@@ -79,7 +76,6 @@ class CustomerRepository @Inject constructor(
                 phone = phone?.trim()?.takeIf { it.isNotBlank() },
                 address = address?.trim()?.takeIf { it.isNotBlank() },
                 notes = notes?.trim()?.takeIf { it.isNotBlank() },
-                allergies = allergies?.trim()?.takeIf { it.isNotBlank() },
                 version = version
             )
             val dto = customerService.updateCustomer(id, request)
@@ -124,7 +120,6 @@ class CustomerRepository @Inject constructor(
         phone = phone,
         address = address,
         notes = notes,
-        allergies = allergies,
         isActive = isActive,
         lastVisitDate = lastVisitDate?.let {
             runCatching { Instant.parse(it) }.getOrNull()

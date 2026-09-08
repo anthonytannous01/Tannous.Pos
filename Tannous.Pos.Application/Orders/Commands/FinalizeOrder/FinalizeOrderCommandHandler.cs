@@ -633,14 +633,14 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                 }
             }
 
-            // SMS/WhatsApp order confirmation — runs AFTER the main transaction and loyalty.
+            // WhatsApp order confirmation — runs AFTER the main transaction and loyalty.
             // GOVERNANCE: notification failure must never affect the completed sale.
             // Only fires when the order has a customer phone number.
             if (!string.IsNullOrWhiteSpace(order.CustomerPhone))
             {
                 try
                 {
-                    await _notificationService.SendOrderConfirmationAsync(
+                    var confirmationSent = await _notificationService.SendOrderConfirmationAsync(
                         toPhone:       order.CustomerPhone,
                         orderNumber:   order.OrderNumber,
                         receiptNumber: order.ReceiptNumber,
@@ -648,6 +648,16 @@ public class FinalizeOrderCommandHandler : IRequestHandler<FinalizeOrderCommand,
                         currency:      businessSettings?.Currency ?? "USD",
                         businessName:  businessSettings?.BusinessName ?? "Tannous POS",
                         cancellationToken: cancellationToken);
+
+                    // The service swallows its own failures and returns false, so without this
+                    // line a disabled channel, expired credentials or a rejected WhatsApp
+                    // template are all indistinguishable from a delivered message.
+                    if (!confirmationSent)
+                    {
+                        _logger.LogWarning(
+                            "Notification observability: order confirmation not sent (channel disabled, credentials missing, or provider rejected). OrderId={OrderId}, OrderNumber={OrderNumber}",
+                            order.Id, order.OrderNumber);
+                    }
                 }
                 catch (Exception notifEx)
                 {

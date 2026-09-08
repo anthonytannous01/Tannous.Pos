@@ -42,7 +42,6 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         customer.Phone      = command.Phone;
         customer.Address    = command.Address;
         customer.Notes      = command.Notes;
-        customer.Allergies  = command.Allergies;
         customer.UpdatedAt  = DateTime.UtcNow;
 
         await _customerRepository.CommitAsync(cancellationToken);
@@ -50,7 +49,7 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         await _auditService.LogEventAsync("UpdateCustomer", "Customer", command.Id, new
         {
             CustomerId    = command.Id,
-            UpdatedFields = new[] { "FirstName", "LastName", "Email", "Phone", "Address", "Notes", "Allergies" }
+            UpdatedFields = new[] { "FirstName", "LastName", "Email", "Phone", "Address", "Notes" }
         });
 
         return new UpdateCustomerResult { Updated = MapToDto(customer) };
@@ -65,7 +64,6 @@ public class UpdateCustomerCommandHandler : IRequestHandler<UpdateCustomerComman
         Phone       = c.Phone,
         Address     = c.Address,
         Notes       = c.Notes,
-        Allergies   = c.Allergies,
         IsActive    = c.IsActive,
         LastVisitDate = c.LastVisitDate,
         TotalOrders = c.TotalOrders,

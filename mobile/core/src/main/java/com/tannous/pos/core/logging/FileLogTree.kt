@@ -23,7 +23,7 @@ import java.util.concurrent.Executors
  *
  * **Do not log customer data.** These files sit on a tablet in a restaurant and can be read by
  * anyone with physical access. The app's log statements use identifiers - order id, device id -
- * rather than names, phone numbers, or the allergies field on a customer record. Keep it that way.
+ * rather than names, phone numbers or the free-text notes on a customer record. Keep it that way.
  *
  * Everything about file naming, size limits and retention lives in [LogFileWriter], which is
  * plain JVM code and covered by tests. This class is the Android shell around it.

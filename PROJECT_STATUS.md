@@ -120,9 +120,11 @@ been inert since the initial commit and looked configured.
 ### 7. Built but never tested against reality
 
 - **WhatsApp / SMS notifications** (Step 96): built, never tested against a real device.
-- **Play Store**: nothing done. ~25 unchecked items — screenshots, feature graphic, privacy
-  policy, data-collection disclosure, terms, device and screen-size testing, pre-launch
-  report. Calendar-bound work that cannot be compressed at the end.
+- **Play Store**: deferred by decision on 2026-09-05, not outstanding. The app is installed
+  as a signed APK on tablets the restaurant owns, so the store's screenshots, privacy policy,
+  data-safety disclosure and review cycles buy nothing yet. The developer account is paid for
+  (one-time) and kept; `mobile/PLAY_STORE_READINESS.md` holds the route for when the POS is sold
+  to a second restaurant.
 
 ---
 
@@ -166,12 +168,14 @@ use over more analysis.
 
 Items 1 through 5 above are closed. What is left is the part that was never about code.
 
-1. **Run a real service on it.** Every defect worth having found so far came from operating the
+1. **Secure the release keystore.** `mobile/keystore/tannous-pos-release.jks` (alias
+   `tannous-pos-key`) signs every build, and Android will not replace an installed app with one
+   signed by a different key: losing it means wiping and reinstalling every tablet, and losing the
+   local database with it. Two things to do — keep a backup off this machine, and move the file
+   out of the working tree. It is gitignored, but it sits inside the repo where a `git clean -xdf`
+   would delete it. This is the only unrecoverable mistake currently available.
+2. **Run a real service on it.** Every defect worth having found so far came from operating the
    till, not from reading it. Nothing on this list will teach as much as one full evening.
-2. **Play Store preparation.** Start early; screenshots, policy pages and review cycles are slow
-   in a way code is not. Internal testing skips the data safety form, so the privacy policy is the
-   long pole, and the allergies field makes it a real one.
-3. **Test WhatsApp / SMS against a real device** (Step 96). Built, never once exercised.
-4. **Move the release keystore out of the working tree.** `local.properties` points at
-   `Tannous.Pos/keystore/`; both are gitignored, but a `git clean -xdf` would take the signing key
-   with it and there is no recovery from that.
+3. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
+   template-approval note in `TODO.md` first, because a passing sandbox test proves less than it
+   looks like it does.

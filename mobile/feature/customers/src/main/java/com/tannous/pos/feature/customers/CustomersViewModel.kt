@@ -50,8 +50,7 @@ class CustomersViewModel @Inject constructor(
         email: String?,
         phone: String?,
         address: String?,
-        notes: String?,
-        allergies: String?
+        notes: String?
     ) {
         if (firstName.isBlank() || lastName.isBlank()) {
             _uiState.update { it.copy(error = "First and last name are required") }
@@ -65,8 +64,7 @@ class CustomersViewModel @Inject constructor(
                 email = email,
                 phone = phone,
                 address = address,
-                notes = notes,
-                allergies = allergies
+                notes = notes
             )
             result.fold(
                 onSuccess = {
@@ -102,8 +100,7 @@ class CustomersViewModel @Inject constructor(
         email: String?,
         phone: String?,
         address: String?,
-        notes: String?,
-        allergies: String?
+        notes: String?
     ) {
         val customer = _uiState.value.editingCustomer ?: return
         val version = customer.version ?: return
@@ -123,7 +120,6 @@ class CustomersViewModel @Inject constructor(
                 phone = phone,
                 address = address,
                 notes = notes,
-                allergies = allergies,
                 version = version
             )
             _uiState.update { state ->

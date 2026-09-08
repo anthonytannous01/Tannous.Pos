@@ -1,5 +1,22 @@
 # Play Store Readiness Checklist - Tannous POS
 
+> **Current plan: direct APK install, not the Play Store.** Decided 2026-09-05. The app runs on
+> tablets in one restaurant that we own, so the store buys nothing and costs a privacy policy, a
+> data safety declaration, a store listing, screenshots, a content rating and a review cycle on
+> every update. Builds are signed with the release keystore and installed by hand. See **Direct
+> APK Install** below for that route.
+>
+> The Play developer account is already paid for (a one-time 25 USD registration, not a
+> subscription) and does not lapse, so nothing is lost by leaving it unused. Everything else in
+> this document stays valid as the route to take when the POS is sold to a second restaurant.
+>
+> Two facts that will matter then. Internal testing is exempt from the Data safety section, so it
+> is the cheap way to reach a handful of restaurants; closed, open and production tracks all
+> require the form plus a published privacy policy. And Google now requires developer verification
+> for sideloaded apps too - enforcement began 30 September 2026 in Brazil, Indonesia, Singapore and
+> Thailand, with global expansion planned from 2027. A Play developer account satisfies that
+> requirement, which is the other reason to keep the account rather than close it.
+
 ## ✅ App Store Listing Requirements
 
 ### App Icon
@@ -30,9 +47,9 @@
 
 ### Build Configuration
 - [x] **Target SDK**: 34 (Android 14)
-- [x] **Min SDK**: 24 (Android 7.0)
-- [x] **Version Code**: 1
-- [x] **Version Name**: "1.0.0"
+- [x] **Min SDK**: 26 (Android 8.0)
+- [x] **Version Code**: generated from commit count by `versioning.gradle.kts`
+- [x] **Version Name**: generated from the latest git tag
 - [x] **Package Name**: `com.tannous.pos`
 
 ### Signing & Security
@@ -66,7 +83,11 @@
 
 ### Privacy Policy
 - [ ] **Privacy Policy URL**: Required
-- [ ] **Data Collection**: Document what data is collected
+- [ ] **Data Collection**: Document what data is collected. Staff credentials, and customer
+      name / email / phone / address / notes. **No health data:** the customer allergies field
+      was removed in Step 129, so "Health info" does not apply and no GDPR special category is
+      involved. Notes is free text, so the policy should say it is staff-entered and not
+      intended for sensitive details. No card numbers anywhere: `PaymentMethod` is a string.
 - [ ] **Third-party Services**: none. No analytics or crash-reporting SDK ships in the app.
 - [ ] **Data Usage**: How data is used and stored
 
@@ -190,6 +211,29 @@ pos,point of sale,restaurant pos,retail pos,cash register,inventory management,s
 ./gradlew bundleProdRelease
 ```
 
+### Direct APK Install (the current route)
+
+```bash
+cd mobile
+./gradlew.bat assembleProdRelease
+```
+
+The APK lands in `app/build/outputs/apk/prod/release/`. Copy it to the tablet and open it; Android
+asks once for permission to install from that source. `adb install -r <apk>` does the same over
+USB.
+
+- **Install release builds, not debug.** Debug plants Timber's `DebugTree` and writes no log file,
+  so a tablet that misbehaves during service leaves nothing to read. See Diagnostic Logs below.
+- **Install over the existing app, do not uninstall first.** Uninstalling drops the Room database,
+  which means any queued outbox operations are lost and the Room migrations never run - so a
+  migration bug stays hidden until it hits a tablet that did upgrade in place.
+- **`versionCode` must increase** or Android refuses the update. It is generated from the commit
+  count by `versioning.gradle.kts`, so this takes care of itself as long as builds come from
+  committed work.
+- The same keystore signs every build. An APK signed with a different key cannot update an
+  installed one; Android rejects it and the only way through is uninstall, which loses the
+  database.
+
 ### Signing Setup
 
 **The release keystore is deliberately not in this repository.** `mobile/keystore/` and every
@@ -197,9 +241,25 @@ pos,point of sale,restaurant pos,retail pos,cash register,inventory management,s
 being committed by mistake in step-101. A fresh clone will not build a signed release until the
 keystore is copied in by hand from its offline backup.
 
-Losing the keystore means losing the ability to update the app on Play Store — there is no
+**There is exactly one release keystore:** `mobile/keystore/tannous-pos-release.jks`, alias
+`tannous-pos-key`, referenced from `local.properties` as `RELEASE_STORE_FILE`. Nothing else signs a
+release build. Verify a backup is the same file by comparing SHA-256:
+
+```powershell
+Get-FileHash mobile\keystore\tannous-pos-release.jks -Algorithm SHA256
+```
+
+Losing it means losing the ability to update the app - on Play Store and on a sideloaded install
+alike, since Android will not replace an app with one signed by a different key. There is no
 recovery. Keep at least one backup outside this machine (password manager or encrypted storage),
-and never place it inside the working tree of a repository.
+and never place it inside the working tree of a repository. It currently sits under
+`mobile/keystore/`, which is inside the tree: gitignored, but a `git clean -xdf` would delete it.
+
+`app/build.gradle.kts` also declares a second signing config, `ciRelease`, pointing at
+`ci/keystore.jks` with passwords from environment variables. That file does not exist and the CI
+pipeline is not active (see `CI_CD_SUMMARY.md`). If CI is ever revived, point `ciRelease` at this
+same keystore rather than generating a new one - a second key would produce APKs that cannot update
+the installed app.
 
 1. Create keystore (first time only): `keytool -genkey -v -keystore tannous-pos.keystore -alias tannous-pos -keyalg RSA -keysize 2048 -validity 10000`
 2. Place it at `mobile/keystore/` (gitignored) or anywhere outside the repo.
@@ -231,7 +291,7 @@ logger writing nothing would otherwise look exactly like a logger with nothing t
 
 **Do not log customer data.** These files sit on a tablet in a restaurant and can be read by anyone
 with physical access. The app's log statements use identifiers - order id, device id - rather than
-names, phone numbers, or the allergies field on a customer record. Keep it that way.
+names, phone numbers or the free-text notes on a customer record. Keep it that way.
 
 If crash reporting is ever wanted (selling this to another restaurant would be the reason), it is
 an additive change: add the SDK and plant a second tree beside this one.

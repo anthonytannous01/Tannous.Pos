@@ -24,8 +24,8 @@ import com.tannous.pos.core.data.local.entity.*
         KeyValueEntity::class,
         OutboxOperationEntity::class
     ],
-    version = 5,
-    exportSchema = false
+    version = 6,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -76,6 +76,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
         
+        /**
+         * Drops the customer allergies column.
+         *
+         * Allergy text is health data. It was collected by a field nobody had used and carried a
+         * disproportionate cost: a GDPR special category and a "Health info" declaration on Play,
+         * for a field the restaurant does not need. Removed rather than hidden, because a hidden
+         * field the API still accepts is still collected.
+         *
+         * The table is recreated rather than altered: SQLite gained ALTER TABLE ... DROP COLUMN in
+         * 3.35, which is newer than the SQLite shipping with minSdk 26.
+         */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `customers_new` (`id` TEXT NOT NULL, `firstName` TEXT NOT NULL, `lastName` TEXT NOT NULL, `email` TEXT, `phone` TEXT, `address` TEXT, `notes` TEXT, `isActive` INTEGER NOT NULL, `lastVisitDate` TEXT, `totalOrders` INTEGER NOT NULL, `isDeleted` INTEGER NOT NULL, `deletedAt` TEXT, `version` TEXT, PRIMARY KEY(`id`))")
+                database.execSQL(
+                    "INSERT INTO `customers_new` (`id`, `firstName`, `lastName`, `email`, `phone`, `address`, `notes`, `isActive`, `lastVisitDate`, `totalOrders`, `isDeleted`, `deletedAt`, `version`) " +
+                        "SELECT `id`, `firstName`, `lastName`, `email`, `phone`, `address`, `notes`, `isActive`, `lastVisitDate`, `totalOrders`, `isDeleted`, `deletedAt`, `version` FROM `customers`"
+                )
+                database.execSQL("DROP TABLE `customers`")
+                database.execSQL("ALTER TABLE `customers_new` RENAME TO `customers`")
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
         
@@ -86,7 +109,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "tannous_pos_database"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+                )
                 .build()
                 INSTANCE = instance
                 instance

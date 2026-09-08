@@ -12,7 +12,6 @@ public class UpdateCustomerCommand : IRequest<UpdateCustomerResult>
     public string? Phone    { get; set; }
     public string? Address  { get; set; }
     public string? Notes    { get; set; }
-    public string? Allergies { get; set; }
     public byte[]? Version  { get; set; }
 }
 

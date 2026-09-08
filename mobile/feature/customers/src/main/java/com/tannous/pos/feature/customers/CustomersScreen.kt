@@ -43,7 +43,6 @@ fun CustomersScreen(
     var editPhone by remember { mutableStateOf("") }
     var editEmail by remember { mutableStateOf("") }
     var editNotes by remember { mutableStateOf("") }
-    var editAllergies by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.editingCustomer?.id) {
         uiState.editingCustomer?.let { customer ->
@@ -52,7 +51,6 @@ fun CustomersScreen(
             editPhone = customer.phone.orEmpty()
             editEmail = customer.email.orEmpty()
             editNotes = customer.notes.orEmpty()
-            editAllergies = customer.allergies.orEmpty()
         }
     }
 
@@ -199,6 +197,13 @@ fun CustomersScreen(
                         value = notes,
                         onValueChange = { notes = it },
                         label = { Text(if (isArabic) "ملاحظات" else "Notes") },
+                        supportingText = {
+                            Text(
+                                if (isArabic) "لا تدوّن معلومات صحية أو طبية"
+                                else "No health or medical details",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
                     )
@@ -213,8 +218,7 @@ fun CustomersScreen(
                             email = email.takeIf { it.isNotBlank() },
                             phone = phone.takeIf { it.isNotBlank() },
                             address = null,
-                            notes = notes.takeIf { it.isNotBlank() },
-                            allergies = null
+                            notes = notes.takeIf { it.isNotBlank() }
                         )
                     },
                     enabled = firstName.isNotBlank() && lastName.isNotBlank() && !uiState.isLoading
@@ -272,15 +276,15 @@ fun CustomersScreen(
                         value = editNotes,
                         onValueChange = { editNotes = it },
                         label = { Text(if (isArabic) "ملاحظات" else "Notes") },
+                        supportingText = {
+                            Text(
+                                if (isArabic) "لا تدوّن معلومات صحية أو طبية"
+                                else "No health or medical details",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
-                    )
-                    OutlinedTextField(
-                        value = editAllergies,
-                        onValueChange = { editAllergies = it },
-                        label = { Text(if (isArabic) "الحساسية" else "Allergies") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
                     )
                     uiState.updateError?.let { error ->
                         Text(
@@ -303,8 +307,7 @@ fun CustomersScreen(
                             email = editEmail.takeIf { it.isNotBlank() },
                             phone = editPhone.takeIf { it.isNotBlank() },
                             address = null,
-                            notes = editNotes.takeIf { it.isNotBlank() },
-                            allergies = editAllergies.takeIf { it.isNotBlank() }
+                            notes = editNotes.takeIf { it.isNotBlank() }
                         )
                     },
                     enabled = editFirstName.isNotBlank() &&

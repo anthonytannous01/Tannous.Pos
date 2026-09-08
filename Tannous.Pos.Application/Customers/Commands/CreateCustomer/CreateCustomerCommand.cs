@@ -11,5 +11,4 @@ public class CreateCustomerCommand : IRequest<CustomerDto>
     public string? Phone    { get; set; }
     public string? Address  { get; set; }
     public string? Notes    { get; set; }
-    public string? Allergies { get; set; }
 }

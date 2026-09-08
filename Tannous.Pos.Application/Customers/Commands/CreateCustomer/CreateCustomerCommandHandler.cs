@@ -24,7 +24,6 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             Phone      = command.Phone,
             Address    = command.Address,
             Notes      = command.Notes,
-            Allergies  = command.Allergies,
             IsActive   = true
         };
 
@@ -40,7 +39,6 @@ public class CreateCustomerCommandHandler : IRequestHandler<CreateCustomerComman
             Phone       = customer.Phone,
             Address     = customer.Address,
             Notes       = customer.Notes,
-            Allergies   = customer.Allergies,
             IsActive    = customer.IsActive,
             LastVisitDate = customer.LastVisitDate,
             TotalOrders = customer.TotalOrders,

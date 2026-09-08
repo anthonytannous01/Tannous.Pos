@@ -268,7 +268,7 @@ builder.Services.Configure<DeliveryWebhookSettings>(
 builder.Services.AddScoped<IDeliveryChannelAdapter, TotersDeliveryAdapter>();
 builder.Services.AddScoped<IDeliveryChannelAdapter, TalabatDeliveryAdapter>();
 
-// Notifications (SMS / WhatsApp via Twilio)
+// Notifications (WhatsApp via Twilio)
 builder.Services.Configure<NotificationSettings>(
     builder.Configuration.GetSection(NotificationSettings.Section));
 builder.Services.AddHttpClient("Twilio"); // named client — no raw HttpClient in service

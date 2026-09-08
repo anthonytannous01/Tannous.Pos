@@ -1,7 +1,7 @@
 namespace Tannous.Pos.Domain.Interfaces;
 
 /// <summary>
-/// Sends customer-facing notifications (SMS or WhatsApp).
+/// Sends customer-facing notifications over WhatsApp.
 /// Implementations must be non-throwing — failures are logged and swallowed by callers.
 /// The default registration is <see cref="NullNotificationService"/> (no-op).
 /// Twilio is activated when Notifications:Twilio:AccountSid is configured.
