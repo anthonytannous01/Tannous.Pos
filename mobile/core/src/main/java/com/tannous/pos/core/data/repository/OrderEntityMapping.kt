@@ -20,7 +20,8 @@ fun OrderDto.toEntityForHistory(): OrderEntity {
         notes = notes,
         createdAt = created,
         receiptNumber = receiptNumber,
-        syncedAt = Instant.now()
+        syncedAt = Instant.now(),
+        existsOnServer = true   // came down from the server
     )
 }
 

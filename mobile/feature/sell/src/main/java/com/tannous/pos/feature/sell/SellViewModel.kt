@@ -13,6 +13,7 @@ import com.tannous.pos.core.data.model.PaymentDto
 import com.tannous.pos.core.data.remote.DeliveryService
 import com.tannous.pos.core.data.repository.CatalogRepository
 import com.tannous.pos.core.data.repository.CustomerRepository
+import com.tannous.pos.core.data.repository.OfflineFinalizeGuard
 import com.tannous.pos.core.data.repository.OrderRepository
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.data.repository.ShiftRepository
@@ -383,8 +384,18 @@ class SellViewModel @Inject constructor(
                 if (finalizeResult.isFailure) {
                     val error = finalizeResult.exceptionOrNull()
                     val errorMessage = when {
+                        // Must come before the generic network branch below. finalizeOrder refuses
+                        // to queue payment for an order the server has never seen, and that
+                        // refusal arrives as an IOException like any other. Reported as "queued
+                        // for sync" it would be the opposite of the truth: nothing was queued and
+                        // the money must not be taken.
+                        error?.message == OfflineFinalizeGuard.ORDER_NOT_ON_SERVER_MESSAGE -> {
+                            OfflineFinalizeGuard.ORDER_NOT_ON_SERVER_MESSAGE
+                        }
                         error is java.net.UnknownHostException || error is java.net.ConnectException -> {
-                            "Network error. Order queued for sync when connection is restored."
+                            // Reaching here means finalize failed outside the offline path, so do
+                            // not promise the order was queued - it was not.
+                            "Network error. The order was not completed. Check the connection and try again."
                         }
                         error?.message?.contains("401") == true -> {
                             "Authentication error. Please login again."

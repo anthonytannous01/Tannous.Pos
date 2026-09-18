@@ -24,7 +24,7 @@ import com.tannous.pos.core.data.local.entity.*
         KeyValueEntity::class,
         OutboxOperationEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -99,6 +99,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds orders.existsOnServer, the flag that stops a payment being taken for an order the
+         * server has never seen.
+         *
+         * Existing rows default to 1. They are historical: they were created before this column
+         * existed, under a build that always queued offline payments, so treating them as
+         * server-known changes nothing about them. New rows start false and are set true only when
+         * POST /orders succeeds or the row arrives from the server.
+         *
+         * ALTER TABLE ... ADD COLUMN is supported on every SQLite version this app runs on, so
+         * unlike MIGRATION_5_6 there is no need to recreate the table.
+         */
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE `orders` ADD COLUMN `existsOnServer` INTEGER NOT NULL DEFAULT 1"
+                )
+            }
+        }
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
         
@@ -110,7 +130,8 @@ abstract class AppDatabase : RoomDatabase() {
                     "tannous_pos_database"
                 )
                 .addMigrations(
-                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6,
+                    MIGRATION_6_7
                 )
                 .build()
                 INSTANCE = instance

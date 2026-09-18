@@ -52,7 +52,9 @@ class OrderRepository @Inject constructor(
             shiftId = shiftId,
             syncedAt = null,
             customerId = customerId,
-            notes = null
+            notes = null,
+            // Not on the server until POST /orders succeeds and rekeyOrderToServerId runs.
+            existsOnServer = false
         )
         
         orderDao.insert(order)
@@ -140,7 +142,23 @@ class OrderRepository @Inject constructor(
                 Result.success(finalizedOrder)
                 
             } catch (e: IOException) {
-                // Network error - enqueue to outbox for offline sync
+                // Network error. Queuing is only safe when the server already knows this order;
+                // otherwise the outbox would carry a FinalizeOrder for an id the server cannot
+                // find, the replay fails, nothing in the app reads that failure, and the sale is
+                // lost after the money was taken. See OfflineFinalizeGuard.
+                val localRow = orderDao.getById(orderId)
+                val decision = OfflineFinalizeGuard.decide(
+                    orderExistsOnServer = localRow?.existsOnServer ?: false
+                )
+                if (decision is OfflineFinalizeGuard.Decision.Refuse) {
+                    Timber.w(
+                        e,
+                        "Refusing offline finalize: order $orderId has never reached the server. " +
+                            "Payment not accepted, nothing queued."
+                    )
+                    return Result.failure(IOException(decision.message))
+                }
+
                 Timber.w(e, "Network error finalizing order $orderId. Enqueuing to outbox.")
                 
                 // Mark order as PAID locally (will sync later)
@@ -423,7 +441,8 @@ class OrderRepository @Inject constructor(
             notes = notes ?: fallback.notes,
             createdAt = created,
             receiptNumber = receiptNumber,
-            syncedAt = Instant.now()
+            syncedAt = Instant.now(),
+            existsOnServer = true   // only reached via a successful POST /orders
         )
     }
 }

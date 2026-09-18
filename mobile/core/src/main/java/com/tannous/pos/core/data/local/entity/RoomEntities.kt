@@ -1,5 +1,6 @@
 package com.tannous.pos.core.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import androidx.room.TypeConverters
@@ -89,7 +90,22 @@ data class OrderEntity(
     val notes: String?,
     val createdAt: Instant,
     val receiptNumber: String?,
-    val syncedAt: Instant?
+    val syncedAt: Instant?,
+    /**
+     * True once the server has acknowledged this order (POST /orders succeeded, or the row came
+     * down from the server). False for an order started on this device that has not reached the
+     * server yet.
+     *
+     * Finalize refuses to queue payment for an order with this false: the outbox would carry a
+     * FinalizeOrder for an id the server has never seen, which fails on replay and loses the sale
+     * after the money was taken. See OfflineFinalizeGuard.
+     *
+     * The Kotlin default is false because a freshly started order has not reached the server. The
+     * SQL default is 1 for the opposite reason: rows that already existed when this column was
+     * added are historical and were server-known.
+     */
+    @ColumnInfo(defaultValue = "1")
+    val existsOnServer: Boolean = false
 )
 
 @Entity(tableName = "order_lines")
