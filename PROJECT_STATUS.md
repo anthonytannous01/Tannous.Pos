@@ -190,15 +190,23 @@ use over more analysis.
 
 Items 1 through 5 above are closed. What is left is the part that was never about code.
 
-1. **Secure the release keystore.** `mobile/keystore/tannous-pos-release.jks` (alias
-   `tannous-pos-key`) signs every build, and Android will not replace an installed app with one
-   signed by a different key: losing it means wiping and reinstalling every tablet, and losing the
-   local database with it. Two things to do — keep a backup off this machine, and move the file
-   out of the working tree. It is gitignored, but it sits inside the repo where a `git clean -xdf`
-   would delete it. This is the only unrecoverable mistake currently available.
-2. **Run a real service on it.** Every defect worth having found so far came from operating the
+1. **Run a real service on it.** Every defect worth having found so far came from operating the
    till, not from reading it. Nothing on this list will teach as much as one full evening. Use the
-   release build, not dev: it is the one that writes a log file when something goes wrong.
-3. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
+   release build, not dev: it is the one that writes a log file when something goes wrong. Work
+   down `SERVICE_RUNBOOK.md` beforehand.
+2. **Test both Room migrations against a real database, before the service.** Install a build from
+   the current commit over the existing dev app: its database is at v5, so `MIGRATION_5_6` and
+   `MIGRATION_6_7` run back to back against real rows, with nothing at stake if they fail. That is
+   the only v5 database that will ever exist, and uninstalling dev destroys it. Then install the
+   prod release over the prod app, which exercises `6_7` on the database that matters.
+3. **Reserve the server's IP on the router.** `API_BASE_URL` is compiled into the APK, so when the
+   lease for `192.168.10.231` moves, every tablet stops at once and the fix is a rebuild and a
+   reinstall, not a setting.
+4. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
    template-approval note in `TODO.md` first, because a passing sandbox test proves less than it
    looks like it does.
+
+The release keystore is backed up in a password manager as of 2026-09-29. Confirm the item also
+holds the alias and both passwords: the .jks alone cannot be opened. The copy under `mobile/keystore/` is still inside the working tree, where a
+`git clean -xdf` would delete it; with the backup in place that is inconvenience rather than loss,
+so moving it out is tidiness and no longer urgent.
