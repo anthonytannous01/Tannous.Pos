@@ -15,6 +15,26 @@ other way round.
 
 ---
 
+## Network facts
+
+| | |
+|---|---|
+| Server machine adapter | `Wi-Fi 2`, MAC `7C-DD-90-B2-D2-07` |
+| Server address | `192.168.10.231/24` |
+| Gateway / router admin | `192.168.10.1` |
+| Wi-Fi network | "Serge wifi" — must be `NetworkCategory : Private` |
+| DHCP reservation | **to confirm** on the router for that MAC |
+
+**`ipconfig` shows three IPv4 addresses on this machine and only one of them is the server.**
+`172.18.160.1` is the Hyper-V Default Switch and `172.26.0.1` is WSL; both are virtual adapters
+that no tablet can reach. The one that matters is the `192.168.10.x` address on `Wi-Fi 2`.
+
+A release-and-renew returning `192.168.10.231` is not evidence of a reservation: a router hands the
+same address back to the same MAC by default. Only an entry on the router guarantees it survives a
+lease expiry, a router reboot, or a full address pool.
+
+---
+
 ## Before service
 
 Each step depends on the one above it. Do them in order.
