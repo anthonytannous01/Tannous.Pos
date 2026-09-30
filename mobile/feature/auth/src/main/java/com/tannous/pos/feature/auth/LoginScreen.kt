@@ -9,6 +9,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tannous.pos.core.ui.LocalIsArabic
+import com.tannous.pos.core.ui.ServerAddressSection
 
 @Composable
 fun LoginScreen(
@@ -81,6 +82,55 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
+            // A login failure is often the server being unreachable rather than a wrong password,
+            // and the address is the thing to check. Say so here rather than leaving someone to
+            // retype their password at a till that cannot reach anything.
+            Text(
+                text = if (isArabic) {
+                    "إذا لم يستجب الجهاز إطلاقاً، تحقّق من عنوان الخادم أدناه."
+                } else {
+                    "If nothing responds at all, check the server address below."
+                },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Always reachable, including when the app cannot reach the server. Putting this behind
+        // login would make the setting that fixes a broken connection require a working one.
+        TextButton(onClick = { viewModel.showServerSettings() }) {
+            Text(if (isArabic) "عنوان الخادم" else "Server address")
+        }
+
+        Text(
+            text = uiState.serverAddress,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
+    if (uiState.showServerSettings) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissServerSettings() },
+            confirmButton = {
+                TextButton(onClick = { viewModel.dismissServerSettings() }) {
+                    Text(if (isArabic) "إغلاق" else "Close")
+                }
+            },
+            text = {
+                ServerAddressSection(
+                    isArabic = isArabic,
+                    address = uiState.serverAddress,
+                    isOverridden = uiState.serverAddressIsOverridden,
+                    defaultAddress = uiState.serverAddressDefault,
+                    error = uiState.serverAddressError,
+                    onAddressChange = viewModel::setServerAddressInput,
+                    onSave = viewModel::saveServerAddress,
+                    onReset = viewModel::resetServerAddress
+                )
+            }
+        )
     }
 }

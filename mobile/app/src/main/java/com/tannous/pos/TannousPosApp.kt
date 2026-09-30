@@ -262,6 +262,8 @@ fun TannousPosApp(
                     onNavigateToIntegrations = { navController.navigate("integrations") },
                     onNavigateToMenuManagement = { navController.navigate("menu-management") },
                     onNavigateToTableManagement = { navController.navigate("table-management") },
+                    // AuthState.LoggedOut already drives navigation back to "login" above.
+                    onLogout = { authViewModel.logout() },
                     // Pass the Activity-scoped instance so language toggles propagate to the root.
                     // SettingsScreen's default hiltViewModel() would create a BackStackEntry-scoped
                     // instance that is invisible to TannousPosApp's CompositionLocalProvider.

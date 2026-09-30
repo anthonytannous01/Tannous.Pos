@@ -38,12 +38,15 @@ object NetworkModule {
     @Singleton
     @javax.inject.Named("AuthClient")
     fun provideAuthOkHttpClient(
+        serverAddressInterceptor: ServerAddressInterceptor,
         deviceIdInterceptor: DeviceIdInterceptor,
         idempotencyKeyInterceptor: IdempotencyKeyInterceptor,
         etagInterceptor: EtagInterceptor,
         retryAfterInterceptor: RetryAfterInterceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
+            // First: every other interceptor should see the URL the request will actually go to.
+            .addInterceptor(serverAddressInterceptor)
             .addInterceptor(deviceIdInterceptor)
             .addInterceptor(idempotencyKeyInterceptor)
             .addInterceptor(etagInterceptor)
@@ -90,6 +93,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideOkHttpClient(
+        serverAddressInterceptor: ServerAddressInterceptor,
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
         deviceIdInterceptor: DeviceIdInterceptor,
@@ -99,6 +103,8 @@ object NetworkModule {
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .authenticator(tokenAuthenticator)
+            // First: every other interceptor should see the URL the request will actually go to.
+            .addInterceptor(serverAddressInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(deviceIdInterceptor)
             .addInterceptor(idempotencyKeyInterceptor)

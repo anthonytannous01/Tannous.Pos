@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.ui.LanguageViewModel
 import com.tannous.pos.core.ui.LocalIsArabic
+import com.tannous.pos.core.ui.ServerAddressSection
 import com.tannous.pos.feature.settings.printer.PrinterSettingsSection
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +81,7 @@ fun SettingsScreen(
     onNavigateToIntegrations: () -> Unit = {},
     onNavigateToMenuManagement: () -> Unit = {},
     onNavigateToTableManagement: () -> Unit = {},
+    onLogout: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     languageViewModel: LanguageViewModel = hiltViewModel()
 ) {
@@ -87,12 +89,48 @@ fun SettingsScreen(
     val isArabic = LocalIsArabic.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    var showLogoutConfirm by remember { mutableStateOf(false) }
     var showLebanonPresetDialog by remember { mutableStateOf(false) }
 
     if (showLebanonPresetDialog) {
         LebanonPresetDialog(
             onConfirm = { viewModel.applyLebanonPreset() },
             onDismiss = { showLebanonPresetDialog = false }
+        )
+    }
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text(if (isArabic) "تسجيل الخروج؟" else "Log out?") },
+            text = {
+                Text(
+                    if (uiState.pendingSyncCount > 0) {
+                        // Queued operations need a signed-in user to push. Saying so here is the
+                        // difference between a delayed sale and a lost one.
+                        if (isArabic) {
+                            "هناك ${uiState.pendingSyncCount} عملية بانتظار المزامنة. لن تُرسل حتى يسجّل أحد الدخول مجدداً."
+                        } else {
+                            "${uiState.pendingSyncCount} operation(s) are still waiting to sync. " +
+                                "They will not be sent until someone logs in again."
+                        }
+                    } else {
+                        if (isArabic) "ستحتاج إلى اسم المستخدم وكلمة المرور للدخول مجدداً."
+                        else "You will need a username and password to get back in."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLogoutConfirm = false
+                    onLogout()
+                }) { Text(if (isArabic) "تسجيل الخروج" else "Log out") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutConfirm = false }) {
+                    Text(if (isArabic) "إلغاء" else "Cancel")
+                }
+            }
         )
     }
 
@@ -547,6 +585,38 @@ fun SettingsScreen(
                             Icon(Icons.Default.ArrowForward, contentDescription = null)
                         }
                     }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { showLogoutConfirm = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isArabic) "تسجيل الخروج" else "Log out",
+                                color = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+                            Icon(
+                                Icons.Default.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+
+                    ServerAddressSection(
+                        isArabic = isArabic,
+                        address = uiState.serverAddress,
+                        isOverridden = uiState.serverAddressIsOverridden,
+                        defaultAddress = uiState.serverAddressDefault,
+                        error = uiState.serverAddressError,
+                        onAddressChange = viewModel::setServerAddressInput,
+                        onSave = viewModel::saveServerAddress,
+                        onReset = viewModel::resetServerAddress
+                    )
 
                     run {
                         PrinterSettingsSection(

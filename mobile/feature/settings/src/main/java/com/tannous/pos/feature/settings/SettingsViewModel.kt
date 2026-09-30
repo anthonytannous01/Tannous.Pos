@@ -7,6 +7,7 @@ import com.tannous.pos.core.data.local.entity.OutboxStatus
 import com.tannous.pos.core.data.model.PrinterConfig
 import com.tannous.pos.core.data.model.PrinterConnectionType
 import com.tannous.pos.core.data.model.UpdateSettingsRequest
+import com.tannous.pos.core.data.remote.ServerAddressStore
 import com.tannous.pos.core.data.repository.SettingsRepository
 import com.tannous.pos.core.printing.PrintResult
 import com.tannous.pos.core.printing.PrinterService
@@ -26,7 +27,8 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val outboxDao: OutboxDao,
-    private val printerService: PrinterService
+    private val printerService: PrinterService,
+    private val serverAddressStore: ServerAddressStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -38,6 +40,47 @@ class SettingsViewModel @Inject constructor(
         loadLanguage()
         loadKioskPin()
         loadPrinterConfig()
+        loadServerAddress()
+    }
+
+    private fun loadServerAddress() {
+        _uiState.update {
+            it.copy(
+                serverAddress = serverAddressStore.effectiveAddress(),
+                serverAddressIsOverridden = serverAddressStore.isOverridden(),
+                serverAddressDefault = serverAddressStore.compiledAddress(),
+                serverAddressError = null
+            )
+        }
+    }
+
+    /** Typing only; nothing is stored until [saveServerAddress]. */
+    fun setServerAddressInput(value: String) {
+        _uiState.update { it.copy(serverAddress = value, serverAddressError = null) }
+    }
+
+    /**
+     * Stores the address, or reports why it was rejected. A rejected value is deliberately not
+     * saved: a typo here points the tablet at nothing, and this screen would be the only way back.
+     */
+    fun saveServerAddress() {
+        val entered = _uiState.value.serverAddress
+        if (serverAddressStore.save(entered)) {
+            Timber.i("Server address changed by operator. Overridden=%s", serverAddressStore.isOverridden())
+            loadServerAddress()
+            _uiState.update { it.copy(saveSuccess = true) }
+        } else {
+            _uiState.update {
+                it.copy(serverAddressError = "Not a usable address. Example: 192.168.10.231:7000")
+            }
+        }
+    }
+
+    /** Back to the address this build was compiled with. */
+    fun resetServerAddress() {
+        serverAddressStore.save(null)
+        Timber.i("Server address reset to the compiled-in default")
+        loadServerAddress()
     }
 
     private fun loadPrinterConfig() {
@@ -178,7 +221,15 @@ class SettingsViewModel @Inject constructor(
                                 it.status == OutboxStatus.FAILED_CONFLICT
                         }
                         .sumOf { it.count }
-                    _uiState.update { it.copy(failedSyncCount = failedCount) }
+                    // Pending operations need a signed-in user to push, so logging out with any
+                    // queued strands them until someone logs back in. The logout confirmation says
+                    // so rather than letting a shift handover silently park a sale.
+                    val pendingCount = counts
+                        .filter { it.status == OutboxStatus.PENDING }
+                        .sumOf { it.count }
+                    _uiState.update {
+                        it.copy(failedSyncCount = failedCount, pendingSyncCount = pendingCount)
+                    }
                 }
         }
     }
@@ -417,6 +468,11 @@ data class SettingsUiState(
     val notifyOnLoyaltyEarn: Boolean = false,
     val notifyOnReservationConfirm: Boolean = false,
     val failedSyncCount: Int = 0,
+    val pendingSyncCount: Int = 0,
+    val serverAddress: String = "",
+    val serverAddressIsOverridden: Boolean = false,
+    val serverAddressDefault: String = "",
+    val serverAddressError: String? = null,
     val language: String = SettingsRepository.LANG_EN,
     val kioskPin: String = SettingsRepository.DEFAULT_KIOSK_PIN,
     val printerConnectionType: PrinterConnectionType = PrinterConnectionType.BLUETOOTH,

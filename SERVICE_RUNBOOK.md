@@ -92,6 +92,7 @@ Each step depends on the one above it. Do them in order.
 |---|---|
 | **"No connection, and this order was never sent to the server. Reconnect and try again before taking payment."** | **Do not take the money.** The order reached the tablet but not the server. Nothing is lost; it is still on screen. Check the `dotnet run` window, then the tablet's Wi-Fi, then finalize the same order again. This refusal replaced a sale that printed a receipt, took the cash, and never reached the day's totals (Step 131). |
 | Receipt number starts with `PENDING#` | **Carry on.** The order was already on the server and the payment is queued. It syncs when the connection returns and the real receipt number replaces this one. |
+| **Nothing on the tablet reaches the server at all** | Check the API window is still running, then the Wi-Fi. If the server's address has changed, fix it on the tablet: **Server address** on the login screen, or in Settings if you are already logged in. Type the address and port, e.g. `192.168.10.231:7000`. No rebuild needed. **Reset to built-in** undoes it. |
 | Printer will not print | **Do not repeat the sale.** It is already recorded; running it again charges twice. Reprint from the receipt screen or share the text. |
 | Shift will not open or close, or a customer will not save | **Not a bug.** These require the server and are never queued, deliberately: a shift the tablet believes is open with no server record makes the day's cash reconcile against nothing. |
 | A total looks wrong | **Note the order number and finish the sale.** Re-entering an order under pressure turns one wrong figure into two, and the order number is enough to reconstruct it later. |
@@ -103,6 +104,9 @@ Each step depends on the one above it. Do them in order.
 
 - **Pull the log:** `adb pull /sdcard/Android/data/com.tannous.pos/files/logs`. It records WARN and
   above only, so a short or empty file is good news.
+- **Open Settings on the tablet and look for the failed-sync card.** A red card reading
+  "N sync operation(s) failed" means operations never reached the server. It gives a count and
+  nothing else, so pair it with the log to find out which.
 - **Check no receipt still reads `PENDING#`.** One that remains means a queued payment never
   synced, and the log is the only place that says why.
 - **Reconcile cash against the day's total** and look up any order number noted during service.
@@ -112,8 +116,12 @@ Each step depends on the one above it. Do them in order.
 
 ## Known limits as of Step 131
 
-- **A failed sync operation is invisible in the app.** Nothing reads `OutboxStatus.FAILED`, so if
-  the totals disagree the log file is the only trace. Worth its own step.
+- **A failed sync operation is reported only on the Settings screen**, as a red card reading
+  "N sync operation(s) failed" with the advice to contact support. It is a count, not a list: it
+  does not say which operations, which orders, or how much money. Nobody sees it during service
+  because nobody opens Settings during service. **Check it after every service**, alongside the log.
+  (An earlier version of this file said failed operations were invisible. That was wrong; the
+  banner exists.)
 - **Orders cannot be created while the server is unreachable.** Deliberate; see
   `OfflineFinalizeGuard`. The alternative lost the sale silently after the money was taken.
 - **The server address is compiled into the APK.** A settings screen for it is the better long-term
