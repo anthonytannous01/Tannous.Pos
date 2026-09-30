@@ -194,17 +194,17 @@ Items 1 through 5 above are closed. What is left is the part that was never abou
    till, not from reading it. Nothing on this list will teach as much as one full evening. Use the
    release build, not dev: it is the one that writes a log file when something goes wrong. Work
    down `SERVICE_RUNBOOK.md` beforehand.
-2. **Test both Room migrations against a real database, before the service.** Install a build from
-   the current commit over the existing dev app: its database is at v5, so `MIGRATION_5_6` and
-   `MIGRATION_6_7` run back to back against real rows, with nothing at stake if they fail. That is
-   the only v5 database that will ever exist, and uninstalling dev destroys it. Then install the
-   prod release over the prod app, which exercises `6_7` on the database that matters.
-3. **Reserve the server's IP on the router.** `API_BASE_URL` is compiled into the APK, so when the
-   lease for `192.168.10.231` moves, every tablet stops at once and the fix is a rebuild and a
-   reinstall, not a setting.
-4. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
+2. **Test WhatsApp against a real phone** (Step 96). Built, never once exercised — and read the
    template-approval note in `TODO.md` first, because a passing sandbox test proves less than it
    looks like it does.
+3. **Uninstall the dev app** (`com.tannous.pos.dev`). Its v5 database has served its purpose. Two
+   apps on one tablet, identically named until dev is rebuilt, already cost an hour of looking at
+   the wrong build.
+
+Closed 2026-09-30: both Room migrations ran against a real v5 database, upgraded in place through
+`MIGRATION_5_6` and `MIGRATION_6_7`, with the rows intact. Neither had ever executed anywhere. The
+DHCP reservation is no longer on this list: Step 133 made the server address editable on the tablet,
+so a moved address is a 20-second fix rather than a rebuild.
 
 The release keystore is backed up in a password manager as of 2026-09-29. Confirm the item also
 holds the alias and both passwords: the .jks alone cannot be opened. The copy under `mobile/keystore/` is still inside the working tree, where a

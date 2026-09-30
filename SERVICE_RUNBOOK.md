@@ -128,5 +128,5 @@ Each step depends on the one above it. Do them in order.
   answer if this is ever sold to another restaurant.
 - **Traffic on the Wi-Fi is unencrypted, including staff logins.** Keep POS devices and the server
   off the guest network. The real fix is HTTPS on the backend; see `PLAY_STORE_READINESS.md`.
-- **`MIGRATION_5_6` has never executed.** The prod database was created at v6, so it skips to
-  `6_7`. The only v5 database that exists is in the dev app.
+- **Both Room migrations have now run against a real database** (2026-09-30), upgrading the dev
+  app in place from v5 with its rows intact. No longer a risk.
